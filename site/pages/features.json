@@ -1,0 +1,136 @@
+{
+  "nav": "Features",
+  "metaTitle": "Features — Instinct",
+  "metaDescription": "Every Instinct feature as designed: pet self-preservation, veterancy, quality genetics, flocking, the feeding trough, the command whistle, downed pets, and modded-animal coverage.",
+  "title": "Features",
+  "lede": "Everything below is the committed design — the numbers are the spec's. Instinct is in development; features ship against these promises.",
+  "width": "4xl",
+  "scale": true,
+  "sections": [
+    {
+      "id": "self-preservation",
+      "title": "Pets That Look Before They Leap",
+      "intro": "Tamed pets gain a survival instinct — the deaths that were your pathing's fault stop happening.",
+      "blocks": [
+        {
+          "type": "prose",
+          "html": [
+            "Tamed wolves, cats, and parrots treat lava, fire, and cactus as walls when they pathfind — they walk around, or stay put if there is no safe route. When a creeper's fuse lights within reach, pets immediately move to a 4-block berth at 1.4× speed; a sitting pet stands, steps clear, and sits back down at its new spot. Stay means stay — minus the blast radius.",
+            "The follow-owner teleport is suppressed while you are falling more than 3 blocks, swimming in lava, or gliding on elytra — your wolf keeps walking toward you on safe ground and teleports again the moment you land."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "veterancy",
+      "title": "Veteran Pets",
+      "intro": "Pets quietly grow stronger the longer they survive with you.",
+      "blocks": [
+        {
+          "type": "prose",
+          "html": [
+            "Every pet counts the in-game days since you tamed it — even while it waits at home. At 10, 30, and 60 days it gains a rank: Seasoned, Veteran, Venerable. Each rank adds one heart of max health and +1 attack damage, up to +3 hearts and +3 damage. Rank-ups heal the new heart, burst heart particles, and tell you in one quiet line.",
+            "Crouch and look at your pet with an empty hand to read where it stands: <code>✦ Rex has seen 43 days — Veteran.</code> Veterancy is individual — puppies start at zero, and losing an old pet costs something a bone can't replace."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "genetics",
+      "title": "Quality Genetics",
+      "intro": "Well-tended breeding produces better animals; crowded pits produce worse ones.",
+      "blocks": [
+        {
+          "type": "prose",
+          "html": [
+            "Livestock carry a bloodline grade — ordinary, sturdy, or prime. Breed animals within 8 blocks of a hay bale (or trough-fed within the last day) and the offspring has a 50% chance to climb a grade; breed in a crush of more than 12 animals within 8 blocks and it risks slipping one. Newborns of graded stock also inherit a small perk — extra health or speed.",
+            "A prime cow drops 2 extra beef and 1 extra leather; prime sheep shear +2 wool and prime chickens lay 20% faster. A <strong>Pedigree Treat</strong> (golden carrot + hay bale + honey bottle) guarantees an animal's next offspring is born prime. Crouch-look reads any animal's grade in one line.",
+            "Because the bonuses ride on well-tended pastures instead of breeding pits, the best farm is also the least laggy one."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "flocking",
+      "title": "Flocking & Herding",
+      "intro": "Lured animals follow like a herd, not a mosh pit.",
+      "blocks": [
+        {
+          "type": "prose",
+          "html": [
+            "Hold wheat, carrots, or seeds and the matching animals form a flock behind you — 15% faster than vanilla, holding a loose 2-block spacing instead of shoving into your back, and stopping at arm's length while you stand still. Moving twelve cows across a river becomes a drive, not a scrum."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "trough",
+      "title": "The Feeding Trough",
+      "intro": "Passive, low-lag farm automation in one wooden block.",
+      "blocks": [
+        {
+          "type": "prose",
+          "html": [
+            "Built from planks and a fence, the trough holds one stack of feed — wheat, carrots, potatoes, beetroot, or seeds, and a hay bale converts to 9 wheat on insert. Animals within 10 blocks help themselves when ready to breed (one item per meal) and pair off on their own; babies may snack for a 10% growth boost. Hoppers can fill it; comparators read it.",
+            "The trough self-limits: when more than 16 animals stand in its radius it keeps feeding babies but stops starting new breeding — your passive farm can't overflow into a lag machine."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "whistle",
+      "title": "The Command Whistle",
+      "intro": "One item that moves the whole pack.",
+      "blocks": [
+        {
+          "type": "prose",
+          "html": [
+            "Cut from copper and bone, the whistle speaks to every tamed pet within 20 blocks. Left-click toggles the pack between Stay and Follow — one press, one coherent pack state, answered in one dry line (<code>✦ 3 pets will stay.</code>). Right-click while pointing at a mob up to 24 blocks away and every combat-capable pet stands and attacks it.",
+            "Commanding fifteen wolves stops meaning fifteen crouch-clicks — and pets sent after a creeper still break off when the fuse lights."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "downed",
+      "title": "Downed, Not Dead",
+      "intro": "A pet's death becomes a rescue, not a funeral — at a price.",
+      "blocks": [
+        {
+          "type": "prose",
+          "html": [
+            "When lethal damage would kill a pet, it collapses instead: helpless, whimpering, ignored by monsters, invulnerable, and it waits — indefinitely, across saves and logouts — until someone brings it back. Revive it with a golden apple or a <strong>Vet Kit</strong> (paper + string + honey bottle); it stands at half health with regeneration, and the rescue costs one veterancy rank.",
+            "Fire, lava, and the void are beyond saving — which is exactly what their survival instinct is for."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "modded-animals",
+      "title": "Modded Animals Welcome",
+      "intro": "Third-party animals are covered by convention, not per-mod code.",
+      "blocks": [
+        {
+          "type": "prose",
+          "html": [
+            "Any modded animal that behaves like a vanilla one joins automatically: a tameable otter or ferret reads as a pet (self-preservation, veterancy, whistle, downed), a breedable critter reads as livestock (genetics, flocking, trough). Animal mods and datapacks can opt species in or out with one tag entry, add their feed to the trough's menu, and give their species proper product yields with one small data file — no code, no dependency. Server owners get the final word by name in the config.",
+            "Species without curated data still work: drop bonuses mirror the animal's own loot, so even an unknown creature gets sensible yields."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "better-together",
+      "title": "Better Together",
+      "intro": "Instinct is complete on its own — siblings light up extra touches, never required.",
+      "blocks": [
+        {
+          "type": "prose",
+          "html": [
+            "With <strong>Mercantile</strong>, butchers and farmers sell Vet Kits and Pedigree Treats at high reputation. With <strong>Tribulation</strong>, days survived at difficulty tier 3+ count double toward veterancy. With <strong>Prosperity</strong>, far-tier chests occasionally hold a Vet Kit or a Pedigree Treat. With <strong>Cultivation</strong>, farm produce pours straight into the feeding trough. With <strong>Distillation</strong>, a brewed remedy joins the revival shelf. With <strong>Respite</strong>, its swift nights age pets and finish breeding rests on the same clock. With none of them installed, nothing is missing."
+          ]
+        }
+      ]
+    }
+  ]
+}

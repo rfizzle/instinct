@@ -1,0 +1,27 @@
+{
+  "id": "instinct",
+  "name": "Instinct",
+  "domain": "instinct.rfizzle.com",
+  "url": "https://instinct.rfizzle.com",
+  "description": "A husbandry overhaul for Minecraft 1.21.1 (Fabric).",
+  "metaKeywords": "Minecraft, Fabric mod, husbandry, pets, wolf, animal breeding, genetics, feeding trough, command whistle, pet revival, 1.21.1",
+  "github": "https://github.com/rfizzle/instinct",
+  "defaultBranch": "master",
+  "copyright": "© 2026 rfizzle. Instinct is not affiliated with Mojang Studios or Microsoft.",
+  "footerMeta": "Minecraft 1.21.1 · Fabric",
+  "nav": [
+    "index",
+    "features",
+    "config",
+    "commands",
+    "developers",
+    "faq"
+  ],
+  "theme": {
+    "accent": "#E5709B",
+    "accentDark": "#98405F",
+    "accent2": "#B8622B",
+    "accent2Bright": "#D98A4A",
+    "glowRgb": "229, 112, 155"
+  }
+}

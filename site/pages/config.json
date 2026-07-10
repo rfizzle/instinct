@@ -1,0 +1,61 @@
+{
+  "nav": "Config",
+  "metaTitle": "Config — Instinct",
+  "metaDescription": "Every Instinct config option: animal coverage, self-preservation, veterancy, genetics, flocking, trough, whistle, and downed-state keys with types, defaults, and ranges.",
+  "title": "Config",
+  "lede": "config/instinct.json — created with defaults on first launch, edited in-game via Mod Menu + Cloth Config, hot-reloaded with /instinct reload. Every feature toggles independently; values clamp to their ranges.",
+  "width": "4xl",
+  "sections": [
+    {
+      "title": "Server config",
+      "blocks": [
+        {
+          "type": "table",
+          "headers": ["Key", "Type", "Default", "Range", "Feature"],
+          "nowrapHeaders": true,
+          "rows": [
+            ["<code>autoDetectAnimals</code>", "bool", "<code>true</code>", "—", "Animal coverage"],
+            ["<code>petsInclude</code>", "list", "<code>[]</code>", "entity ids", "Animal coverage"],
+            ["<code>petsExclude</code>", "list", "<code>[]</code>", "entity ids", "Animal coverage"],
+            ["<code>livestockInclude</code>", "list", "<code>[]</code>", "entity ids", "Animal coverage"],
+            ["<code>livestockExclude</code>", "list", "<code>[]</code>", "entity ids", "Animal coverage"],
+            ["<code>enableSelfPreservation</code>", "bool", "<code>true</code>", "—", "Self-preservation"],
+            ["<code>creeperBerthBlocks</code>", "int", "<code>4</code>", "2–8", "Self-preservation"],
+            ["<code>teleportSuppressFallDistance</code>", "double", "<code>3.0</code>", "0.5–10.0", "Self-preservation"],
+            ["<code>enableVeterancy</code>", "bool", "<code>true</code>", "—", "Veterancy"],
+            ["<code>veterancyThresholdDays</code>", "int list", "<code>[10, 30, 60]</code>", "ascending, 1–1000", "Veterancy"],
+            ["<code>healthPerRank</code>", "double", "<code>2.0</code>", "0.0–20.0", "Veterancy"],
+            ["<code>damagePerRank</code>", "double", "<code>1.0</code>", "0.0–10.0", "Veterancy"],
+            ["<code>enableGenetics</code>", "bool", "<code>true</code>", "—", "Genetics"],
+            ["<code>enableGenericDropMirror</code>", "bool", "<code>true</code>", "—", "Genetics"],
+            ["<code>hayRadiusBlocks</code>", "int", "<code>8</code>", "2–16", "Genetics"],
+            ["<code>crowdingThreshold</code>", "int", "<code>12</code>", "4–64", "Genetics"],
+            ["<code>crowdingRadiusBlocks</code>", "int", "<code>8</code>", "4–16", "Genetics"],
+            ["<code>gradeUpgradeChance</code>", "double", "<code>0.5</code>", "0.0–1.0", "Genetics"],
+            ["<code>gradeDowngradeChance</code>", "double", "<code>0.5</code>", "0.0–1.0", "Genetics"],
+            ["<code>enableFlocking</code>", "bool", "<code>true</code>", "—", "Flocking"],
+            ["<code>flockSpeedMultiplier</code>", "double", "<code>1.15</code>", "1.0–1.5", "Flocking"],
+            ["<code>flockSpacingBlocks</code>", "double", "<code>2.0</code>", "1.0–4.0", "Flocking"],
+            ["<code>enableTrough</code>", "bool", "<code>true</code>", "—", "Feeding trough"],
+            ["<code>troughRadiusBlocks</code>", "int", "<code>10</code>", "4–24", "Feeding trough"],
+            ["<code>troughFeedIntervalTicks</code>", "int", "<code>40</code>", "10–200", "Feeding trough"],
+            ["<code>troughPopulationCap</code>", "int", "<code>16</code>", "0–64 (0 = off)", "Feeding trough"],
+            ["<code>enableWhistle</code>", "bool", "<code>true</code>", "—", "Command whistle"],
+            ["<code>whistleRadiusBlocks</code>", "int", "<code>20</code>", "8–48", "Command whistle"],
+            ["<code>whistleTargetRangeBlocks</code>", "int", "<code>24</code>", "8–64", "Command whistle"],
+            ["<code>whistleCooldownTicks</code>", "int", "<code>20</code>", "0–100", "Command whistle"],
+            ["<code>enableDownedState</code>", "bool", "<code>true</code>", "—", "Downed pets"],
+            ["<code>reviveHealthFraction</code>", "double", "<code>0.5</code>", "0.1–1.0", "Downed pets"],
+            ["<code>downedRankPenalty</code>", "bool", "<code>true</code>", "—", "Downed pets"],
+            ["<code>enableInspection</code>", "bool", "<code>true</code>", "—", "Crouch-look lines"]
+          ]
+        },
+        {
+          "type": "note",
+          "html": "Instinct has no client config in v1 — no HUD, no client rendering toggles. Full behavioral detail for every key lives in <a href='https://github.com/rfizzle/instinct/blob/master/design/SPEC.md' class='text-accent hover:text-accent2 underline'>design/SPEC.md</a>.",
+          "center": true
+        }
+      ]
+    }
+  ]
+}

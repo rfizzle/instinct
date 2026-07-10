@@ -1,0 +1,48 @@
+{
+  "nav": "FAQ",
+  "metaTitle": "FAQ — Instinct",
+  "metaDescription": "Frequently asked questions about Instinct: release status, server needs, modded-animal support, pet death, and how it differs from Cultivation.",
+  "title": "FAQ",
+  "lede": "Short answers to the questions that matter before you install.",
+  "width": "3xl",
+  "sections": [
+    {
+      "title": "Questions",
+      "blocks": [
+        {
+          "type": "faq",
+          "items": [
+            {
+              "q": "Is Instinct released?",
+              "a": "Not yet — it is in development. The design is committed (vision, full behavioral spec, brand), the repo builds green, and features are being implemented against the spec. Watch <a href='https://github.com/rfizzle/instinct/releases' class='text-accent hover:text-accent2 underline'>GitHub Releases</a>."
+            },
+            {
+              "q": "Can my pets still die?",
+              "a": "Yes — the stakes stay real. A downed pet is a rescue you still have to perform (golden apple or Vet Kit), the rescue costs one veterancy rank, and fire, lava, and the void kill outright. Their survival instinct exists precisely to keep them out of those three."
+            },
+            {
+              "q": "Does it work with modded animals like Critters and Companions?",
+              "a": "Yes, automatically — any modded animal that behaves like a vanilla tameable or breedable animal is covered by the same rules. Mods and packs can fine-tune with one-file tag entries and per-species product data; server owners can include or exclude any animal by name."
+            },
+            {
+              "q": "How is this different from Cultivation?",
+              "a": "They are the two halves of one husbandry silo, split deliberately: Cultivation owns fields, soil, food values, and cooking; Instinct owns the animals — pets, livestock, breeding, herding, and their yields. Instinct never changes what grows or what a meal does; Cultivation never changes what animals do or drop. Install either alone or both together."
+            },
+            {
+              "q": "Server or client?",
+              "a": "Install on the server and every client (Minecraft 1.21.1, Fabric loader 0.16.10+, Fabric API). All gameplay decisions run server-side; singleplayer works out of the box."
+            },
+            {
+              "q": "Will it clutter my screen?",
+              "a": "No. Instinct has no HUD — everything it ever says is one short ✦ action-bar line that fades (plus a single chat line when a pet goes down, so you never miss it)."
+            },
+            {
+              "q": "Does it lag servers?",
+              "a": "It is designed to reduce farm lag: quality genetics reward small pastures over 500-cow crushers, the trough self-limits at a population cap, and idle farms cost nothing — the trough does its own scanning on a slow cadence and animals carry no extra per-tick work."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

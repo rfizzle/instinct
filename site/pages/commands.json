@@ -1,0 +1,26 @@
+{
+  "nav": "Commands",
+  "metaTitle": "Commands — Instinct",
+  "metaDescription": "The /instinct command reference: info, set grade, set veterancy, and reload, with permission levels.",
+  "title": "Commands",
+  "lede": "Everything under one root: /instinct. Output is localized; admin subcommands need permission level 2 (op).",
+  "width": "4xl",
+  "sections": [
+    {
+      "title": "Command reference",
+      "blocks": [
+        {
+          "type": "table",
+          "headers": ["Command", "Permission", "What it does"],
+          "nowrapHeaders": true,
+          "rows": [
+            ["<code>/instinct info</code>", "everyone", "Reports on the animal you're looking at (up to 8 blocks): species, pet/livestock membership and which rule granted it, bloodline grade and perk, veterancy days and rank, downed status, trough-fed recency, pedigree-treat flag"],
+            ["<code>/instinct set grade &lt;ordinary|sturdy|prime&gt;</code>", "op (2)", "Sets the bloodline grade of the animal you're looking at"],
+            ["<code>/instinct set veterancy &lt;days&gt;</code>", "op (2)", "Sets accrued veterancy days (0–100000) on the pet you're looking at; rank and bonuses re-derive immediately"],
+            ["<code>/instinct reload</code>", "op (2)", "Reloads config/instinct.json and reports how many keys changed"]
+          ]
+        }
+      ]
+    }
+  ]
+}

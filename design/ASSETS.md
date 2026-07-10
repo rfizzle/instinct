@@ -11,7 +11,7 @@
 
 | Asset | Source | Final / derived copies |
 |---|---|---|
-| Mod icon | `art/glyphs/icon.gen.py` → `art/glyphs/icon.glyph` (32 native) | `art/icon-128.png` (`--scale-to 128`; → `assets/instinct/icon.png`, `site/assets/icon.png` when those trees exist), `art/icon-512.png` (`--scale-to 512`, store master) |
+| Mod icon | `art/glyphs/icon.gen.py` → `art/glyphs/icon.glyph` (32 native) | `art/icon-128.png` (`--scale-to 128`) → `src/main/resources/assets/instinct/icon.png`, `site/assets/icon.png`; `art/icon-512.png` (`--scale-to 512`, store master) → `site/assets/logo.png` (stand-in until the full logo master lands) |
 | Paw glyph 16×16 | `art/glyphs/paw-16.glyph` | `art/hud-icon-16.png` (Jade/WTHIT + recipe-viewer contexts) |
 
 ## Not yet created

@@ -1,0 +1,67 @@
+{
+  "nav": "Developers",
+  "metaTitle": "Developers — Instinct",
+  "metaDescription": "Instinct's public API surface: read-only accessors, Fabric events, the veterancy-rate provider hook, and the convention tags third-party mods extend with plain data.",
+  "title": "Developers",
+  "lede": "One stable package — com.rfizzle.instinct.api — per the Concord API standard: read-only accessors, provider/callback registration as the only mutation, isModLoaded-guarded consumption. Everything here is specced and lands with implementation.",
+  "width": "4xl",
+  "sections": [
+    {
+      "title": "Accessors",
+      "blocks": [
+        {
+          "type": "table",
+          "headers": ["Method", "Returns"],
+          "nowrapHeaders": true,
+          "rows": [
+            ["<code>InstinctAPI.isPet(EntityType)</code>", "pets-set membership after full resolution (config → tags → heuristic)"],
+            ["<code>InstinctAPI.isLivestock(EntityType)</code>", "livestock-set membership after full resolution"],
+            ["<code>InstinctAPI.getGrade(Animal)</code>", "<code>Grade</code> — <code>ORDINARY</code>, <code>STURDY</code>, or <code>PRIME</code>"],
+            ["<code>InstinctAPI.getVeterancyDays(TamableAnimal)</code>", "accrued days (double), 0.0 if untracked"],
+            ["<code>InstinctAPI.getVeterancyRank(TamableAnimal)</code>", "rank 0–3"],
+            ["<code>InstinctAPI.isDowned(LivingEntity)</code>", "downed state"],
+            ["<code>InstinctAPI.isTroughFed(Animal)</code>", "trough-fed within the last 24000 ticks"],
+            ["<code>InstinctAPI.setVeterancyRateProvider(…)</code>", "provider hook — multiplies live veterancy accrual; error-isolated, clamped to sane values"]
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Events",
+      "blocks": [
+        {
+          "type": "table",
+          "headers": ["Event", "Fires"],
+          "nowrapHeaders": true,
+          "rows": [
+            ["<code>InstinctAnimalBredCallback</code>", "after grade resolution at breeding — parents, child, final grade"],
+            ["<code>InstinctPetDownedCallback</code>", "when a pet enters the downed state — pet and damage source"],
+            ["<code>InstinctPetRevivedCallback</code>", "on revival — pet, reviving player, item used"]
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Convention tags and data — integrate with zero code",
+      "blocks": [
+        {
+          "type": "table",
+          "headers": ["Surface", "What one data file gets you"],
+          "nowrapHeaders": true,
+          "rows": [
+            ["<code>#instinct:pets</code> / <code>#instinct:livestock</code> (+ <code>_exclude</code>)", "Entity-type tags — opt your mod's species in or out of the coverage sets explicitly"],
+            ["<code>#instinct:trough_food</code>", "Item tag — your feed items become trough-accepted; animals eat them by their own breeding-food rules"],
+            ["<code>#instinct:revive_items</code>", "Item tag — your item revives downed pets (ships with golden apples and the Vet Kit)"],
+            ["<code>#instinct:mirror_products</code>", "Item tag — non-edible items the generic drop-bonus fallback may duplicate"],
+            ["<code>data/&lt;ns&gt;/instinct/products/*.json</code>", "One file per species: primary/secondary products (and cooked variants) for grade drop bonuses; unknown ids skip harmlessly, so rows for absent mods are safe to ship"]
+          ]
+        },
+        {
+          "type": "note",
+          "html": "Item ids for sibling integrations: <code>instinct:command_whistle</code>, <code>instinct:vet_kit</code>, <code>instinct:pedigree_treat</code>; the block is <code>instinct:feeding_trough</code>. Full contracts in <a href='https://github.com/rfizzle/instinct/blob/master/design/SPEC.md' class='text-accent hover:text-accent2 underline'>design/SPEC.md</a>; suite conventions in the <a href='https://github.com/rfizzle/concord/blob/master/API-STANDARD.md' class='text-accent hover:text-accent2 underline'>Concord API standard</a>.",
+          "center": true
+        }
+      ]
+    }
+  ]
+}

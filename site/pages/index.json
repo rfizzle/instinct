@@ -1,0 +1,64 @@
+{
+  "type": "home",
+  "nav": "Home",
+  "metaTitle": "Instinct — Husbandry Overhaul for Minecraft",
+  "metaDescription": "Instinct is a Minecraft 1.21.1 Fabric mod that makes the animals you tame, breed, and keep worth the keeping: pets that avoid lava and grow veteran with age, livestock bloodlines, herd flocking, a feeding trough, a command whistle, and downed-pet revival.",
+  "ogTitle": "Instinct — Husbandry Overhaul for Minecraft",
+  "ogDescription": "A husbandry overhaul for Minecraft 1.21.1 Fabric. Self-preserving pets, veterancy, quality genetics, flocking herds, the feeding trough, the command whistle, and downed-pet revival.",
+  "hero": {
+    "lede": "Worth raising.",
+    "sub": "Instinct makes the animals you tame, breed, and keep worth the keeping — pets that act like they want to live, bloodlines worth tending, herds that follow like herds. Everything works on the animals already in your world.",
+    "buttons": [
+      { "label": "GitHub", "href": "https://github.com/rfizzle/instinct", "primary": true, "external": true }
+    ]
+  },
+  "sections": [
+    {
+      "title": "In Development",
+      "band": true,
+      "lede": "Instinct is fully designed and specced — implementation is underway. Nothing is released yet; everything below describes the design.",
+      "blocks": [
+        {
+          "type": "cards",
+          "mdColumns": 2,
+          "lgColumns": 4,
+          "hoverAccent": true,
+          "items": [
+            {
+              "icon": "&#128062;",
+              "title": "Pets That Look Before They Leap",
+              "html": ["Tamed wolves, cats, and parrots path around lava and cacti, keep a 4-block berth from ignited creepers, and refuse to teleport to you mid-fall. The pet you tame in week one can still be alive on day one hundred."]
+            },
+            {
+              "icon": "&#128021;",
+              "title": "Veteran Pets",
+              "html": ["Every pet quietly counts the days it survives with you. At 10, 30, and 60 days it gains a rank — up to +3 hearts and +3 attack damage. An old wolf is meaningfully stronger than a fresh tame."]
+            },
+            {
+              "icon": "&#129504;",
+              "title": "Quality Genetics",
+              "html": ["Well-fed, uncrowded breeding raises a bloodline: ordinary, sturdy, prime. A prime cow drops 2 extra beef and 1 extra leather — three tended generations beat three hundred crammed ones."]
+            },
+            {
+              "icon": "&#128736;&#65039;",
+              "title": "A Working Farm",
+              "html": ["A feeding trough that breeds the herd while you're in the mines, a copper whistle that commands the whole pack at once, and a downed state that turns a pet's death into a rescue."]
+            }
+          ]
+        },
+        {
+          "type": "note",
+          "html": "Also in the design: herds that flock 15% faster behind held food with 2-block spacing, and automatic coverage for modded animals — a tameable otter is a pet, a breedable critter is livestock. <a href='/features.html' class='text-accent hover:text-accent2 underline'>Full feature list →</a>",
+          "center": true
+        }
+      ]
+    },
+    {
+      "title": "Part of Concord",
+      "width": "4xl",
+      "lede": "Instinct is a member of Concord — a modular collection of system overhauls. Install any, combine all: every mod stands entirely on its own, and siblings light up together without ever being required.",
+      "ledeNarrow": true,
+      "blocks": []
+    }
+  ]
+}
