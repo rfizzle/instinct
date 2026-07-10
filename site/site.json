@@ -9,6 +9,7 @@
   "defaultBranch": "master",
   "copyright": "© 2026 rfizzle. Instinct is not affiliated with Mojang Studios or Microsoft.",
   "footerMeta": "Minecraft 1.21.1 · Fabric",
+  "ogImage": "og-image.png",
   "nav": [
     "index",
     "features",

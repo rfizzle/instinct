@@ -1,4 +1,6 @@
-<h1 align="center">Instinct</h1>
+<p align="center">
+  <img src="art/logo.png" alt="Instinct" width="800">
+</p>
 
 <p align="center"><strong>Worth raising.</strong></p>
 
