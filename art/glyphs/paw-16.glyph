@@ -1,0 +1,30 @@
+# Instinct 16x16 paw glyph — Jade/WTHIT and recipe-viewer contexts (no HUD slot).
+# One broad pad, four toes, wheat-amber ramp with an ink silhouette outline.
+# Light from top-left: Ripe Wheat highlights left, shaded amber right/bottom.
+size: 16
+
+legend:
+  @ #0a0a0a
+  b #F5D06B
+  a #D9A441
+  s #B08434
+  d #8A6526
+  . transparent
+
+frame:
+  ................
+  ....@@@..@@@....
+  ....@b@..@b@....
+  .@@@@a@..@a@@@@.
+  .@b@@a@..@a@@s@.
+  .@a@@@@..@@@@s@.
+  .@a@........@s@.
+  .@@@........@@@.
+  ....@@@@@@@@....
+  ...@bbaaaaas@...
+  ..@baaaaaaass@..
+  ..@baaaaaaass@..
+  ..@aaaaaaaasd@..
+  ...@aaaaaasd@...
+  ....@@@@@@@@....
+  ................

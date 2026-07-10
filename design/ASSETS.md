@@ -7,13 +7,18 @@
 > pipeline (concord `design/DESIGN-SYSTEM.md` §8). Final paths are under
 > `src/main/resources/` unless noted.
 
+## Branding masters
+
+| Asset | Source | Final / derived copies |
+|---|---|---|
+| Mod icon | `art/glyphs/icon.gen.py` → `art/glyphs/icon.glyph` (32 native) | `art/icon-128.png` (`--scale-to 128`; → `assets/instinct/icon.png`, `site/assets/icon.png` when those trees exist), `art/icon-512.png` (`--scale-to 512`, store master) |
+| Paw glyph 16×16 | `art/glyphs/paw-16.glyph` | `art/hud-icon-16.png` (Jade/WTHIT + recipe-viewer contexts) |
+
 ## Not yet created
 
 | Asset | Intended source | Destination |
 |---|---|---|
 | Full logo | Gemini (prompt in `DESIGN.md` §4) | `art/logo.png` → `site/assets/logo.png` — (planned, README masthead + site hero) |
-| Mod icon 128×128 | `/glyph` size ladder or Gemini | `art/icon-128.png` → `assets/instinct/icon.png`, `site/assets/icon.png` — (planned) |
-| Paw glyph 16×16 | `/glyph` | `art/hud-icon-16.png` (+ `.glyph`) → Jade/WTHIT + recipe-viewer contexts — (planned) |
 | Feeding trough block textures (top/side/bottom/inner) | `/glyph` | `assets/instinct/textures/block/feeding_trough_*.png` — (planned) |
 | Command whistle item sprite | `/glyph` | `assets/instinct/textures/item/command_whistle.png` — (planned) |
 | Vet kit item sprite | `/glyph` | `assets/instinct/textures/item/vet_kit.png` — (planned) |
