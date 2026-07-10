@@ -1,0 +1,34 @@
+{
+    "schemaVersion": 1,
+    "id": "instinct",
+    "version": "${version}",
+    "name": "Instinct",
+    "description": "A husbandry overhaul — pets with a survival instinct that grow veteran with age, livestock bloodlines worth breeding, herds that flock, a feeding trough, and a command whistle.",
+    "authors": ["rfizzle"],
+    "contact": {
+        "homepage": "https://instinct.rfizzle.com",
+        "sources": "https://github.com/rfizzle/instinct",
+        "issues": "https://github.com/rfizzle/instinct/issues"
+    },
+    "license": "MIT",
+    "icon": "assets/instinct/icon.png",
+    "environment": "*",
+    "entrypoints": {
+        "main": ["com.rfizzle.instinct.Instinct"],
+        "client": ["com.rfizzle.instinct.client.InstinctClient"],
+        "fabric-gametest": [
+            "com.rfizzle.instinct.gametest.SkeletonGameTest"
+        ]
+    },
+    "suggests": {
+        "modmenu": "*",
+        "jade": "*",
+        "wthit": "*"
+    },
+    "depends": {
+        "fabricloader": ">=0.16.10",
+        "minecraft": "~1.21.1",
+        "java": ">=21",
+        "fabric-api": "*"
+    }
+}
