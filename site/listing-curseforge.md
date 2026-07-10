@@ -2,6 +2,8 @@
 
 **_Worth raising._**
 
+![Instinct logo](https://raw.githubusercontent.com/rfizzle/instinct/master/art/logo.png)
+
 **Also on [CurseForge](https://www.curseforge.com/minecraft/mc-mods/instinct-husbandry-overhaul)
 and [GitHub Releases](https://github.com/rfizzle/instinct/releases).**
 Visit the [website](https://instinct.rfizzle.com) for the full feature list,

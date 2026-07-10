@@ -20,7 +20,7 @@ The motif is a **paw print** — the mark an animal leaves, glowing warm rose li
 
 ### Logo Description
 
-**Full Logo (`art/logo.png`):** A large glowing rose paw print — one broad pad, four toes — pressed into a weathered stone slab inside a circular russet-leather-rimmed medallion, over dark umber stone brickwork. Stitched leather straps and a coiled rope lead wrap the medallion's rim; a hay bale and a small bone rest at its base as supporting trinkets. Below, "INSTINCT" in a blocky pixel font on a stone banner, with "MINECRAFT HUSBANDRY OVERHAUL" as the subtitle line. Palette: rose glow (`#E5709B` → `#F5A8C8`) on dark stone, hide russet (`#B8622B`) only in the rim, straps, and rope.
+**Full Logo (`art/logo.png`):** A large glowing rose paw print — one broad pad, four toes with claw marks — pressed into a weathered circular stone slab, rimmed by a stitched russet leather collar with a hanging buckle strap, over dark umber stone brickwork under a thin strip of starry night. A coiled rope lead hangs from the collar's left; a hay bale and a small bone rest at the base where a carved stone ribbon banner carries "INSTINCT" in blocky russet pixel type, with "MINECRAFT HUSBANDRY OVERHAUL" beneath. Wall lanterns and hanging chains flank the brickwork. Palette: rose glow (`#E5709B` → `#F5A8C8`) radiating from the paw, hide russet (`#B8622B`) in the collar, rope, and lettering.
 
 **Icon (`art/icon-128.png`):** The glowing rose paw print isolated on its stone slab — high contrast, warm radiance against a dark/transparent background. Reads cleanly at 128×128.
 
