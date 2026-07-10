@@ -8,6 +8,45 @@ Minecraft 1.21.1 Fabric mod. Husbandry overhaul.
 
 ---
 
+## Animal Coverage — the pets and livestock sets
+
+Every feature below applies to one of two membership sets, resolved per entity type. The goal: a modded animal that behaves like a vanilla one gets Instinct's treatment automatically, with no code from its author — and every automatic decision can be overridden by that author, a pack maker, or a server owner.
+
+**The two sets:**
+- **Pets** — self-preservation (§1), veterancy (§2), the whistle (§6), downed & revival (§7). Each feature additionally requires the individual animal to be tamed.
+- **Livestock** — genetics (§3), flocking (§4), the trough (§5).
+
+**Resolution order** (first match wins), per entity type:
+
+1. **Config** — `petsExclude` / `livestockExclude`, then `petsInclude` / `livestockInclude`. The server owner has the last word.
+2. **Tags** — `#instinct:pets_exclude` / `#instinct:livestock_exclude`, then `#instinct:pets` / `#instinct:livestock`. Entity-type tags are ordinary data: a third-party animal mod ships a one-file tag entry in Instinct's namespace, a pack maker uses a datapack — no compile-time dependency, no API call, nothing to guard.
+3. **Heuristic** (when `autoDetectAnimals` is true, the default) — a tamable animal type (`TamableAnimal`) is a **pet**; any other breedable animal type (`Animal`) is **livestock**. A type that qualifies as a pet is never heuristically livestock.
+
+Instinct ships its vanilla membership as default tag contents, overridable like any tag: `#instinct:pets` = wolf, cat, parrot; `#instinct:livestock` = cow, sheep, pig, chicken, rabbit, goat; `#instinct:livestock_exclude` = the horse family (horse, donkey, mule, camel, llama, trader llama, skeleton horse, zombie horse) — vanilla horses already have their own bred-stat inheritance, and grafting grades onto it would double-dip.
+
+**Graceful degradation.** Membership guarantees the *state* features — veterancy days, grades, perks, downed, whistle selection — because they run on attachments and attribute modifiers every living entity has. The *behavior* features attach best-effort: hazard maluses and the creeper berth apply to any pathfinding animal; teleport refusal gates the vanilla follow-owner behavior, so pets using a custom follow goal keep their own teleport rules; flocking upgrades only the vanilla tempt behavior and leaves a custom modded tempt goal untouched rather than broken. A feature that cannot attach simply doesn't — never a crash, never an altered vanilla-mod behavior.
+
+**Genetics product data.** Death-drop bonuses (§3) need each species' products. That table is data, not code: Instinct reads `data/<namespace>/instinct/products/*.json` (reloadable with `/reload`), one entry per species:
+
+```json
+{
+  "entity": "minecraft:cow",
+  "primary": "minecraft:beef",
+  "primary_cooked": "minecraft:cooked_beef",
+  "secondary": "minecraft:leather"
+}
+```
+
+- `primary_cooked` and `secondary` are optional; `"special": "wool_coat"` replaces `secondary` for the sheep coat-color case.
+- Instinct ships the vanilla rows in-jar; a mod or pack adds rows for its own species the same way; on duplicate entity ids, standard datapack ordering wins.
+- Rows naming an unknown entity or item id (their mod absent) are skipped and logged once at debug — curated rows for popular animal mods may ship in Instinct's own data and stay inert until that mod is present.
+
+**Mirror fallback.** A livestock species with no product row still carries full genetics (grades, perks, inheritance, treat); when `enableGenericDropMirror` is true its death-drop bonus mirrors the animal's own loot: candidate stacks are the actual death drops whose item is edible or in `#instinct:mirror_products`; the largest candidate stack is treated as the primary product (sturdy +1, prime +2), the second-largest as secondary (sturdy 50% +1, prime +1). No candidates → no bonus. Deterministic given the drop roll.
+
+**Item tags.** `#instinct:trough_food` — what the trough accepts (§5); ships with wheat, carrot, potato, beetroot, and the six vanilla seeds. `#instinct:mirror_products` — non-edible items the mirror fallback may duplicate; ships with leather, feather, rabbit hide, and `#minecraft:wool`.
+
+---
+
 ## 1. Pet Self-Preservation
 
 Tamed pets stop dying to terrain and to their owner's misadventures.
@@ -18,7 +57,7 @@ Vanilla tamed wolves and cats pathfind through lava and cacti, sit next to hissi
 
 ### Behavior
 
-Applies to every tamed entity whose type is in `selfPreservationEntities` (default: wolf, cat). Three independent protections:
+Applies to every tamed animal in the **pets set** (Animal Coverage). Three independent protections:
 
 **1. Hazard-aware pathing.** The pet's navigation treats lava, fire, and cactus path nodes as impassable — it paths around them or, if no safe route exists, stays put rather than walking through. This affects navigation only; combat targeting, sitting, and all other AI are untouched.
 
@@ -51,15 +90,14 @@ If the pet is already standing in a hazard (spawned there, pushed there), hazard
 | Key | Type | Default | Range |
 |---|---|---|---|
 | `enableSelfPreservation` | bool | `true` | |
-| `selfPreservationEntities` | list | `["minecraft:wolf", "minecraft:cat"]` | entity type ids |
 | `creeperBerthBlocks` | int | `4` | 2–8 |
 | `teleportSuppressFallDistance` | double | `3.0` | 0.5–10.0 |
 
 ### Implementation Notes
 
-- Goal injection on `ServerEntityEvents.ENTITY_LOAD`: if the entity's type is configured and it is a `TamableAnimal`, set pathfinding maluses (`PathType.LAVA`, `PathType.DAMAGE_FIRE`, `PathType.DAMAGE_OTHER` → `-1.0`) and add a `CreeperBerthGoal` (priority 1, above sit) implemented as a targeted flee with a re-sit memory (was-sitting flag captured on trigger, restored on completion).
+- Goal injection on `ServerEntityEvents.ENTITY_LOAD`: if the entity's type resolves into the pets set, set pathfinding maluses (`PathType.LAVA`, `PathType.DAMAGE_FIRE`, `PathType.DAMAGE_OTHER` → `-1.0`) and add a `CreeperBerthGoal` (priority 1, above sit) implemented as a targeted flee with a re-sit memory (was-sitting flag captured on trigger, restored on completion).
 - Malus application is idempotent (setting the same malus twice is harmless), so re-loads are safe.
-- Teleport suppression: a mixin gating the follow-owner goal's teleport step on the owner-state predicate above. The predicate lives in one helper (`SelfPreservation.ownerUnsafeToJoin(owner)`) so the goal mixin stays a two-line guard.
+- Teleport suppression: a mixin gating the vanilla follow-owner goal's teleport step on the owner-state predicate above. The predicate lives in one helper (`SelfPreservation.ownerUnsafeToJoin(owner)`) so the goal mixin stays a two-line guard. Modded pets running the vanilla goal get this free; custom follow goals are left alone (Animal Coverage → graceful degradation).
 - Escape-vs-enter asymmetry comes free with maluses: maluses affect node *cost evaluation* for nodes being entered; the current node is not re-evaluated. No extra code, but the gametest below pins it.
 
 ---
@@ -74,7 +112,7 @@ A hundred-day-old wolf and a freshly tamed one are identical in vanilla; nothing
 
 ### Behavior
 
-Applies to every tamed entity whose type is in `veterancyEntities` (default: wolf, cat, parrot).
+Applies to every tamed animal in the **pets set** (Animal Coverage).
 
 **Accrual.** Each pet tracks **accrued days**: in-game days elapsed since taming, counted by world game time (a pet left sitting at home in an unloaded chunk still accrues — it survived). Accrual is computed lazily: on a 200-tick server cadence while loaded, and on load/inspect/rank-check, the pet adds `(now − lastAccrualGameTime) / 24000 × rate` to `accruedDays`, where `rate` is 1.0 unless a veterancy-rate provider (§Public API) returns a different multiplier. Provider rates apply only to loaded, live accrual; gaps spent unloaded always accrue at 1.0.
 
@@ -87,7 +125,7 @@ Applies to every tamed entity whose type is in `veterancyEntities` (default: wol
 | 2 | Veteran | 30 | +4.0 max health, +2.0 attack damage |
 | 3 | Venerable | 60 | +6.0 max health, +3.0 attack damage |
 
-Per-rank increments are `healthPerRank` (default 2.0) and `damagePerRank` (default 1.0). Pets without an attack attribute (parrots) receive the health bonus only.
+Per-rank increments are `healthPerRank` (default 2.0) and `damagePerRank` (default 1.0). Pets without an attack attribute (parrots, many modded companions) receive the health bonus only.
 
 **Rank-up moment.** The tick a rank is gained (pet loaded): the pet is healed by the health increment (no phantom empty hearts), 7 `heart` particles burst over it, the custom rank-up cue plays at the pet, and the owner — if online and within 32 blocks — sees the ✦ action-bar line: `✦ <name> has grown stronger.` (`<name>` = custom name, else species name). If the rank is crossed while unloaded/offline, the attribute update applies silently on next load; the moment is not queued.
 
@@ -114,7 +152,6 @@ Per-pet, owner-agnostic accrual (game time is global). The inspection line answe
 | Key | Type | Default | Range |
 |---|---|---|---|
 | `enableVeterancy` | bool | `true` | |
-| `veterancyEntities` | list | `["minecraft:wolf", "minecraft:cat", "minecraft:parrot"]` | entity type ids |
 | `veterancyThresholdDays` | int list | `[10, 30, 60]` | ascending, 1–3 entries, each 1–1000 |
 | `healthPerRank` | double | `2.0` | 0.0–20.0 |
 | `damagePerRank` | double | `1.0` | 0.0–10.0 |
@@ -141,7 +178,7 @@ Vanilla breeding output is identical regardless of care — the optimal farm is 
 
 ### Behavior
 
-Applies to every entity type in `geneticsEntities` (default: cow, sheep, pig, chicken, rabbit, goat).
+Applies to every animal in the **livestock set** (Animal Coverage).
 
 **Grades.** Every covered animal carries a bloodline grade: **ordinary (0)**, **sturdy (1)**, or **prime (2)**. Naturally spawned, spawn-egg, and converted-from-nothing animals are ordinary. The grade is hidden state, surfaced only by inspection (below), Jade/WTHIT, and `/instinct info`.
 
@@ -158,7 +195,7 @@ Applies to every entity type in `geneticsEntities` (default: cow, sheep, pig, ch
 
 **Birth perk.** A newborn of grade 1+ rolls one inherited perk, 50/50: **hardy** (+1.0 max health × grade) or **fleet** (+4% movement speed × grade). Grade-0 newborns get no perk. The perk and grade are permanent and survive growing up.
 
-**Yield — death drops.** When a covered animal dies and drops its products (any death that produces loot, regardless of killer), bonus drops are added after the vanilla roll (Looting and sibling effects included, untouched):
+**Yield — death drops.** When a covered animal dies and drops its products (any death that produces loot, regardless of killer), bonus drops are added after the vanilla roll (Looting and sibling effects included, untouched). Products come from the species' product-data row (Animal Coverage); species without a row use the mirror fallback. The shipped vanilla rows:
 
 | Species | Primary product | Secondary product |
 |---|---|---|
@@ -186,7 +223,7 @@ Applies to every entity type in `geneticsEntities` (default: cow, sheep, pig, ch
 
 - **Mixed pairs:** breeding always uses both parents' grades; a wild-caught ordinary partner drags the base grade down — deliberate: bloodlines take upkeep.
 - **Conversions:** where vanilla copies entity data across a conversion (mooshroom sheared → cow), the grade and perk copy with it.
-- **Uncovered partners:** if only one parent's type is covered (config edited mid-world), the missing grade counts as 0.
+- **Uncovered partners:** if only one parent's type is in the livestock set (membership edited mid-world, or a cross-mod pairing where one side is excluded), the missing grade counts as 0.
 - **Hay bale detection** is by block state in the scan radius; hay in item frames or inventories does not count.
 - **Zombification, lightning:** covered species have no such conversions in vanilla; no behavior specified.
 
@@ -199,7 +236,7 @@ Grade and perk are entity state, visible and beneficial to every player equally.
 | Key | Type | Default | Range |
 |---|---|---|---|
 | `enableGenetics` | bool | `true` | |
-| `geneticsEntities` | list | `["minecraft:cow", "minecraft:sheep", "minecraft:pig", "minecraft:chicken", "minecraft:rabbit", "minecraft:goat"]` | entity type ids |
+| `enableGenericDropMirror` | bool | `true` | mirror fallback for species without a product row |
 | `hayRadiusBlocks` | int | `8` | 2–16 |
 | `crowdingThreshold` | int | `12` | 4–64 |
 | `crowdingRadiusBlocks` | int | `8` | 4–16 |
@@ -213,7 +250,7 @@ Grade and perk are entity state, visible and beneficial to every player equally.
 - Attachment `GeneticsData { int grade; Perk perk; boolean primeNextOffspring; long lastTroughFeedTime; }` on the entity, persistent. Absent ⇒ ordinary/no perk.
 - Inheritance hook: mixin at `Animal#spawnChildFromBreeding` (after the child exists, before `finalizeSpawnChildFromBreeding` completes), computing grade via a pure helper `Genetics.resolveGrade(baseA, baseB, wellFed, crowded, random)` — unit-testable with a seeded random.
 - Birth perks are fixed-id attribute modifiers (`instinct:genetic_health` ADD_VALUE, `instinct:genetic_speed` MULTIPLY_BASE), applied once at birth and re-asserted idempotently on load.
-- Death drops: `ServerLivingEntityEvents.AFTER_DEATH` spawns the bonus `ItemEntity`s beside vanilla loot; the species→product table is a static map keyed by entity type; cooked-in-kind mirrors whether the vanilla roll was cooked (entity on fire at death).
+- Death drops: `ServerLivingEntityEvents.AFTER_DEATH` spawns the bonus `ItemEntity`s beside vanilla loot; the species→product table is a `SimpleSynchronousResourceReloadListener` over `instinct/products/*.json` (Animal Coverage), falling back to the drop mirror; cooked-in-kind mirrors whether the vanilla roll was cooked (entity on fire at death).
 - Shear bonus: mixin at the sheep shear drop site; egg interval: scale `eggTime` when (re)rolled, guarded by grade.
 - `InstinctAnimalBredCallback` (§Public API) fires after grade resolution with parents, child, and final grade.
 
@@ -229,7 +266,7 @@ Vanilla food-luring makes every animal race to occupy the player's exact positio
 
 ### Behavior
 
-Applies to every covered genetics species (§3 list) plus any vanilla animal whose tempt items include the held food. While an animal's tempt target is a player:
+Applies to every animal in the **livestock set** (Animal Coverage) whose tempt items include the held food. While an animal's tempt target is a player:
 
 1. **Speed:** the tempt movement speed is the vanilla tempt speed × `flockSpeedMultiplier` (default 1.15).
 2. **Spacing:** each tempted animal steers to keep at least `flockSpacingBlocks` (default 2.0) from every other currently-tempted animal — a gentle separation adjustment blended into its path, not a hard stop.
@@ -257,7 +294,7 @@ Server-side movement adjustment; every player experiences the same herd shape.
 
 ### Implementation Notes
 
-- On entity load, the vanilla `TemptGoal` on covered animals is replaced with a `FlockingTemptGoal` subclass (same priority, same tempt items via the entity's own food predicate) adding the speed factor, the separation vector (computed against other flock members within 2× spacing, capped contribution), and the 2.5-block standoff.
+- On entity load, an exact-class vanilla `TemptGoal` on covered animals is replaced with a `FlockingTemptGoal` subclass (same priority, same tempt items via the entity's own food predicate) adding the speed factor, the separation vector (computed against other flock members within 2× spacing, capped contribution), and the 2.5-block standoff. A modded `TemptGoal` *subclass* is never swapped — the animal keeps its custom behavior untouched (Animal Coverage → graceful degradation).
 - Goal replacement is the one place Instinct swaps rather than adds — it swaps a goal for a *subclass* of itself, preserving all vanilla semantics when the feature toggles off mid-world (disabled ⇒ the subclass behaves exactly as vanilla `TemptGoal`).
 
 ---
@@ -281,7 +318,7 @@ P F P
 
 `P` = any item in `#minecraft:planks`, `F` = any item in `#c:wooden_fences`. Mineable with an axe (wood tool tier, no tool required to drop). Not waterloggable. Flammable like planks.
 
-**Storage.** One internal stack of a single accepted item type, capacity 64. Accepted: wheat, carrot, potato, beetroot, and every vanilla seed (wheat/beetroot/melon/pumpkin/torchflower/pitcher pod). A **hay bale** converts on insert: 1 bale → 9 wheat (accepted only if the stored type is wheat or empty, and at least 9 capacity remains).
+**Storage.** One internal stack of a single accepted item type, capacity 64. Accepted: any item in `#instinct:trough_food` — shipped contents are wheat, carrot, potato, beetroot, and every vanilla seed (wheat/beetroot/melon/pumpkin/torchflower/pitcher pod); animal mods and packs extend the tag with their own feed (Animal Coverage → item tags). A **hay bale** converts on insert: 1 bale → 9 wheat (accepted only if the stored type is wheat or empty, and at least 9 capacity remains).
 
 - **Insert:** right-click with an accepted item moves the whole held stack in (up to capacity); mismatched type is refused (no swing).
 - **Withdraw:** right-click with an empty hand returns the entire stored stack to the player.
@@ -291,8 +328,8 @@ P F P
 
 **Feeding loop.** Every `troughFeedIntervalTicks` (default 40) while non-empty, the trough selects at most one eligible animal within `troughRadiusBlocks` (default 10, spherical from the block center) and feeds it:
 
-1. **Eligible adult:** a covered genetics species (§3), adult, not in love, breeding cooldown expired, whose vanilla breeding foods include the stored item — and the count of covered animals in radius is at most `troughPopulationCap` (default 16; 0 = uncapped). The animal paths to the trough; on arrival (≤ 1.5 blocks) it consumes 1 item, plays the eat sound with food particles, enters love mode exactly as if a player had fed it, and is marked trough-fed (`lastTroughFeedTime = now`, feeding §3's well-fed test).
-2. **Eligible baby:** if no eligible adult was found, a baby of a covered species whose foods match may eat instead — 1 item, growth accelerated by 10% of remaining time, at most once per 600 ticks per baby.
+1. **Eligible adult:** a livestock-set animal (Animal Coverage), adult, not in love, breeding cooldown expired, whose own breeding foods include the stored item — and the count of covered animals in radius is at most `troughPopulationCap` (default 16; 0 = uncapped). The animal paths to the trough; on arrival (≤ 1.5 blocks) it consumes 1 item, plays the eat sound with food particles, enters love mode exactly as if a player had fed it, and is marked trough-fed (`lastTroughFeedTime = now`, feeding §3's well-fed test).
+2. **Eligible baby:** if no eligible adult was found, a livestock-set baby whose foods match may eat instead — 1 item, growth accelerated by 10% of remaining time, at most once per 600 ticks per baby.
 
 The population cap gates only step 1 (breeding); babies may always eat. When the cap is met or exceeded, the trough still holds food but initiates no new love states — the passive farm self-limits instead of overflowing.
 
@@ -349,13 +386,13 @@ C B C
 
 `C` = copper ingot, `B` = bone.
 
-**Left-click (swing), any target or air:** toggles every **owned, tamed, non-downed** pet within `whistleRadiusBlocks` (default 20) of the player:
+**Left-click (swing), any target or air:** toggles every **owned, tamed, non-downed** pets-set animal (Animal Coverage) within `whistleRadiusBlocks` (default 20) of the player:
 - If at least one such pet is currently standing (following) → **Stay**: all of them sit. Feedback: `✦ <n> pets will stay.` + the falling stay cue.
 - Otherwise (all sitting) → **Follow**: all of them stand. Feedback: `✦ <n> pets will follow.` + the rising follow cue.
 - No pets in radius: `✦ No pets in range.`, no cue.
 
 **Right-click (use):** raycasts from the player's eyes up to `whistleTargetRangeBlocks` (default 24) for a living entity. On a valid target — any living entity that is not the user, not a tamed animal owned by the user, not downed, not a spectator/creative player, and (if a player) only when PvP is enabled:
-- Every owned, tamed, non-downed, **combat-capable** pet (a pet with an attack-damage attribute; wolves by default, cats and parrots are not combat-capable) within `whistleRadiusBlocks` stands (an attack order overrides Stay) and sets its attack target to the raycast entity. Feedback: `✦ <n> pets attack.` + the sharp attack cue.
+- Every owned, tamed, non-downed, **combat-capable** pet (a pet with an attack-damage attribute — wolves and most modded fighters; cats and parrots are not combat-capable) within `whistleRadiusBlocks` stands (an attack order overrides Stay) and sets its attack target to the raycast entity. Feedback: `✦ <n> pets attack.` + the sharp attack cue.
 - No valid target on the ray: `✦ No target in sight.`, no cue.
 
 **Cooldown:** `whistleCooldownTicks` (default 20) item cooldown after any whistle action (vanilla item-cooldown overlay on the slot).
@@ -405,13 +442,13 @@ One creeper, one skeleton volley, one mistake — a pet representing sixty days 
 
 ### Behavior
 
-Applies to every veterancy species (§2 list, tamed only).
+Applies to every tamed animal in the **pets set** (Animal Coverage).
 
 **Going down.** When lethal damage would kill the pet, the death is cancelled and the pet enters the **downed** state instead:
 - health is set to 1.0; the pet is invulnerable to all further damage (exceptions below),
 - all AI stops; the pet lies in place (sitting pose, head low) and cannot be commanded, whistled, tempted, or teleported,
 - hostile mobs treat it as no target (any mob currently targeting it retargets),
-- a species whine plays every 100 ticks (wolf whine / cat hurt / parrot hurt, volume 0.5) with one `smoke` particle,
+- a species whine plays every 100 ticks (the entity's own hurt sound — wolf whine, cat hurt, a modded species' own voice — at volume 0.5) with one `smoke` particle,
 - the owner — online, any distance, same dimension or not — gets one chat line (not action bar; this one must not be missed): `✦ <name> is down.`
 
 The downed state is indefinite: it persists across saves, chunk unloads, dimension border, and owner logout. Downed pets never despawn.
@@ -449,7 +486,7 @@ Per-pet server state. Any player can revive (co-op rescue is a feature); only th
 ### Implementation Notes
 
 - Death interception: `ServerLivingEntityEvents.ALLOW_DEATH` returning false for qualifying pets, then applying the downed attachment + synced entity flag (tracked data) for client pose rendering.
-- Downed attachment `DownedData { long downedAtGameTime; }`; the synced flag drives pose (`setInSittingPose`-equivalent + suppressed AI via goal gate), whine cadence, and interaction suppression.
+- Downed attachment `DownedData { long downedAtGameTime; }`; the synced flag drives pose (`setInSittingPose`-equivalent + suppressed AI via goal gate), whine cadence, and interaction suppression. The pose is best-effort for modded species without a sitting animation — AI suppression, the whine, and the particle carry the downed read regardless.
 - "Beyond saving" test: `source.is(DamageTypeTags.IS_FIRE) || source.is(DamageTypes.LAVA) || source.is(DamageTypes.FELL_OUT_OF_WORLD) || source.is(DamageTypes.GENERIC_KILL)`.
 - Target immunity: a `Mob#canAttack`-site guard (or targeting-conditions predicate injection) plus a sweep clearing `getTarget() == downed` on down.
 - Revival: `UseEntityCallback` intercepting item-on-downed before vanilla interactions.
@@ -465,17 +502,20 @@ All features are independently toggleable via a ModMenu / Cloth Config screen an
 
 | Key | Type | Default | Description |
 |---|---|---|---|
+| `autoDetectAnimals` | bool | true | Heuristic membership for modded animals (Animal Coverage) |
+| `petsInclude` | list | [] | Entity types forced into the pets set |
+| `petsExclude` | list | [] | Entity types forced out of the pets set |
+| `livestockInclude` | list | [] | Entity types forced into the livestock set |
+| `livestockExclude` | list | [] | Entity types forced out of the livestock set |
 | `enableSelfPreservation` | bool | true | §1 master toggle |
-| `selfPreservationEntities` | list | wolf, cat | Entity types receiving §1 |
 | `creeperBerthBlocks` | int | 4 | Distance pets keep from ignited creepers (2–8) |
 | `teleportSuppressFallDistance` | double | 3.0 | Owner fall distance that suppresses pet teleport (0.5–10.0) |
 | `enableVeterancy` | bool | true | §2 master toggle |
-| `veterancyEntities` | list | wolf, cat, parrot | Entity types accruing veterancy |
 | `veterancyThresholdDays` | int list | [10, 30, 60] | Days for ranks 1–3, ascending (each 1–1000) |
 | `healthPerRank` | double | 2.0 | Max-health bonus per rank (0.0–20.0) |
 | `damagePerRank` | double | 1.0 | Attack-damage bonus per rank (0.0–10.0) |
 | `enableGenetics` | bool | true | §3 master toggle |
-| `geneticsEntities` | list | cow, sheep, pig, chicken, rabbit, goat | Livestock types with bloodline grades |
+| `enableGenericDropMirror` | bool | true | Mirror-fallback drop bonus for species without a product row |
 | `hayRadiusBlocks` | int | 8 | Hay-bale scan radius for the well-fed test (2–16) |
 | `crowdingThreshold` | int | 12 | Animal count that marks a breeding as crowded (4–64) |
 | `crowdingRadiusBlocks` | int | 8 | Radius for the crowding count (4–16) |
@@ -509,7 +549,7 @@ Root command `/instinct`. All output localized.
 
 | Command | Permission | Behavior |
 |---|---|---|
-| `/instinct info` | 0 | Reports on the animal the sender is looking at (≤ 8 blocks): species, grade and perk (§3), veterancy days/rank (§2), downed status (§7), trough-fed recency, pedigree-treat flag. Errors with a localized line if no covered animal is on the crosshair. |
+| `/instinct info` | 0 | Reports on the animal the sender is looking at (≤ 8 blocks): species, set membership and which rule granted it (config / tag / heuristic — the modded-animal debugging surface), grade and perk (§3), veterancy days/rank (§2), downed status (§7), trough-fed recency, pedigree-treat flag, product-row source (data / mirror). Errors with a localized line if no covered animal is on the crosshair. |
 | `/instinct set grade <ordinary\|sturdy\|prime>` | 2 | Sets the bloodline grade of the looked-at covered animal. |
 | `/instinct set veterancy <days>` | 2 | Sets accrued days (0–100000) on the looked-at pet; rank and attributes re-derive immediately. |
 | `/instinct reload` | 2 | Reloads `config/instinct.json`; reports the count of changed keys. |
@@ -524,6 +564,8 @@ Package **`com.rfizzle.instinct.api`** — the only stable package, per concord 
 
 | Method | Returns |
 |---|---|
+| `InstinctAPI.isPet(EntityType<?>)` | pets-set membership after full resolution (Animal Coverage) |
+| `InstinctAPI.isLivestock(EntityType<?>)` | livestock-set membership after full resolution |
 | `InstinctAPI.getGrade(Animal)` | `Grade` enum (`ORDINARY`, `STURDY`, `PRIME`); `ORDINARY` for uncovered/absent |
 | `InstinctAPI.getVeterancyDays(TamableAnimal)` | accrued days (double), `0.0` if untracked |
 | `InstinctAPI.getVeterancyRank(TamableAnimal)` | rank 0–3 |
@@ -570,7 +612,14 @@ All sibling integrations are `modCompileOnly` + `FabricLoader.isModLoaded` guard
 ### Mod Compatibility
 
 - **Sodium / Iris / EBE** — no rendering mixins, no block-entity renderer replacement (the trough uses a static baked model); full compatibility expected.
-- **Other pet mods** — Instinct touches only the entity types in its config lists; modded tamables can be *opted in* by adding their ids to `selfPreservationEntities`/`veterancyEntities`, with behavior on a best-effort basis (goals and attributes must follow vanilla `TamableAnimal` conventions).
+
+### Modded animals
+
+Third-party animals are supported by convention, not per-mod code — the full mechanism is Animal Coverage (membership heuristic + `#instinct:*` tags + config overrides + product data + mirror fallback). A modded animal is covered automatically when it extends the vanilla tamable/breedable base behaviors, which is true of most animal mods.
+
+- **Critters and Companions** (the reference case) — its tameable species (otters, ferrets, red pandas) read as pets via the heuristic: hazard pathing, veterancy, whistle commands, and downed/revival attach generically. Its breedable species read as livestock: grades, birth perks, crowding/well-fed inheritance, and trough feeding work out of the box (the trough serves each animal's own breeding foods once that feed is in `#instinct:trough_food`), with death-drop bonuses via the mirror fallback until a product row exists.
+- An animal mod deepens support with **data only, zero code**: a tag entry making membership explicit (`#instinct:pets` / `#instinct:livestock`), a `#instinct:trough_food` entry for its feed items, and one product-row JSON per species. Curated rows for popular animal mods may ship in Instinct's own data — inert when the mod is absent (unknown ids skip at debug).
+- Degradation is always graceful (Animal Coverage): a custom follow goal keeps its own teleport rules, a custom tempt goal is never swapped, a species without a sitting pose still reads as downed via AI stop + whine + particles. Instinct never alters a modded behavior it does not recognize.
 
 ---
 
@@ -587,7 +636,7 @@ Custom cues are synthesized via the `/sfx` pipeline (concord `design/DESIGN-SYST
 | Revival (§7) | downed pet revived | custom `instinct:revive` — soft rising shimmer | "Pet revives" |
 | Trough insert (§5) | items added | vanilla `block.composter.fill` | — |
 | Trough feeding (§5) | animal eats | vanilla `entity.generic.eat` | — |
-| Downed whine (§7) | every 100 ticks downed | vanilla species hurt/whine (wolf whine, cat hurt, parrot hurt), volume 0.5 | — |
+| Downed whine (§7) | every 100 ticks downed | the species' own vanilla hurt/whine sound (any species, modded included), volume 0.5 | — |
 | Pedigree treat (§3) | fed to animal | vanilla `entity.generic.eat` + `happy_villager` particles | — |
 
 ---
@@ -639,6 +688,9 @@ Instinct has **no HUD element** and publishes no HUD accessors — the slot deci
 ### Unit Tests (JUnit + `fabric-loader-junit`, `src/test/`)
 
 - Config round-trip: defaults, clamping to ranges, corrupted-file fallback, list parsing.
+- Membership resolution: config > tag > heuristic precedence, exclude-beats-include at each layer, pet-never-heuristic-livestock, `autoDetectAnimals = false` reduces to tags + config.
+- Product data: JSON parsing (optional fields, `special: wool_coat`), unknown entity/item ids skipped, duplicate-id override order.
+- Mirror fallback: candidate selection (edible + `#instinct:mirror_products`), largest/second-largest ordering, no-candidate = no bonus.
 - Veterancy math: `accrue()` with rate multipliers and gaps, `rankFor()` boundaries (exactly 10/30/60), threshold-list edits promoting/demoting, revival rank-penalty day arithmetic.
 - Genetics resolution: `resolveGrade()` with seeded random — all 9 parent-grade combinations × {well-fed, crowded, both, neither}; treat override; uncovered-partner = 0.
 - Drop-bonus table: per-species primary/secondary counts at each grade, cooked-in-kind mirroring, goat = no products.
@@ -656,6 +708,7 @@ Instinct has **no HUD element** and publishes no HUD accessors — the slot deci
 - Whistle: 3 wolves mixed sit states → one toggle payload sits all; second stands all; attack command sets all wolves' target to a zombie; downed wolf ignored.
 - Downed: lethal arrow → wolf at 1.0 health, invulnerable, no mob targets it; golden apple → revived at 50% max, rank reduced by one; lava-swim lethal damage → actual death; `/kill` on a downed pet → death.
 - Flocking: 6 tempted cows hold ≥ 2-block spacing after path settle; tempted speed ≈ 1.15× vanilla tempt.
+- Coverage overrides: a cow in `livestockExclude` (or `#instinct:livestock_exclude` via a test datapack) breeds with no grade roll and drops no bonus; a fox (heuristic livestock) breeds with grade inheritance and mirror-fallback drops.
 
 ### Manual Testing
 
@@ -664,3 +717,4 @@ Instinct has **no HUD element** and publishes no HUD accessors — the slot deci
 - Whistle cue audio character and subtitles; rank-up moment (particles + chime + line together).
 - Jade/WTHIT lines on animals and trough; Cloth Config screen; Sodium/Iris smoke test.
 - Tribulation compat: veterancy accrual doubling at tier 3+ (with Tribulation on the classpath); Prosperity injection appearing at far tiers.
+- Modded-animal smoke test with Critters and Companions installed: tame an otter/ferret (pets: whistle response, downed/revival, veterancy inspection line), breed a covered modded species near hay (grade roll, mirror-fallback drops), trough feeding with its feed added to `#instinct:trough_food`.

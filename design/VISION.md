@@ -13,7 +13,7 @@ In the first hours you notice what *doesn't* happen: your new wolf walks around 
 ## The features, as you'll play them
 
 ### Pets that look before they leap
-- **What it is** — tamed wolves and cats gain a survival instinct. They path around lava and cacti, keep a 4-block berth from an ignited creeper, and refuse to teleport to your side while you are falling more than 3 blocks or swimming in lava.
+- **What it is** — tamed pets — wolves, cats, parrots — gain a survival instinct. They path around lava and cacti, keep a 4-block berth from an ignited creeper, and refuse to teleport to your side while you are falling more than 3 blocks or swimming in lava.
 - **How you use it** — you don't. Tame the animal; the instinct is already there.
 - **What changes for you** — you stop losing pets to your own terrain, and bring them places you never dared. The pet you tame in your first week can still be alive in your hundredth day — which is exactly when veterancy starts to matter.
 
@@ -49,7 +49,7 @@ In the first hours you notice what *doesn't* happen: your new wolf walks around 
 
 ## Staying in control
 
-Every feature above — survival instinct, veterancy, genetics, flocking, the trough, the whistle, downed pets — can be switched off on its own, and the numbers a server plans around (rank thresholds and caps, trough radius, flock speed, grade drop bonuses) are all adjustable. Defaults assume a survival world that wants all of it. Change nothing and untamed wild animals behave exactly as vanilla; nothing appears on your screen — Instinct has no HUD, and everything it ever says is one short line that fades.
+Every feature above — survival instinct, veterancy, genetics, flocking, the trough, the whistle, downed pets — can be switched off on its own, and the numbers a server plans around (rank thresholds and caps, trough radius, flock speed, grade drop bonuses) are all adjustable. Animals from other mods join in automatically when they live like vanilla's — a tameable otter is a pet, a breedable critter is livestock — and a server owner can add or remove any animal by name. Defaults assume a survival world that wants all of it. Change nothing and untamed wild animals behave exactly as vanilla; nothing appears on your screen — Instinct has no HUD, and everything it ever says is one short line that fades.
 
 ## Better together
 
@@ -66,6 +66,6 @@ With no siblings installed, nothing is missing — every feature above is comple
 - **Never make the world harder.** Hostile mobs, difficulty, and crop-trampling raiders are Tribulation's. Instinct strengthens what's yours; it never sharpens what hunts you.
 - **Never reach into chests.** What dungeons and structures hold is Prosperity's ground. Instinct's rewards walk on four legs.
 - **Never add enchantments or potions.** That magic is Meridian's (and, someday, an apothecary's).
-- **No new creatures, no new dimensions.** Instinct works entirely on the animals vanilla already gave you, in the world you already have.
+- **No new creatures, no new dimensions.** Instinct adds no animals of its own; it works on the ones already in your world — vanilla's, and any mod's that live by the same rules.
 - **No cuisine sprawl.** No meal minigames, no recipe trees — the smoker and campfire keep their jobs.
 - **No required companions, no screen clutter.** Instinct stands alone forever, and it will never take a corner of your screen.
