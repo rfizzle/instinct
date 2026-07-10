@@ -57,6 +57,8 @@ Every feature above — survival instinct, veterancy, genetics, flocking, the tr
 - **Tribulation** — a harder world forges pets faster: days survived at difficulty tier 3 or above count double toward veterancy. Never required.
 - **Prosperity** — chests far from home occasionally hold a Vet Kit, or a rare treat that guarantees the next offspring is born prime. Never required.
 - **Meridian** — a well-built blade meets a well-bred herd: its harvest enchantments and prime genetics stack on the same drops. Never required.
+- **Distillation** — the vet's shelf grows: a brewed remedy can bring a downed pet back on its feet, alongside the golden apple and the vet kit. Never required.
+- **Respite** — its swift nights run on the same clock your animals live by: pets age toward veterancy and herds finish their breeding rests while you sleep. Never required.
 
 With no siblings installed, nothing is missing — every feature above is complete on its own.
 
@@ -65,7 +67,7 @@ With no siblings installed, nothing is missing — every feature above is comple
 - **Never touch villagers.** Their breeding, professions, and trades belong to Mercantile; if your prime leather is worth emeralds, it's worth them at Mercantile's stalls, not a market of ours.
 - **Never make the world harder.** Hostile mobs, difficulty, and crop-trampling raiders are Tribulation's. Instinct strengthens what's yours; it never sharpens what hunts you.
 - **Never reach into chests.** What dungeons and structures hold is Prosperity's ground. Instinct's rewards walk on four legs.
-- **Never add enchantments or potions.** That magic is Meridian's (and, someday, an apothecary's).
+- **Never add enchantments or potions.** Enchanting is Meridian's; brewing is Distillation's. Instinct's remedies stay physical — a kit, a treat, a trough.
 - **No new creatures, no new dimensions.** Instinct adds no animals of its own; it works on the ones already in your world — vanilla's, and any mod's that live by the same rules.
 - **No cuisine sprawl.** No meal minigames, no recipe trees — the smoker and campfire keep their jobs.
 - **No required companions, no screen clutter.** Instinct stands alone forever, and it will never take a corner of your screen.

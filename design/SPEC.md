@@ -43,7 +43,7 @@ Instinct ships its vanilla membership as default tag contents, overridable like 
 
 **Mirror fallback.** A livestock species with no product row still carries full genetics (grades, perks, inheritance, treat); when `enableGenericDropMirror` is true its death-drop bonus mirrors the animal's own loot: candidate stacks are the actual death drops whose item is edible or in `#instinct:mirror_products`; the largest candidate stack is treated as the primary product (sturdy +1, prime +2), the second-largest as secondary (sturdy 50% +1, prime +1). No candidates → no bonus. Deterministic given the drop roll.
 
-**Item tags.** `#instinct:trough_food` — what the trough accepts (§5); ships with wheat, carrot, potato, beetroot, and the six vanilla seeds. `#instinct:mirror_products` — non-edible items the mirror fallback may duplicate; ships with leather, feather, rabbit hide, and `#minecraft:wool`.
+**Item tags.** `#instinct:trough_food` — what the trough accepts (§5); ships with wheat, carrot, potato, beetroot, and the six vanilla seeds. `#instinct:mirror_products` — non-edible items the mirror fallback may duplicate; ships with leather, feather, rabbit hide, and `#minecraft:wool`. `#instinct:revive_items` — items that revive a downed pet (§7); ships with the golden apples and the vet kit.
 
 ---
 
@@ -455,9 +455,11 @@ The downed state is indefinite: it persists across saves, chunk unloads, dimensi
 
 **Beyond saving.** The death is **not** cancelled — the pet dies exactly as vanilla — when the lethal damage is fire or lava damage, void damage, or a kill command. VISION.md names this edge: fire, lava, and the void are beyond saving (and §1 exists to keep pets out of them).
 
-**Revival.** Any player (not only the owner) uses on the downed pet:
-- a **golden apple** (regular or enchanted), or
-- a **vet kit** — `instinct:vet_kit`, stack size 16, crafted shapeless: 1 paper + 1 string + 1 honey bottle → 1 vet kit (bottle returned).
+**Revival.** Any player (not only the owner) uses an item in `#instinct:revive_items` on the downed pet. The tag ships with:
+- the **golden apple** (regular and enchanted), and
+- the **vet kit** — `instinct:vet_kit`, stack size 16, crafted shapeless: 1 paper + 1 string + 1 honey bottle → 1 vet kit (bottle returned).
+
+Siblings and packs extend the tag to add their own remedies (Animal Coverage → item tags).
 
 The item is consumed; the pet revives: health set to `reviveHealthFraction` (default 0.5) × max health, Regeneration II for 10 seconds, 60 ticks of post-revive invulnerability, stands in Stay (sitting) state, revival cue + 5 `heart` particles. If `downedRankPenalty` is true and the pet has a veterancy rank, it loses exactly one rank: `accruedDays` is set to the threshold of the new rank (rank 1 → its threshold day count; rank 1 dropping to 0 → 0 days). Feedback to the reviving player: `✦ <name> is back on their feet.`
 
@@ -608,6 +610,8 @@ All sibling integrations are `modCompileOnly` + `FabricLoader.isModLoaded` guard
 - **Prosperity** (consumer) — a conditional loot injection adds the **vet kit** (uncommon) and **pedigree treat** (rare) to chests at Prosperity's higher distance tiers, using Prosperity's injection datapack schema with a mod-presence condition. Both items remain craftable without it.
 - **Mercantile** (provider) — Instinct exposes item ids and the grade API; Mercantile's conditional trade packs (its repo, its jar) may sell or buy against them. Nothing ships in Instinct's jar.
 - **Meridian** (none required) — grade bonus drops are added after the vanilla loot roll, so Meridian's harvest/combat enchantment effects and Instinct's bonuses compose additively with no compat code on either side.
+- **Distillation** (provider) — the revival path is open by convention: Distillation adds its brewed remedy to `#instinct:revive_items` (one tag entry in its jar) and it revives at the same `reviveHealthFraction`. Nothing ships in Instinct's jar, no API call needed.
+- **Respite** (none required) — veterancy accrual and breeding cooldowns run on world game time, so Respite's accelerated nights advance them naturally with no compat code on either side.
 
 ### Mod Compatibility
 
