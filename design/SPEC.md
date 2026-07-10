@@ -612,6 +612,7 @@ All sibling integrations are `modCompileOnly` + `FabricLoader.isModLoaded` guard
 - **Meridian** (none required) — grade bonus drops are added after the vanilla loot roll, so Meridian's harvest/combat enchantment effects and Instinct's bonuses compose additively with no compat code on either side.
 - **Distillation** (provider) — the revival path is open by convention: Distillation adds its brewed remedy to `#instinct:revive_items` (one tag entry in its jar) and it revives at the same `reviveHealthFraction`. Nothing ships in Instinct's jar, no API call needed.
 - **Respite** (none required) — veterancy accrual and breeding cooldowns run on world game time, so Respite's accelerated nights advance them naturally with no compat code on either side.
+- **Cultivation** (provider) — the trough is open by convention: Cultivation adds its farm produce to `#instinct:trough_food` (tag entries in its jar) and herds feed on it like any vanilla crop. Boundary contract: Instinct never changes what grows or what food does when eaten; Cultivation never changes what animals do or drop. Nothing ships in Instinct's jar.
 
 ### Mod Compatibility
 

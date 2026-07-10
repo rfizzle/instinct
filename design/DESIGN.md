@@ -8,7 +8,7 @@
 
 ### Narrative
 
-Instinct makes the animals you tame, breed, and keep worth the keeping: pets that act like they want to live and grow harder to kill the longer they survive, and livestock whose bloodlines reward small, well-tended pastures over mass breeding pits. The name is the thesis — animals with a mind of their own. The visual language draws from **the pasture and the pack**: hay and wheat amber, meadow green, worn wood, and the warm glow of a well-kept farmstead at dusk.
+Instinct makes the animals you tame, breed, and keep worth the keeping: pets that act like they want to live and grow harder to kill the longer they survive, and livestock whose bloodlines reward small, well-tended pastures over mass breeding pits. The name is the thesis — animals with a mind of their own. The visual language draws from **the hearth-side of husbandry**: breeding hearts, tanned hide and leather, worn wood, and lantern-lit stables at dusk.
 
 ### Tagline
 
@@ -16,34 +16,34 @@ Instinct makes the animals you tame, breed, and keep worth the keeping: pets tha
 
 ### Motif
 
-The motif is a **paw print** — the mark an animal leaves, glowing amber like a track pressed into warm earth. It appears in the logo, the mod icon, the 16×16 glyph, site headers, and flavor art. It never appears in another mod's assets, and no sibling motif (arch/compass, hourglass, treasure chest/key, market stall) is adjacent to it.
+The motif is a **paw print** — the mark an animal leaves, glowing warm rose like the breeding hearts vanilla already taught players to love. It appears in the logo, the mod icon, the 16×16 glyph, site headers, and flavor art. It never appears in another mod's assets, and no sibling motif (arch/compass, hourglass, treasure chest/key, market stall, lantern, alembic still, Cultivation's sheaf) is adjacent to it.
 
 ### Logo Description
 
-**Full Logo (`art/logo.png`):** A large glowing amber paw print — one broad pad, four toes — pressed into a weathered stone slab inside a circular leaf-rimmed medallion, over mossy dark stone brickwork. Leaf-green vines with small wheat sheaves climb the medallion's rim; a hay bale and a coiled lead rest at its base as supporting trinkets. Below, "INSTINCT" in a blocky pixel font on a stone banner, with "MINECRAFT HUSBANDRY OVERHAUL" as the subtitle line. Palette: amber glow (`#D9A441` → `#F5D06B`) on dark stone, leaf-green (`#7CB342`) only in the rim, vines, and sheaves.
+**Full Logo (`art/logo.png`):** A large glowing rose paw print — one broad pad, four toes — pressed into a weathered stone slab inside a circular russet-leather-rimmed medallion, over dark umber stone brickwork. Stitched leather straps and a coiled rope lead wrap the medallion's rim; a hay bale and a small bone rest at its base as supporting trinkets. Below, "INSTINCT" in a blocky pixel font on a stone banner, with "MINECRAFT HUSBANDRY OVERHAUL" as the subtitle line. Palette: rose glow (`#E5709B` → `#F5A8C8`) on dark stone, hide russet (`#B8622B`) only in the rim, straps, and rope.
 
-**Icon (`art/icon-128.png`):** The glowing amber paw print isolated on its stone slab — high contrast, warm radiance against a dark/transparent background. Reads cleanly at 128×128.
+**Icon (`art/icon-128.png`):** The glowing rose paw print isolated on its stone slab — high contrast, warm radiance against a dark/transparent background. Reads cleanly at 128×128.
 
-**16×16 glyph (`art/hud-icon-16.png`):** A minimal pixel paw print — one pad, four toes — in wheat amber with an ink outline. Instinct has no HUD slot (§2), so the glyph serves Jade/WTHIT and recipe-viewer contexts only.
+**16×16 glyph (`art/hud-icon-16.png`):** A minimal pixel paw print — one pad, four toes — in heart rose with an ink outline. Instinct has no HUD slot (§2), so the glyph serves Jade/WTHIT and recipe-viewer contexts only.
 
 ### Color Palette
 
 | Role | Color | Hex | Usage |
 |------|-------|-----|-------|
-| Primary surface | Dark Moss | `#141a0a` | Backgrounds, dark surfaces |
-| Secondary surface | Deep Olive | `#232e10` | Mid-tones, card backgrounds |
-| Accent 1 | Wheat Amber | `#D9A441` | Glows, highlights, headings, interactive elements |
-| Accent 2 | Leaf Green | `#7CB342` | Pasture accents, grade/quality indicators, links |
-| Bright | Ripe Wheat | `#F5D06B` | Hover states, heading gradient end, the paw's glow core |
-| Bright green | Meadow | `#9CCC65` | Leaf-green hover states, prime-grade emphasis |
+| Primary surface | Dark Umber | `#1a120a` | Backgrounds, dark surfaces |
+| Secondary surface | Deep Hide | `#2e2210` | Mid-tones, card backgrounds |
+| Accent 1 | Heart Rose | `#E5709B` | Glows, highlights, headings, interactive elements |
+| Accent 2 | Hide Russet | `#B8622B` | Leather accents, grade/quality indicators, links |
+| Bright | Rose Glow | `#F5A8C8` | Hover states, heading gradient end, the paw's glow core |
+| Bright warm | Tanned Hide | `#D98A4A` | Russet hover states, prime-grade emphasis |
 
 Shared neutrals (text and surfaces) follow the standard tokens as-is — `--color-bone`, `--color-ash`, `--color-smoke`, `--color-ink`, `--color-card`, `--color-elevated` — see concord [`design/DESIGN-SYSTEM.md`](../../concord/design/DESIGN-SYSTEM.md) §1.
 
-**Pairing-rule clearance (DESIGN-SYSTEM §2/§7):** the signature pair is the reserved Husbandry row, amber-with-leaf. Amber sits near Meridian's and Prosperity's golds and Respite's candleglow, but no pair matches: gold-with-violet reads Meridian, gold-with-cyan reads Prosperity, candle-with-indigo reads Respite, amber-with-leaf reads Instinct — and every working shade keeps clear of siblings' exact accent hexes (Ripe Wheat `#F5D06B` is deliberately not Respite's Candleglow `#F2C14E`). Leaf Green (`#7CB342`, yellow-green) is distinct from Mercantile's blue-green emeralds (`#50C878`/`#6DDB94`). No collision with Tribulation (crimson/ember), Distillation (magenta/copper), or the reserved Tempest (blue/white) and Stratum (grey/copper-orange) rows. Surfaces are a dark moss/olive tint in the standard value range, distinct from Prosperity's warm bronze (`#1a1408`/`#2e2510`).
+**Pairing-rule clearance (DESIGN-SYSTEM §2/§7):** rose-with-russet shares no accent with any member or reserved row. Heart Rose is the suite's first pink — nothing adjacent anywhere. Hide Russet's nearest neighbors are Distillation's Copper (`#E77C56`, a light salmon paired with magenta) and the reserved Stratum Copper Orange (`#E07A3F`, paired with grey); Instinct's russet is darker leather-brown and its rose partner disambiguates the pair at a glance. The old reserved Husbandry pair (Wheat Amber/Leaf Green) belongs to Cultivation, the field half of the split silo. Surfaces are a dark umber tint in the standard value range — redder than Prosperity's bronze (`#1a1408`/`#2e2510`) and warmer than Cultivation's loam (`#101a0a`/`#1c2e10`).
 
 ### Typography
 
-- **Headings:** pixel/blocky display treatment in the amber gradient (`#D9A441` → `#F5D06B`), with the shared 4s brightness pulse.
+- **Headings:** pixel/blocky display treatment in the rose gradient (`#E5709B` → `#F5A8C8`), with the shared 4s brightness pulse.
 - Everything else is the standard (DESIGN-SYSTEM §3); in-game is the vanilla font, always.
 
 ---
@@ -72,11 +72,11 @@ Asset-family judgments (the suite stance: custom where it earns its place, vanil
 
 **Full logo (Gemini):**
 
-> Pixel art logo for a Minecraft mod named "INSTINCT". A circular leaf-green-rimmed stone medallion over mossy dark stone brickwork holds a weathered stone slab bearing a large glowing paw print (one broad pad, four toes) in warm wheat-amber (#D9A441) with a bright core (#F5D06B), radiating soft light. Leaf-green (#7CB342) vines with small wheat sheaves climb the medallion's rim; a small pixel hay bale and a coiled rope lead sit at its base. Below the emblem, "INSTINCT" in a blocky pixel font on a carved stone banner, with "MINECRAFT HUSBANDRY OVERHAUL" in smaller pixel type underneath. Dark background (#0a0a0a), moody farmstead-at-dusk lighting, 16-bit pixel art style, no anti-aliasing.
+> Pixel art logo for a Minecraft mod named "INSTINCT". A circular stone medallion rimmed in stitched russet leather (#B8622B) over dark umber stone brickwork holds a weathered stone slab bearing a large glowing paw print (one broad pad, four toes) in warm heart-rose (#E5709B) with a bright core (#F5A8C8), radiating soft light. A coiled rope lead and leather straps wrap the medallion's rim; a small pixel hay bale and a bone sit at its base. Below the emblem, "INSTINCT" in a blocky pixel font on a carved stone banner, with "MINECRAFT HUSBANDRY OVERHAUL" in smaller pixel type underneath. Dark background (#0a0a0a), moody stable-at-dusk lighting, 16-bit pixel art style, no anti-aliasing.
 
 **128×128 icon (Gemini or `/glyph` ladder):**
 
-> Pixel art icon: a glowing wheat-amber (#D9A441) paw print with a bright core (#F5D06B) inlaid in a dark weathered stone slab, soft warm radiance, dark transparent-friendly background, crisp 16-bit pixel style, legible at 128×128.
+> Pixel art icon: a glowing heart-rose (#E5709B) paw print with a bright core (#F5A8C8) inlaid in a dark weathered stone slab, soft warm radiance, dark transparent-friendly background, crisp 16-bit pixel style, legible at 128×128.
 
 Pixel-art sources for the glyph, block, and item textures are `.glyph` files under `art/` — referenced in `ASSETS.md`, never duplicated here.
 
@@ -92,7 +92,7 @@ Reference and exploration images live in `art/exploration/` (generation candidat
 
 Content lives elsewhere — page copy in `site/pages/*.json` rendered by the shared Concord template at `instinct.rfizzle.com`, store copy in `site/listing-modrinth.md` / `site/listing-curseforge.md`, release notes in `changelogs/`. This section is brand only.
 
-- **Accent usage:** amber (`#D9A441` → `#F5D06B`) carries headings, hero glow, and interactive elements; leaf green (`#7CB342`) is the secondary — links, grade badges, feature-card borders. Body text and surfaces stay on the shared neutrals over the moss/olive tinted surfaces.
+- **Accent usage:** rose (`#E5709B` → `#F5A8C8`) carries headings, hero glow, and interactive elements; hide russet (`#B8622B`) is the secondary — links, grade badges, feature-card borders. Body text and surfaces stay on the shared neutrals over the umber tinted surfaces.
 - **Hero:** the full logo over the dark field, tagline beneath, version/loader badges.
 - **Gallery art direction** (1920×1080, vanilla or a light shader): a wolf pack pathing around a lava lake; a herd flocking in a neat line behind a player holding wheat; a fenced pasture with a feeding trough and hearts; the whistle moment — a dozen wolves turning at once; a downed wolf being revived with a vet kit.
 - **OG image:** full logo on Ink at 1200×630; `<title>` = `Instinct — Worth raising.`; meta description = tagline + one mechanical sentence.
@@ -101,8 +101,8 @@ Content lives elsewhere — page copy in `site/pages/*.json` rendered by the sha
 
 ## 7. Concord Context
 
-Instinct owns the husbandry silo: the animals you tame, breed, herd, and keep — their survival, lineage, and yield. It does not touch villagers (Mercantile), difficulty or hostile mobs (Tribulation), container loot (Prosperity), enchantments (Meridian), potions and remedies (Distillation), or sleep and the day-night rhythm (Respite).
+Instinct owns the animal half of the husbandry silo: the animals you tame, breed, herd, and keep — their survival, lineage, and yield. The field half — crops, soil, food values, cooking — is Cultivation's; the boundary contract is that Instinct never changes what grows or what food does when eaten, and Cultivation never changes what animals do or drop. Instinct also does not touch villagers (Mercantile), difficulty or hostile mobs (Tribulation), container loot (Prosperity), enchantments (Meridian), potions and remedies (Distillation), or sleep and the day-night rhythm (Respite).
 
-Against its siblings' signatures, amber-with-leaf reads warm and pastoral where Meridian's gold-with-violet reads arcane, Prosperity's gold-with-cyan reads treasure, Mercantile's emerald reads commerce, Tribulation's crimson reads threat, Respite's candle-with-indigo reads night, and Distillation's magenta-with-copper reads alchemy.
+Against its siblings' signatures, rose-with-russet reads hearth and hide where Cultivation's amber-with-leaf reads field and harvest, Meridian's gold-with-violet reads arcane, Prosperity's gold-with-cyan reads treasure, Mercantile's emerald reads commerce, Tribulation's crimson reads threat, Respite's candle-with-indigo reads night, and Distillation's magenta-with-copper reads alchemy. The tagline pair is deliberate kin: Cultivation's "Worth growing." and Instinct's "Worth raising." are the two halves of one husbandry promise.
 
 Suite references: concord [`VISION.md`](../../concord/VISION.md), [`design/DESIGN-SYSTEM.md`](../../concord/design/DESIGN-SYSTEM.md), [`HUD-STANDARD.md`](../../concord/HUD-STANDARD.md), [`API-STANDARD.md`](../../concord/API-STANDARD.md).

@@ -53,7 +53,8 @@ Every feature above — survival instinct, veterancy, genetics, flocking, the tr
 
 ## Better together
 
-- **Mercantile** — butchers and farmers know quality when they see it: at high reputation, exclusive trades pay a premium for prime meat, leather, and wool. Never required.
+- **Mercantile** — the butcher keeps a vet's shelf: at high reputation, exclusive trades sell vet kits and pedigree treats for emeralds. Never required.
+- **Cultivation** — its harvest feeds your herd: farm-grown produce pours straight into the feeding trough, and a good field makes a good pasture. Never required.
 - **Tribulation** — a harder world forges pets faster: days survived at difficulty tier 3 or above count double toward veterancy. Never required.
 - **Prosperity** — chests far from home occasionally hold a Vet Kit, or a rare treat that guarantees the next offspring is born prime. Never required.
 - **Meridian** — a well-built blade meets a well-bred herd: its harvest enchantments and prime genetics stack on the same drops. Never required.
@@ -69,5 +70,5 @@ With no siblings installed, nothing is missing — every feature above is comple
 - **Never reach into chests.** What dungeons and structures hold is Prosperity's ground. Instinct's rewards walk on four legs.
 - **Never add enchantments or potions.** Enchanting is Meridian's; brewing is Distillation's. Instinct's remedies stay physical — a kit, a treat, a trough.
 - **No new creatures, no new dimensions.** Instinct adds no animals of its own; it works on the ones already in your world — vanilla's, and any mod's that live by the same rules.
-- **No cuisine sprawl.** No meal minigames, no recipe trees — the smoker and campfire keep their jobs.
+- **Never work the fields.** Crops, soil, cooking, and what a meal does for you are Cultivation's; Instinct's animals eat the harvest, they never change how it grows. No cuisine sprawl here — the smoker and campfire keep their jobs.
 - **No required companions, no screen clutter.** Instinct stands alone forever, and it will never take a corner of your screen.
