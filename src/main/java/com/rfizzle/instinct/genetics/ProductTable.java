@@ -163,9 +163,13 @@ public final class ProductTable {
         Map<ResourceLocation, List<Resource>> found = manager.listResourceStacks(
                 DATA_PATH, id -> id.getPath().endsWith(".json"));
         int rows = 0;
-        for (Map.Entry<ResourceLocation, List<Resource>> fileEntry : found.entrySet()) {
-            ResourceLocation fileId = fileEntry.getKey();
-            for (Resource resource : fileEntry.getValue()) { // lowest pack first → higher packs win
+        // Within one filename the pack stack is ordered lowest-first, so a higher pack overrides.
+        // Across differently-named files that declare the same entity id, iterate by file id so the
+        // winner is at least deterministic (ship one file per species to avoid the collision).
+        List<ResourceLocation> fileIds = new java.util.ArrayList<>(found.keySet());
+        fileIds.sort(java.util.Comparator.comparing(ResourceLocation::toString));
+        for (ResourceLocation fileId : fileIds) {
+            for (Resource resource : found.get(fileId)) { // lowest pack first → higher packs win
                 try (BufferedReader reader = new BufferedReader(
                         new InputStreamReader(resource.open(), StandardCharsets.UTF_8))) {
                     JsonObject json = GSON.fromJson(reader, JsonObject.class);

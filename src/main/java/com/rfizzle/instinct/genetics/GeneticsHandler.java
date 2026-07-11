@@ -108,16 +108,31 @@ public final class GeneticsHandler {
         if (!config.enableGenetics || !AnimalCoverage.membershipOf(child).livestock()) {
             return;
         }
-        DoubleSupplier roll = parentA.getRandom()::nextDouble;
+        // The HEAD inject runs before vanilla's resetLove(): an uncaught throw here would strand the
+        // parents in-love and re-throw every tick until the server crashes, and a third-party
+        // InstinctAnimalBredCallback listener is untrusted. Degrade to "no genetics this breeding".
+        try {
+            resolveBirth(parentA, parentB, child, config);
+        } catch (Exception e) {
+            Instinct.LOGGER.error("Genetics resolution failed for {} bred from {}",
+                    child.getType(), parentA.getType(), e);
+        }
+    }
 
+    private static void resolveBirth(Animal parentA, Animal parentB, Animal child, InstinctConfig config) {
+        DoubleSupplier roll = parentA.getRandom()::nextDouble;
         int gradeA = InstinctAPI.getGrade(parentA).level();
         int gradeB = InstinctAPI.getGrade(parentB).level();
 
+        boolean treated = consumeTreatFlag(parentA) || consumeTreatFlag(parentB);
+        // Well-fed feeds both the grade roll and the perk bias; scan for it once (the hay cube scan
+        // is the costly part), and only when a roll will actually consult it.
+        boolean wellFed = !treated && isWellFed(parentA, parentB, config);
+
         int childGrade;
-        if (consumeTreatFlag(parentA) || consumeTreatFlag(parentB)) {
+        if (treated) {
             childGrade = Grade.PRIME.level();
         } else {
-            boolean wellFed = isWellFed(parentA, parentB, config);
             boolean crowded = isCrowded(parentA, parentB, config);
             childGrade = Genetics.resolveGrade(gradeA, gradeB, wellFed, crowded,
                     config.gradeUpgradeChance, config.gradeDowngradeChance, roll);
@@ -125,9 +140,11 @@ public final class GeneticsHandler {
 
         Perk childPerk = Perk.NONE;
         if (childGrade >= Grade.STURDY.level()) {
-            boolean wellFed = isWellFed(parentA, parentB, config);
+            // A treated (born-prime) breeding still rolls the perk by the normal rules; its well-fed
+            // bias needs the scan the grade path skipped.
+            boolean perkWellFed = treated ? isWellFed(parentA, parentB, config) : wellFed;
             childPerk = Genetics.resolvePerk(InstinctAPI.getPerk(parentA), InstinctAPI.getPerk(parentB),
-                    wellFed, roll);
+                    perkWellFed, roll);
         }
 
         GeneticsData existing = child.getAttachedOrCreate(InstinctAttachments.GENETICS);
@@ -149,8 +166,12 @@ public final class GeneticsHandler {
         if (!InstinctConfig.get().enableGenetics) {
             return;
         }
-        scaleFertileCooldown(parentA);
-        scaleFertileCooldown(parentB);
+        try {
+            scaleFertileCooldown(parentA);
+            scaleFertileCooldown(parentB);
+        } catch (Exception e) {
+            Instinct.LOGGER.error("Fertile cooldown scaling failed for {}", parentA.getType(), e);
+        }
     }
 
     private static void scaleFertileCooldown(Animal parent) {
@@ -375,7 +396,10 @@ public final class GeneticsHandler {
      * The chicken egg-timer's next random draw, shifted so the whole interval scales by grade
      * (sturdy −10%, prime −20%). Vanilla forms the interval as {@code raw + 6000}; returning
      * {@code raw'} such that {@code raw' + 6000 = factor × (raw + 6000)} keeps the mixin a single
-     * expression edit while scaling the full interval. Clamped so the draw never goes negative.
+     * expression edit while scaling the full interval. The returned shift is intentionally allowed
+     * to go negative — for {@code raw ∈ [0, 5999]} and {@code grade ∈ {1, 2}} the scaled interval is
+     * always at least 4800 ticks, so the egg timer vanilla forms from it stays well positive.
+     * Clamping the shift to zero would silently restore the vanilla interval for the fastest rolls.
      */
     public static int scaledEggRandom(Animal chicken, int raw) {
         if (!InstinctConfig.get().enableGenetics || !AnimalCoverage.membershipOf(chicken).livestock()) {
@@ -387,7 +411,7 @@ public final class GeneticsHandler {
         }
         double factor = 1.0 - 0.10 * grade; // sturdy 0.90, prime 0.80
         int interval = (int) Math.round((raw + EGG_INTERVAL_BASE) * factor);
-        return Math.max(0, interval - EGG_INTERVAL_BASE);
+        return interval - EGG_INTERVAL_BASE;
     }
 
     /**

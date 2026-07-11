@@ -34,9 +34,11 @@ import java.util.List;
  * The {@code /instinct} command surface: {@code info} (perm 0 — reports the looked-at animal's
  * species, set membership, granting rule, and attachment-backed state; the modded-animal
  * debugging surface), {@code set veterancy} (perm 2 — sets the looked-at pet's accrued days;
- * rank and bonuses re-derive immediately through the veterancy choke point), and {@code reload}
- * (perm 2 — reloads {@code config/instinct.json} and reports the changed-key count). All output
- * is localized {@code command.instinct.*}.
+ * rank and bonuses re-derive immediately through the veterancy choke point), {@code set grade}
+ * (perm 2 — sets the looked-at livestock's bloodline grade through the genetics choke point, which
+ * re-derives the hardy/fleet bonuses), and {@code reload} (perm 2 — reloads
+ * {@code config/instinct.json} and reports the changed-key count). All output is localized
+ * {@code command.instinct.*}.
  */
 public final class InstinctCommand {
 

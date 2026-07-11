@@ -196,6 +196,42 @@ public class GeneticsGameTest implements FabricGameTest {
         }
     }
 
+    @GameTest(template = EMPTY_STRUCTURE)
+    public void aThrowingBredListenerDoesNotCrashBreeding(GameTestHelper helper) {
+        armThrowingListener();
+        Cow a = helper.spawn(EntityType.COW, new BlockPos(2, 2, 2));
+        Cow b = helper.spawn(EntityType.COW, new BlockPos(3, 2, 2));
+        CALLBACK_ARMED.set(true);
+        try {
+            // Without the handler's exception isolation, this throw would escape the HEAD inject,
+            // skip vanilla's resetLove(), and crash the entity tick.
+            Animal calf = breed(helper, a, b);
+            helper.assertTrue(calf != null, "breeding completes despite a throwing bred listener");
+            helper.assertValueEqual(a.getAge(), 6000,
+                    "vanilla finalize still ran — the parents' love cooldown was reset");
+        } finally {
+            CALLBACK_ARMED.set(false);
+        }
+        helper.succeed();
+    }
+
+    private static final java.util.concurrent.atomic.AtomicBoolean CALLBACK_ARMED =
+            new java.util.concurrent.atomic.AtomicBoolean(false);
+    private static boolean listenerRegistered = false;
+
+    /** Registers, once, a bred-callback listener that throws only while {@link #CALLBACK_ARMED}. */
+    private static synchronized void armThrowingListener() {
+        if (listenerRegistered) {
+            return;
+        }
+        listenerRegistered = true;
+        com.rfizzle.instinct.api.InstinctAnimalBredCallback.EVENT.register((a, b, child, grade) -> {
+            if (CALLBACK_ARMED.get()) {
+                throw new IllegalStateException("intentional test failure from a bred listener");
+            }
+        });
+    }
+
     /**
      * Breeds two animals through the real pipeline and returns the newborn baby, or {@code null}.
      */

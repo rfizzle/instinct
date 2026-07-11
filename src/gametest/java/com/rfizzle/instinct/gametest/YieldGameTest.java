@@ -56,13 +56,22 @@ public class YieldGameTest implements FabricGameTest {
         Chicken prime = helper.spawn(EntityType.CHICKEN, new BlockPos(6, 2, 2));
         GeneticsHandler.setGrade(prime, Grade.PRIME);
 
-        // Vanilla forms the interval as raw + 6000; a raw of 6000 gives a clean 12000-tick interval.
-        helper.assertValueEqual(GeneticsHandler.scaledEggRandom(ordinary, 6000), 6000,
-                "an ordinary chicken lays at the vanilla interval");
-        helper.assertValueEqual(GeneticsHandler.scaledEggRandom(sturdy, 6000), 4800,
-                "sturdy: interval 12000 → 10800 (−10%), so the draw shifts to 4800");
-        helper.assertValueEqual(GeneticsHandler.scaledEggRandom(prime, 6000), 3600,
-                "prime: interval 12000 → 9600 (−20%), so the draw shifts to 3600");
+        // Vanilla forms the egg timer as scaledEggRandom(...) + 6000, so assert the resulting
+        // interval scales by grade across the whole nextInt(6000) domain, including the fast end.
+        helper.assertValueEqual(interval(ordinary, 5000), 11000, "ordinary lays at the vanilla interval");
+        helper.assertValueEqual(interval(sturdy, 5000), 9900, "sturdy: 11000 → 9900 (−10%)");
+        helper.assertValueEqual(interval(prime, 5000), 8800, "prime: 11000 → 8800 (−20%)");
+
+        // The fastest roll (raw = 0) must still be reduced, not clamped back to the vanilla floor:
+        // the earlier clamp-to-zero bug restored 6000 here for a prime chicken.
+        helper.assertValueEqual(interval(ordinary, 0), 6000, "ordinary floor is the vanilla 6000");
+        helper.assertValueEqual(interval(sturdy, 0), 5400, "sturdy floor: 6000 → 5400 (−10%)");
+        helper.assertValueEqual(interval(prime, 0), 4800, "prime floor: 6000 → 4800 (−20%), never the vanilla 6000");
         helper.succeed();
+    }
+
+    /** The egg timer vanilla forms from the scaled random draw at a given raw {@code nextInt(6000)}. */
+    private static int interval(Chicken chicken, int raw) {
+        return GeneticsHandler.scaledEggRandom(chicken, raw) + 6000;
     }
 }
