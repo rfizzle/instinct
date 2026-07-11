@@ -196,7 +196,9 @@ public class GeneticsGameTest implements FabricGameTest {
         }
     }
 
-    @GameTest(template = EMPTY_STRUCTURE)
+    // Own batch: the throwing listener is armed globally for the duration of this breeding, so no
+    // other breeding test may run concurrently and observe the intentional failure.
+    @GameTest(template = EMPTY_STRUCTURE, batch = "instinctBredThrow")
     public void aThrowingBredListenerDoesNotCrashBreeding(GameTestHelper helper) {
         armThrowingListener();
         Cow a = helper.spawn(EntityType.COW, new BlockPos(2, 2, 2));
