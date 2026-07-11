@@ -1,0 +1,39 @@
+{
+  "name": "rank_up",
+  "sample_rate": 44100,
+  "peak_dbfs": -1.0,
+  "subtitle": "subtitles.instinct.rank_up",
+  "seed": 21,
+  "layers": [
+    {
+      "waveform": "sine",
+      "freq": 659.26,
+      "start": 0.0, "duration": 0.28, "gain": 0.7,
+      "env": {"attack": 0.004, "decay": 0.2, "sustain": 0.25, "release": 0.22}
+    },
+    {
+      "waveform": "triangle",
+      "freq": 1318.5,
+      "start": 0.0, "duration": 0.22, "gain": 0.18,
+      "env": {"attack": 0.004, "decay": 0.14, "sustain": 0.15, "release": 0.16}
+    },
+    {
+      "waveform": "sine",
+      "freq": 880.0,
+      "start": 0.22, "duration": 0.42, "gain": 0.85,
+      "env": {"attack": 0.004, "decay": 0.28, "sustain": 0.3, "release": 0.34}
+    },
+    {
+      "waveform": "triangle",
+      "freq": 1760.0,
+      "start": 0.22, "duration": 0.3, "gain": 0.2,
+      "env": {"attack": 0.004, "decay": 0.18, "sustain": 0.15, "release": 0.22}
+    },
+    {
+      "waveform": "sine",
+      "freq": 220.0,
+      "start": 0.0, "duration": 0.6, "gain": 0.12,
+      "env": {"attack": 0.05, "decay": 0.3, "sustain": 0.3, "release": 0.3}
+    }
+  ]
+}

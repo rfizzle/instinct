@@ -19,7 +19,7 @@ In the first hours you notice what *doesn't* happen: your new wolf walks around 
 
 ### Veteran pets
 - **What it is** — every pet quietly tracks the days it has survived at your side. At 10, 30, and 60 days it gains a rank: each rank adds 2 max health (one heart) and 1 attack damage — and teaches the pet something an old animal would know. A Seasoned pet warns you in its own voice — growl, hiss, squawk — when a monster sets its eye on you. A Veteran keeps clear of your sweeping blade, so your own swings never catch it. A Venerable one steadies the young: pets near it earn their days 25% faster.
-- **How you use it** — keep them alive; that's the whole trick. Crouch and look at your pet with an empty hand and a short line tells you where it stands ("Rex has seen 43 days").
+- **How you use it** — keep them alive; that's the whole trick. Crouch and look at your pet and a short line tells you where it stands ("Rex has seen 43 days").
 - **What changes for you** — an old wolf is meaningfully stronger than a fresh tame, and it acts the part: it hears trouble before you do, ducks your swing, and raises the next generation. Losing one costs something a bone can't replace. Your pack becomes a roster, not a resource.
 
 ### Quality genetics

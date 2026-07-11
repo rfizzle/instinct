@@ -1,6 +1,7 @@
 package com.rfizzle.instinct.command;
 
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.rfizzle.instinct.Instinct;
 import com.rfizzle.instinct.api.Grade;
 import com.rfizzle.instinct.api.InstinctAPI;
@@ -11,20 +12,17 @@ import com.rfizzle.instinct.coverage.CoverageResolver;
 import com.rfizzle.instinct.coverage.MembershipRule;
 import com.rfizzle.instinct.data.GeneticsData;
 import com.rfizzle.instinct.data.InstinctAttachments;
+import com.rfizzle.instinct.inspection.Inspection;
 import com.rfizzle.instinct.veterancy.Veterancy;
+import com.rfizzle.instinct.veterancy.VeterancyHandler;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.entity.animal.Animal;
-import net.minecraft.world.entity.projectile.ProjectileUtil;
-import net.minecraft.world.phys.AABB;
-import net.minecraft.world.phys.EntityHitResult;
-import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,13 +30,18 @@ import java.util.List;
 /**
  * The {@code /instinct} command surface: {@code info} (perm 0 — reports the looked-at animal's
  * species, set membership, granting rule, and attachment-backed state; the modded-animal
- * debugging surface) and {@code reload} (perm 2 — reloads {@code config/instinct.json} and
- * reports the changed-key count). All output is localized {@code command.instinct.*}.
+ * debugging surface), {@code set veterancy} (perm 2 — sets the looked-at pet's accrued days;
+ * rank and bonuses re-derive immediately through the veterancy choke point), and {@code reload}
+ * (perm 2 — reloads {@code config/instinct.json} and reports the changed-key count). All output
+ * is localized {@code command.instinct.*}.
  */
 public final class InstinctCommand {
 
     /** How far {@code /instinct info} looks for an animal, per {@code design/SPEC.md} §Commands. */
     static final double INFO_RANGE_BLOCKS = 8.0;
+
+    /** {@code set veterancy} bounds, per {@code design/SPEC.md} §Commands (0–100000 days). */
+    static final int MAX_VETERANCY_DAYS = 100_000;
 
     private InstinctCommand() {
     }
@@ -52,6 +55,13 @@ public final class InstinctCommand {
         dispatcher.register(Commands.literal(Instinct.MOD_ID)
                 .then(Commands.literal("info")
                         .executes(ctx -> runInfo(ctx.getSource())))
+                .then(Commands.literal("set")
+                        .requires(src -> src.hasPermission(2))
+                        .then(Commands.literal("veterancy")
+                                .then(Commands.argument("days",
+                                                IntegerArgumentType.integer(0, MAX_VETERANCY_DAYS))
+                                        .executes(ctx -> runSetVeterancy(ctx.getSource(),
+                                                IntegerArgumentType.getInteger(ctx, "days"))))))
                 .then(Commands.literal("reload")
                         .requires(src -> src.hasPermission(2))
                         .executes(ctx -> runReload(ctx.getSource()))));
@@ -70,6 +80,28 @@ public final class InstinctCommand {
         }
         for (Component line : infoLines(animal)) {
             source.sendSuccess(() -> line, false);
+        }
+        return 1;
+    }
+
+    private static int runSetVeterancy(CommandSourceStack source, int days) {
+        ServerPlayer player = source.getPlayer();
+        if (player == null) {
+            source.sendFailure(Component.translatable("command.instinct.not_player"));
+            return 0;
+        }
+        Animal animal = raycastAnimal(player, INFO_RANGE_BLOCKS);
+        if (!(animal instanceof TamableAnimal pet) || !AnimalCoverage.membershipOf(pet).pet()) {
+            source.sendFailure(Component.translatable("command.instinct.set.no_pet"));
+            return 0;
+        }
+        int rank = VeterancyHandler.setAccruedDays(pet, days);
+        if (rank > 0) {
+            source.sendSuccess(() -> Component.translatable("command.instinct.set.veterancy.ranked",
+                    pet.getName(), days, Component.translatable(Veterancy.rankKey(rank))), true);
+        } else {
+            source.sendSuccess(() -> Component.translatable("command.instinct.set.veterancy",
+                    pet.getName(), days), true);
         }
         return 1;
     }
@@ -149,24 +181,8 @@ public final class InstinctCommand {
                 Component.translatable(rule.translationKey()));
     }
 
-    /**
-     * Raycast from the player's eye along their view vector and return the first living
-     * {@link Animal} within range, or {@code null}. Entity bounding boxes only — partial wall
-     * cover is intentional for debug convenience.
-     */
+    /** The shared crosshair raycast ({@link Inspection#animalOnCrosshair}). */
     private static Animal raycastAnimal(ServerPlayer player, double range) {
-        Vec3 eye = player.getEyePosition(1.0f);
-        Vec3 view = player.getViewVector(1.0f);
-        Vec3 end = eye.add(view.x * range, view.y * range, view.z * range);
-        AABB box = player.getBoundingBox().expandTowards(view.scale(range)).inflate(1.0);
-        EntityHitResult hit = ProjectileUtil.getEntityHitResult(
-                player, eye, end, box,
-                e -> e instanceof Animal && !e.isSpectator() && e.isAlive(),
-                range * range);
-        if (hit == null) {
-            return null;
-        }
-        Entity entity = hit.getEntity();
-        return entity instanceof Animal animal ? animal : null;
+        return Inspection.animalOnCrosshair(player, range);
     }
 }

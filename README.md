@@ -21,6 +21,13 @@ lives like a vanilla one is covered automatically, and a datapack or server owne
 can override any species), and the persistent per-animal data every feature rides on.
 `/instinct info` reports how the animal on your crosshair resolved.
 
+The first gameplay system has shipped: **pet veterancy**. Pets count the in-game days
+survived since taming — 10, 30, and 60 days make them Seasoned, Veteran, and Venerable, each
+rank adding max health and attack damage. Ranked pets learn behaviors: a Seasoned pet warns
+you in its own voice when a monster targets you, a Veteran ducks your sweep attacks, and a
+Venerable one mentors nearby lower-rank pets (+25% accrual). Crouch and look at your pet to
+read its days and rank; `/instinct set veterancy` (op) sets them directly.
+
 ---
 
 ## For Mod Developers
@@ -39,6 +46,9 @@ package is internal and may change in any release.
   and birth perk (`ORDINARY`/`NONE` for untracked animals)
 - `InstinctAPI.getVeterancyDays(TamableAnimal)` / `InstinctAPI.getVeterancyRank(TamableAnimal)` —
   accrued days and derived rank 0–3
+- `InstinctAPI.setVeterancyRateProvider(ToDoubleFunction<TamableAnimal>)` — multiplies live
+  veterancy accrual (error-isolated: non-finite, non-positive, or throwing providers count as
+  1.0; last registration wins)
 - `InstinctAPI.isDowned(LivingEntity)` — downed state
 - `InstinctAPI.isTroughFed(Animal)` — trough-fed within the last 24000 ticks
 

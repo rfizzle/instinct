@@ -7,22 +7,30 @@ import com.rfizzle.instinct.data.GeneticsData;
 import com.rfizzle.instinct.data.InstinctAttachments;
 import com.rfizzle.instinct.data.VeterancyData;
 import com.rfizzle.instinct.veterancy.Veterancy;
+import com.rfizzle.instinct.Instinct;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.entity.animal.Animal;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.ToDoubleFunction;
+
 /**
  * Instinct's read-only public API (Concord API Standard). All reads are server-authoritative and
  * resolve from the persistent entity attachments and the live Animal Coverage resolution; an
  * animal without attachment data reads as its vanilla default ({@link Grade#ORDINARY},
- * {@link Perk#NONE}, 0 days, not downed, not trough-fed). Nothing here mutates Instinct's state.
+ * {@link Perk#NONE}, 0 days, not downed, not trough-fed). Nothing here mutates Instinct's state
+ * outside the one sanctioned provider slot ({@link #setVeterancyRateProvider}).
  */
 @Stable
 public final class InstinctAPI {
 
     /** Trough feedings older than this many ticks no longer count as trough-fed (§3/§5). */
     private static final long TROUGH_FED_WINDOW_TICKS = 24_000L;
+
+    private static volatile ToDoubleFunction<TamableAnimal> veterancyRateProvider = pet -> 1.0;
+    private static final AtomicBoolean RATE_PROVIDER_FAILURE_LOGGED = new AtomicBoolean(false);
 
     private InstinctAPI() {
     }
@@ -58,6 +66,35 @@ public final class InstinctAPI {
     /** The pet's veterancy rank 0–3, derived from accrued days against the configured thresholds. */
     public static int getVeterancyRank(TamableAnimal pet) {
         return Veterancy.rankFor(getVeterancyDays(pet), InstinctConfig.get().veterancyThresholdDays);
+    }
+
+    /**
+     * Registers a veterancy-rate provider that multiplies live accrual (§2). Applies only to
+     * loaded, live accrual — gaps spent unloaded always accrue at 1.0 — and composes
+     * multiplicatively with §2's mentor bonus. Non-finite or non-positive returns are clamped to
+     * 1.0; a throwing provider is caught, logged once, and treated as 1.0. Last registration
+     * wins; {@code null} is ignored.
+     */
+    public static void setVeterancyRateProvider(ToDoubleFunction<TamableAnimal> provider) {
+        if (provider != null) {
+            veterancyRateProvider = provider;
+        }
+    }
+
+    /**
+     * Resolves the registered provider's rate for one pet under full error isolation. Internal —
+     * the accrual sweep calls this; consumers register through
+     * {@link #setVeterancyRateProvider} and never resolve.
+     */
+    public static double resolveVeterancyRate(TamableAnimal pet) {
+        try {
+            return Veterancy.clampProviderRate(veterancyRateProvider.applyAsDouble(pet));
+        } catch (Exception e) {
+            if (RATE_PROVIDER_FAILURE_LOGGED.compareAndSet(false, true)) {
+                Instinct.LOGGER.warn("Veterancy rate provider threw; using 1.0", e);
+            }
+            return 1.0;
+        }
     }
 
     /** Whether the entity is in the downed state (§7). */
