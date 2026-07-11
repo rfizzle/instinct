@@ -19,7 +19,8 @@
         "fabric-datagen": ["com.rfizzle.instinct.data.InstinctDataGenerator"],
         "fabric-gametest": [
             "com.rfizzle.instinct.gametest.SkeletonGameTest",
-            "com.rfizzle.instinct.gametest.CoverageGameTest"
+            "com.rfizzle.instinct.gametest.CoverageGameTest",
+            "com.rfizzle.instinct.gametest.AttachmentPersistenceGameTest"
         ]
     },
     "suggests": {
