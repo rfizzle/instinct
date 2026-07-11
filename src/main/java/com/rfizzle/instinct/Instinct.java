@@ -4,8 +4,10 @@ import com.rfizzle.instinct.command.InstinctCommand;
 import com.rfizzle.instinct.config.InstinctConfig;
 import com.rfizzle.instinct.coverage.AnimalCoverage;
 import com.rfizzle.instinct.data.InstinctAttachments;
+import com.rfizzle.instinct.genetics.GeneticsHandler;
 import com.rfizzle.instinct.inspection.Inspection;
 import com.rfizzle.instinct.registry.InstinctCriteria;
+import com.rfizzle.instinct.registry.InstinctItems;
 import com.rfizzle.instinct.registry.InstinctSounds;
 import com.rfizzle.instinct.selfpreservation.SelfPreservation;
 import com.rfizzle.instinct.veterancy.VeterancyHandler;
@@ -26,11 +28,13 @@ public class Instinct implements ModInitializer {
     public void onInitialize() {
         InstinctConfig.init();
         InstinctAttachments.init();
+        InstinctItems.register();
         InstinctSounds.register();
         InstinctCriteria.register();
         AnimalCoverage.register();
         SelfPreservation.register();
         VeterancyHandler.register();
+        GeneticsHandler.register();
         Inspection.register();
         InstinctCommand.init();
         LOGGER.info("Instinct initialized");

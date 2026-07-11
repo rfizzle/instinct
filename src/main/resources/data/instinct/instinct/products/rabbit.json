@@ -1,0 +1,6 @@
+{
+  "entity": "minecraft:rabbit",
+  "primary": "minecraft:rabbit",
+  "primary_cooked": "minecraft:cooked_rabbit",
+  "secondary": "minecraft:rabbit_hide"
+}

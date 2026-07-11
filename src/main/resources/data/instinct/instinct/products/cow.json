@@ -1,0 +1,6 @@
+{
+  "entity": "minecraft:cow",
+  "primary": "minecraft:beef",
+  "primary_cooked": "minecraft:cooked_beef",
+  "secondary": "minecraft:leather"
+}

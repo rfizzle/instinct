@@ -1,0 +1,5 @@
+{
+  "entity": "minecraft:pig",
+  "primary": "minecraft:porkchop",
+  "primary_cooked": "minecraft:cooked_porkchop"
+}

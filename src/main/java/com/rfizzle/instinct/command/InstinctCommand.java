@@ -2,6 +2,7 @@ package com.rfizzle.instinct.command;
 
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.rfizzle.instinct.Instinct;
 import com.rfizzle.instinct.api.Grade;
 import com.rfizzle.instinct.api.InstinctAPI;
@@ -12,6 +13,8 @@ import com.rfizzle.instinct.coverage.CoverageResolver;
 import com.rfizzle.instinct.coverage.MembershipRule;
 import com.rfizzle.instinct.data.GeneticsData;
 import com.rfizzle.instinct.data.InstinctAttachments;
+import com.rfizzle.instinct.genetics.GeneticsHandler;
+import com.rfizzle.instinct.genetics.ProductTable;
 import com.rfizzle.instinct.inspection.Inspection;
 import com.rfizzle.instinct.veterancy.Veterancy;
 import com.rfizzle.instinct.veterancy.VeterancyHandler;
@@ -61,7 +64,11 @@ public final class InstinctCommand {
                                 .then(Commands.argument("days",
                                                 IntegerArgumentType.integer(0, MAX_VETERANCY_DAYS))
                                         .executes(ctx -> runSetVeterancy(ctx.getSource(),
-                                                IntegerArgumentType.getInteger(ctx, "days"))))))
+                                                IntegerArgumentType.getInteger(ctx, "days")))))
+                        .then(Commands.literal("grade")
+                                .then(gradeLiteral(Grade.ORDINARY))
+                                .then(gradeLiteral(Grade.STURDY))
+                                .then(gradeLiteral(Grade.PRIME))))
                 .then(Commands.literal("reload")
                         .requires(src -> src.hasPermission(2))
                         .executes(ctx -> runReload(ctx.getSource()))));
@@ -103,6 +110,29 @@ public final class InstinctCommand {
             source.sendSuccess(() -> Component.translatable("command.instinct.set.veterancy",
                     pet.getName(), days), true);
         }
+        return 1;
+    }
+
+    /** One {@code set grade <name>} leaf, its literal being the grade's serialized name. */
+    private static LiteralArgumentBuilder<CommandSourceStack> gradeLiteral(Grade grade) {
+        return Commands.literal(grade.getSerializedName())
+                .executes(ctx -> runSetGrade(ctx.getSource(), grade));
+    }
+
+    private static int runSetGrade(CommandSourceStack source, Grade grade) {
+        ServerPlayer player = source.getPlayer();
+        if (player == null) {
+            source.sendFailure(Component.translatable("command.instinct.not_player"));
+            return 0;
+        }
+        Animal animal = raycastAnimal(player, INFO_RANGE_BLOCKS);
+        if (animal == null || !AnimalCoverage.membershipOf(animal).livestock()) {
+            source.sendFailure(Component.translatable("command.instinct.set.no_livestock"));
+            return 0;
+        }
+        GeneticsHandler.setGrade(animal, grade);
+        source.sendSuccess(() -> Component.translatable("command.instinct.set.grade",
+                animal.getName(), Component.translatable(grade.translationKey())), true);
         return 1;
     }
 
@@ -150,6 +180,8 @@ public final class InstinctCommand {
             if (genetics != null && genetics.primeNextOffspring()) {
                 lines.add(Component.translatable("command.instinct.info.treat"));
             }
+            lines.add(Component.translatable("command.instinct.info.product_source",
+                    Component.translatable(productSourceKey(animal))));
         }
 
         if (membership.pet() && animal instanceof TamableAnimal pet) {
@@ -166,6 +198,19 @@ public final class InstinctCommand {
             }
         }
         return lines;
+    }
+
+    /**
+     * The lang key naming where an animal's death-drop bonus comes from: a data product row, the
+     * drop mirror when enabled, or nothing.
+     */
+    private static String productSourceKey(Animal animal) {
+        if (ProductTable.rowFor(animal.getType()) != null) {
+            return "command.instinct.info.product_source.data";
+        }
+        return InstinctConfig.get().enableGenericDropMirror
+                ? "command.instinct.info.product_source.mirror"
+                : "command.instinct.info.product_source.none";
     }
 
     /** One set's membership line: "yes — rule", "no — excluded by rule", or plain "no". */

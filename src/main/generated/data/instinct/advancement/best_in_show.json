@@ -1,0 +1,30 @@
+{
+  "parent": "instinct:root",
+  "criteria": {
+    "bred_a_prime_animal": {
+      "conditions": {
+        "min_grade": 2
+      },
+      "trigger": "instinct:bred_grade"
+    }
+  },
+  "display": {
+    "description": {
+      "translate": "advancements.instinct.best_in_show.description"
+    },
+    "frame": "goal",
+    "icon": {
+      "count": 1,
+      "id": "instinct:pedigree_treat"
+    },
+    "title": {
+      "translate": "advancements.instinct.best_in_show.title"
+    }
+  },
+  "requirements": [
+    [
+      "bred_a_prime_animal"
+    ]
+  ],
+  "sends_telemetry_event": true
+}

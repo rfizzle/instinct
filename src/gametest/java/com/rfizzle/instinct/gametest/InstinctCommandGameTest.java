@@ -43,6 +43,20 @@ public class InstinctCommandGameTest implements FabricGameTest {
         helper.assertTrue(root.getChild("info").canUse(nonOp), "info should be usable at perm 0");
         helper.assertFalse(root.getChild("reload").canUse(nonOp), "reload should deny perm 0");
         helper.assertTrue(root.getChild("reload").canUse(op), "reload should allow perm 2");
+        helper.assertFalse(root.getChild("set").canUse(nonOp), "set should deny perm 0");
+        helper.assertTrue(root.getChild("set").canUse(op), "set should allow perm 2");
+        CommandNode<CommandSourceStack> setGrade = root.getChild("set").getChild("grade");
+        helper.assertTrue(setGrade != null && setGrade.getChild("prime") != null,
+                "set grade exposes a leaf per grade name");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY_STRUCTURE)
+    public void setGradeMutatesTheLookedAtLivestock(GameTestHelper helper) {
+        Cow cow = helper.spawn(EntityType.COW, 1, 2, 1);
+        com.rfizzle.instinct.genetics.GeneticsHandler.setGrade(cow, com.rfizzle.instinct.api.Grade.PRIME);
+        helper.assertValueEqual(com.rfizzle.instinct.api.InstinctAPI.getGrade(cow),
+                com.rfizzle.instinct.api.Grade.PRIME, "set grade writes the grade and re-derives bonuses");
         helper.succeed();
     }
 
