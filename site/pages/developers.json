@@ -17,6 +17,7 @@
             ["<code>InstinctAPI.isPet(EntityType)</code>", "pets-set membership after full resolution (config → tags → heuristic)"],
             ["<code>InstinctAPI.isLivestock(EntityType)</code>", "livestock-set membership after full resolution"],
             ["<code>InstinctAPI.getGrade(Animal)</code>", "<code>Grade</code> — <code>ORDINARY</code>, <code>STURDY</code>, or <code>PRIME</code>"],
+            ["<code>InstinctAPI.getPerk(Animal)</code>", "<code>Perk</code> — <code>NONE</code>, <code>HARDY</code>, <code>FLEET</code>, <code>FERTILE</code>, or <code>PLACID</code>"],
             ["<code>InstinctAPI.getVeterancyDays(TamableAnimal)</code>", "accrued days (double), 0.0 if untracked"],
             ["<code>InstinctAPI.getVeterancyRank(TamableAnimal)</code>", "rank 0–3"],
             ["<code>InstinctAPI.isDowned(LivingEntity)</code>", "downed state"],
