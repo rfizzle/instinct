@@ -16,8 +16,12 @@
     "entrypoints": {
         "main": ["com.rfizzle.instinct.Instinct"],
         "client": ["com.rfizzle.instinct.client.InstinctClient"],
+        "fabric-datagen": ["com.rfizzle.instinct.data.InstinctDataGenerator"],
         "fabric-gametest": [
-            "com.rfizzle.instinct.gametest.SkeletonGameTest"
+            "com.rfizzle.instinct.gametest.SkeletonGameTest",
+            "com.rfizzle.instinct.gametest.CoverageGameTest",
+            "com.rfizzle.instinct.gametest.AttachmentPersistenceGameTest",
+            "com.rfizzle.instinct.gametest.InstinctCommandGameTest"
         ]
     },
     "suggests": {

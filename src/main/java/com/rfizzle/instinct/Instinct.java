@@ -1,5 +1,9 @@
 package com.rfizzle.instinct;
 
+import com.rfizzle.instinct.command.InstinctCommand;
+import com.rfizzle.instinct.config.InstinctConfig;
+import com.rfizzle.instinct.coverage.AnimalCoverage;
+import com.rfizzle.instinct.data.InstinctAttachments;
 import net.fabricmc.api.ModInitializer;
 import net.minecraft.resources.ResourceLocation;
 import org.slf4j.Logger;
@@ -15,6 +19,10 @@ public class Instinct implements ModInitializer {
 
     @Override
     public void onInitialize() {
+        InstinctConfig.init();
+        InstinctAttachments.init();
+        AnimalCoverage.register();
+        InstinctCommand.init();
         LOGGER.info("Instinct initialized");
     }
 }
