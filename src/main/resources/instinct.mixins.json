@@ -4,9 +4,14 @@
     "package": "com.rfizzle.instinct.mixin",
     "compatibilityLevel": "JAVA_21",
     "mixins": [
+        "AnimalMixin",
+        "ChickenMixin",
         "LivingEntitySoundInvoker",
+        "MushroomCowMixin",
+        "PanicGoalAccessor",
         "ParrotSoundInvoker",
         "PlayerMixin",
+        "SheepMixin",
         "TamableAnimalMixin"
     ],
     "client": [],

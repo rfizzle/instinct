@@ -1,7 +1,9 @@
 package com.rfizzle.instinct.inspection;
 
 import com.rfizzle.instinct.Instinct;
+import com.rfizzle.instinct.api.Grade;
 import com.rfizzle.instinct.api.InstinctAPI;
+import com.rfizzle.instinct.api.Perk;
 import com.rfizzle.instinct.config.InstinctConfig;
 import com.rfizzle.instinct.coverage.AnimalCoverage;
 import com.rfizzle.instinct.veterancy.Veterancy;
@@ -28,8 +30,8 @@ import java.util.UUID;
  * their own pet within 8 blocks gets the ✦ days/rank action-bar line, once per crosshair
  * acquisition — re-emitted only after the crosshair leaves the pet or crouch is released.
  * Server-computed, action bar only, nothing persistent on screen. The per-player acquisition edge
- * is transient by design (a restart re-emitting one line is harmless). §3's livestock line will
- * share this same pass when genetics lands.
+ * is transient by design (a restart re-emitting one line is harmless). The §3 livestock line —
+ * grade and perk for any crouching player, not just an owner — shares this same pass.
  */
 public final class Inspection {
 
@@ -92,7 +94,7 @@ public final class Inspection {
         if (previous != null && previous == animal.getId()) {
             return false; // same acquisition — already answered
         }
-        return emitPetLine(player, animal);
+        return emitPetLine(player, animal) || emitLivestockLine(player, animal);
     }
 
     /** The §2 pet line: days at rank 0, days-and-rank at rank 1+; the pet's owner only. */
@@ -109,6 +111,29 @@ public final class Inspection {
                 ? Component.translatable("notification.instinct.inspect_pet.ranked",
                         pet.getName(), days, Component.translatable(Veterancy.rankKey(rank)))
                 : Component.translatable("notification.instinct.inspect_pet", pet.getName(), days);
+        player.displayClientMessage(line, true);
+        return true;
+    }
+
+    /**
+     * The §3 livestock line: grade (and perk, when the animal carries one) for any crouching
+     * player — livestock have no owner. Ordinary animals stay silent; silence is the baseline.
+     */
+    private static boolean emitLivestockLine(ServerPlayer player, Animal animal) {
+        if (!InstinctConfig.get().enableGenetics || !AnimalCoverage.membershipOf(animal).livestock()) {
+            return false;
+        }
+        Grade grade = InstinctAPI.getGrade(animal);
+        if (grade == Grade.ORDINARY) {
+            return false;
+        }
+        Perk perk = InstinctAPI.getPerk(animal);
+        Component gradeName = Component.translatable(grade.translationKey());
+        Component species = animal.getType().getDescription();
+        Component line = perk == Perk.NONE
+                ? Component.translatable("notification.instinct.inspect_livestock", gradeName, species)
+                : Component.translatable("notification.instinct.inspect_livestock.perk",
+                        gradeName, species, Component.translatable(perk.translationKey()));
         player.displayClientMessage(line, true);
         return true;
     }

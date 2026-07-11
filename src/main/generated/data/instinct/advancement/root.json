@@ -1,5 +1,11 @@
 {
   "criteria": {
+    "crafted_pedigree_treat": {
+      "conditions": {
+        "recipe_id": "instinct:pedigree_treat"
+      },
+      "trigger": "minecraft:recipe_crafted"
+    },
     "tamed_an_animal": {
       "trigger": "minecraft:tame_animal"
     }
@@ -20,7 +26,8 @@
   },
   "requirements": [
     [
-      "tamed_an_animal"
+      "tamed_an_animal",
+      "crafted_pedigree_treat"
     ]
   ],
   "sends_telemetry_event": true

@@ -4,3 +4,7 @@ accessWidener v2 named
 # mixin subclass and so cannot see the protected selector; gametests read it back to
 # assert injection and idempotency.
 accessible field net/minecraft/world/entity/Mob goalSelector Lnet/minecraft/world/entity/ai/goal/GoalSelector;
+
+# The sheep coat-color → wool map, read by the genetics product table for the
+# "special": "wool_coat" secondary drop (§3) from non-mixin code.
+accessible field net/minecraft/world/entity/animal/Sheep ITEM_BY_DYE Ljava/util/Map;

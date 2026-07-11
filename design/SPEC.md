@@ -269,6 +269,7 @@ An uncovered or grade-0 parent counts as perkless. The pedigree treat forces the
 - **Hay bale detection** is by block state in the scan radius; hay in item frames or inventories does not count.
 - **Fertile scope:** fertile scales only the vanilla post-breed love cooldown (each parent's own, by its own perk and grade); it never touches the chicken egg timer (that is grade's renewable, above) or baby growth.
 - **Placid under drive:** being pressed by a herding pet (§4/§6) is not damage and startles nothing — but when a drive takes fire, placid animals hold the line while the rest panic-sprint and straggle; drive assist recovers the stragglers. Placid is the drover's perk.
+- **Placid panic coverage:** panic suppression swaps the exact-class vanilla `PanicGoal`, so it reaches cattle, pigs, sheep, and chickens. Rabbits panic through a `PanicGoal` subclass and goats through a brain behavior — neither is swapped (the same discipline that never touches a modded panic goal), so a placid rabbit or goat still flees but carries the grade, bloodline value, and perk as state.
 - **Zombification, lightning:** covered species have no such conversions in vanilla; no behavior specified.
 
 ### Multiplayer

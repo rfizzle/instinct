@@ -1,0 +1,30 @@
+# Instinct 16x16 pedigree treat — a honey-glazed amber treat (golden carrot + hay + honey).
+# Rounded lozenge, warm amber ramp with a glossy top-left glaze shine, ink silhouette outline.
+# Light from top-left: honey highlight upper-left, russet-amber shadow lower-right.
+size: 16
+
+legend:
+  @ #0a0a0a
+  h #ffe6a3
+  a #f4bd3e
+  m #d98a1f
+  s #a2591a
+  . transparent
+
+frame:
+  ................
+  ......@@@@......
+  ....@@hhaa@@....
+  ...@hhhaaaam@...
+  ..@hhaaaaaamm@..
+  ..@haaaaaaamm@..
+  .@haaaaaaaammm@.
+  .@aaaaaaaaammm@.
+  .@aaaaaaaammms@.
+  .@maaaaaammmss@.
+  ..@maaammmmss@..
+  ..@mmmmmmssss@..
+  ...@mmssssss@...
+  ....@@ssss@@....
+  ......@@@@......
+  ................

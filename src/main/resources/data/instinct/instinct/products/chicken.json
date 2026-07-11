@@ -1,0 +1,6 @@
+{
+  "entity": "minecraft:chicken",
+  "primary": "minecraft:chicken",
+  "primary_cooked": "minecraft:cooked_chicken",
+  "secondary": "minecraft:feather"
+}

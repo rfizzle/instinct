@@ -15,6 +15,12 @@
 | Mod icon | `art/glyphs/icon.gen.py` → `art/glyphs/icon.glyph` (32 native) | `art/icon-128.png` (`--scale-to 128`) → `src/main/resources/assets/instinct/icon.png`, `site/assets/icon.png`; `art/icon-512.png` (`--scale-to 512`, store master) |
 | Paw glyph 16×16 | `art/glyphs/paw-16.glyph` | `art/hud-icon-16.png` (Jade/WTHIT + recipe-viewer contexts) |
 
+## Item & block sprites
+
+| Asset | Source | Final / derived copies |
+|---|---|---|
+| Pedigree treat item sprite | `art/glyphs/pedigree-treat-16.glyph` (16 native) | `src/main/resources/assets/instinct/textures/item/pedigree_treat.png` |
+
 ## Not yet created
 
 | Asset | Intended source | Destination |
@@ -22,7 +28,6 @@
 | Feeding trough block textures (top/side/bottom/inner) | `/glyph` | `assets/instinct/textures/block/feeding_trough_*.png` — (planned) |
 | Command whistle item sprite | `/glyph` | `assets/instinct/textures/item/command_whistle.png` — (planned) |
 | Vet kit item sprite | `/glyph` | `assets/instinct/textures/item/vet_kit.png` — (planned) |
-| Pedigree treat item sprite | `/glyph` | `assets/instinct/textures/item/pedigree_treat.png` — (planned) |
 | Whistle — follow cue | `/sfx` | `art/audio/whistle-follow.sfx` → `assets/instinct/sounds/whistle_follow.ogg` — (planned) |
 | Whistle — stay cue | `/sfx` | `art/audio/whistle-stay.sfx` → `assets/instinct/sounds/whistle_stay.ogg` — (planned) |
 | Whistle — attack cue | `/sfx` | `art/audio/whistle-attack.sfx` → `assets/instinct/sounds/whistle_attack.ogg` — (planned) |

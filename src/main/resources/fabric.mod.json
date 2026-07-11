@@ -25,7 +25,11 @@
             "com.rfizzle.instinct.gametest.MockPlayersGameTest",
             "com.rfizzle.instinct.gametest.SelfPreservationGameTest",
             "com.rfizzle.instinct.gametest.VeterancyGameTest",
-            "com.rfizzle.instinct.gametest.RankBehaviorsGameTest"
+            "com.rfizzle.instinct.gametest.RankBehaviorsGameTest",
+            "com.rfizzle.instinct.gametest.GeneticsGameTest",
+            "com.rfizzle.instinct.gametest.PerkBehaviorGameTest",
+            "com.rfizzle.instinct.gametest.YieldGameTest",
+            "com.rfizzle.instinct.gametest.BestInShowGameTest"
         ]
     },
     "mixins": [
