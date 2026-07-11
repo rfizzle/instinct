@@ -1,0 +1,30 @@
+{
+  "parent": "instinct:root",
+  "criteria": {
+    "pet_reached_rank_3": {
+      "conditions": {
+        "min_rank": 3
+      },
+      "trigger": "instinct:pet_rank"
+    }
+  },
+  "display": {
+    "description": {
+      "translate": "advancements.instinct.old_friend.description"
+    },
+    "frame": "goal",
+    "icon": {
+      "count": 1,
+      "id": "minecraft:bone"
+    },
+    "title": {
+      "translate": "advancements.instinct.old_friend.title"
+    }
+  },
+  "requirements": [
+    [
+      "pet_reached_rank_3"
+    ]
+  ],
+  "sends_telemetry_event": true
+}

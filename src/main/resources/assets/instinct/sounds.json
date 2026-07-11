@@ -1,0 +1,8 @@
+{
+  "rank_up": {
+    "sounds": [
+      "instinct:rank_up"
+    ],
+    "subtitle": "subtitles.instinct.rank_up"
+  }
+}

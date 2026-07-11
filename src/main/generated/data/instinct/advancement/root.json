@@ -1,0 +1,27 @@
+{
+  "criteria": {
+    "tamed_an_animal": {
+      "trigger": "minecraft:tame_animal"
+    }
+  },
+  "display": {
+    "announce_to_chat": false,
+    "background": "minecraft:textures/gui/advancements/backgrounds/husbandry.png",
+    "description": {
+      "translate": "advancements.instinct.root.description"
+    },
+    "icon": {
+      "count": 1,
+      "id": "minecraft:lead"
+    },
+    "title": {
+      "translate": "advancements.instinct.root.title"
+    }
+  },
+  "requirements": [
+    [
+      "tamed_an_animal"
+    ]
+  ],
+  "sends_telemetry_event": true
+}
