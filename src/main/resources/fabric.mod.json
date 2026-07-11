@@ -20,7 +20,8 @@
         "fabric-gametest": [
             "com.rfizzle.instinct.gametest.SkeletonGameTest",
             "com.rfizzle.instinct.gametest.CoverageGameTest",
-            "com.rfizzle.instinct.gametest.AttachmentPersistenceGameTest"
+            "com.rfizzle.instinct.gametest.AttachmentPersistenceGameTest",
+            "com.rfizzle.instinct.gametest.InstinctCommandGameTest"
         ]
     },
     "suggests": {

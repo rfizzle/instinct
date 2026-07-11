@@ -1,5 +1,6 @@
 package com.rfizzle.instinct;
 
+import com.rfizzle.instinct.command.InstinctCommand;
 import com.rfizzle.instinct.config.InstinctConfig;
 import com.rfizzle.instinct.coverage.AnimalCoverage;
 import com.rfizzle.instinct.data.InstinctAttachments;
@@ -21,6 +22,7 @@ public class Instinct implements ModInitializer {
         InstinctConfig.init();
         InstinctAttachments.init();
         AnimalCoverage.register();
+        InstinctCommand.init();
         LOGGER.info("Instinct initialized");
     }
 }
