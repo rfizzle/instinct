@@ -8,7 +8,7 @@ Instinct takes over husbandry: the wolves and cats at your heel and the cows, sh
 
 ## The arc of a world
 
-In the first hours you notice what *doesn't* happen: your new wolf walks around the lava pool instead of through it, and stays put when a creeper starts hissing. By the mid game you've built a real farm — a fenced pasture, a feeding trough keeping the herd fed and breeding while you're in the mines, and a copper whistle that moves your whole pack with one press. Late game, mastery looks like living things: a pack of 60-day veteran wolves that hit like iron golems and know better than to follow you off a cliff, and a prime bloodline of cattle three generations deep that yields half again what wild stock does. Your farm is smaller than your neighbor's, quieter, and better.
+In the first hours you notice what *doesn't* happen: your new wolf walks around the lava pool instead of through it, and stays put when a creeper starts hissing. By the mid game you've built a real farm — a fenced pasture, a feeding trough keeping the herd fed and breeding while you're in the mines, and a copper whistle that moves your whole pack with one press. Late game, mastery looks like living things: a pack of 60-day veteran wolves that hit like iron golems, growl before you've seen the skeleton, and train the pups coming up behind them — and a prime bloodline of fleet cattle three generations deep that yields half again what wild stock does. Your farm is smaller than your neighbor's, quieter, and better.
 
 ## The features, as you'll play them
 
@@ -18,19 +18,19 @@ In the first hours you notice what *doesn't* happen: your new wolf walks around 
 - **What changes for you** — you stop losing pets to your own terrain, and bring them places you never dared. The pet you tame in your first week can still be alive in your hundredth day — which is exactly when veterancy starts to matter.
 
 ### Veteran pets
-- **What it is** — every pet quietly tracks the days it has survived at your side. At 10, 30, and 60 days it gains a rank: each rank adds 2 max health (one heart) and 1 attack damage, up to three hearts and +3 damage.
+- **What it is** — every pet quietly tracks the days it has survived at your side. At 10, 30, and 60 days it gains a rank: each rank adds 2 max health (one heart) and 1 attack damage — and teaches the pet something an old animal would know. A Seasoned pet warns you in its own voice — growl, hiss, squawk — when a monster sets its eye on you. A Veteran keeps clear of your sweeping blade, so your own swings never catch it. A Venerable one steadies the young: pets near it earn their days 25% faster.
 - **How you use it** — keep them alive; that's the whole trick. Crouch and look at your pet with an empty hand and a short line tells you where it stands ("Rex has seen 43 days").
-- **What changes for you** — an old wolf is meaningfully stronger than a fresh tame, and losing one costs something a bone can't replace. Your pack becomes a roster, not a resource.
+- **What changes for you** — an old wolf is meaningfully stronger than a fresh tame, and it acts the part: it hears trouble before you do, ducks your swing, and raises the next generation. Losing one costs something a bone can't replace. Your pack becomes a roster, not a resource.
 
 ### Quality genetics
-- **What it is** — livestock carry a bloodline grade: ordinary, sturdy, or prime. Animals bred within 8 blocks of a placed hay bale, or fed from a trough, tend to sire offspring one grade up; breeding in a crush of more than 12 animals within 8 blocks risks the grade slipping back. Offspring inherit their parents' grade along with a small nudge to health or speed.
-- **How you use it** — keep hay near the pen, keep the pen roomy, and breed the best of each generation. A grade shows in one quiet line when you inspect the animal.
-- **What changes for you** — a prime cow drops about half again more than wild stock — 2 extra beef and 1 extra leather — and prime sheep and pigs yield in kind. Three tended generations beat three hundred crammed ones, and your server thanks you for the lag you didn't cause.
+- **What it is** — livestock carry a bloodline grade — ordinary, sturdy, or prime — and every graded newborn carries one perk: hardy (tougher), fleet (quicker), fertile (ready to breed again 15% sooner per grade), or placid (never panics, never scatters). Animals bred within 8 blocks of a placed hay bale, or fed from a trough, tend to sire offspring one grade up — and their offspring usually inherit a parent's perk: pair two fleet cows in a tended pasture and four calves in five are born fleet. Breeding in a crush of more than 12 animals within 8 blocks risks the grade slipping back, and a neglected pen's perks fall to pure chance.
+- **How you use it** — keep hay near the pen, keep the pen roomy, and breed the best of each generation. Grade and perk show in one quiet line when you inspect the animal ("A prime cow — fleet").
+- **What changes for you** — a prime cow drops about half again more than wild stock — 2 extra beef and 1 extra leather — and once the whole pen runs prime, the bloodline itself becomes the project: a herd bred all fertile, or all placid, line by line. Three tended generations beat three hundred crammed ones, and your server thanks you for the lag you didn't cause.
 
 ### Flocking and herding
-- **What it is** — holding wheat, carrots, or seeds gathers the matching animals into a flock that follows 15% faster than vanilla, holding a loose 2-block spacing behind you instead of shoving into your back.
-- **How you use it** — hold the food and walk. The herd sorts itself out.
-- **What changes for you** — moving twelve cows across a river becomes a drive, not a scrum. What used to take a boat, a lead, and swearing takes a handful of wheat.
+- **What it is** — holding wheat, carrots, or seeds gathers the matching animals into a flock that follows 15% faster than vanilla, holding a loose 2-block spacing behind you instead of shoving into your back. And your pets work the drive with you: while you lead a flock, up to two of them fall in behind it and press stragglers forward on their own.
+- **How you use it** — hold the food and walk; the herd sorts itself out and the dog handles the back. For the ones that won't come, point the command whistle at an animal and right-click: your pets get behind it and its neighbors and walk them to you.
+- **What changes for you** — moving twelve cows across a river becomes a drive you run together — you on point, your wolf on the flank. What used to take a boat, a lead, and swearing takes a handful of wheat and a good dog.
 
 ### The feeding trough
 - **What it is** — a new wooden block, built from planks and a fence, that holds one full stack of wheat, carrots, seeds, or hay.
@@ -39,7 +39,7 @@ In the first hours you notice what *doesn't* happen: your new wolf walks around 
 
 ### The command whistle
 - **What it is** — a new item cut from copper and bone. It speaks to every tamed pet within 20 blocks at once.
-- **How you use it** — left-click to toggle the pack between Stay and Follow; right-click while pointing at a mob to send them after it. The answer is one dry line ("3 wolves will stay") and gone.
+- **How you use it** — left-click to toggle the pack between Stay and Follow; right-click at a monster to send the pack after it, or at your livestock to round them up and walk them to you. The answer is one dry line ("3 wolves will stay") and gone. The whistle never orders an attack on your farm animals — if you want the cow dead, your sword is right there.
 - **What changes for you** — commanding fifteen wolves stops meaning fifteen crouch-clicks. Your pack moves like a pack.
 
 ### Downed, not dead
@@ -49,7 +49,7 @@ In the first hours you notice what *doesn't* happen: your new wolf walks around 
 
 ## Staying in control
 
-Every feature above — survival instinct, veterancy, genetics, flocking, the trough, the whistle, downed pets — can be switched off on its own, and the numbers a server plans around (rank thresholds and caps, trough radius, flock speed, grade drop bonuses) are all adjustable. Animals from other mods join in automatically when they live like vanilla's — a tameable otter is a pet, a breedable critter is livestock — and a server owner can add or remove any animal by name. Defaults assume a survival world that wants all of it. Change nothing and untamed wild animals behave exactly as vanilla; nothing appears on your screen — Instinct has no HUD, and everything it ever says is one short line that fades.
+Every feature above — survival instinct, veterancy and the habits it teaches, genetics, flocking, herding, the trough, the whistle, downed pets — can be switched off on its own, and the numbers a server plans around (rank thresholds and caps, the mentor bonus, trough radius, flock speed, grade drop bonuses) are all adjustable. Animals from other mods join in automatically when they live like vanilla's — a tameable otter is a pet, a breedable critter is livestock — and a server owner can add or remove any animal by name. Defaults assume a survival world that wants all of it. Change nothing and untamed wild animals behave exactly as vanilla; nothing appears on your screen — Instinct has no HUD, and everything it ever says is one short line that fades.
 
 ## Better together
 

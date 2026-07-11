@@ -2,9 +2,9 @@
 
 Minecraft 1.21.1 Fabric mod. Husbandry overhaul.
 
-**Architectural philosophy:** Augment, never replace. Instinct never registers replacement entity types, never swaps or subclasses vanilla animals, and never rewrites a vanilla AI brain — all behavior changes are *additional* goals, goal wrappers, and pathfinding penalties injected into vanilla mobs at load, and all persistent state (veterancy, bloodline grade, downed status, trough-fed recency) rides **persistent Fabric data attachments** on the vanilla entities (the same `AttachmentType` mechanism the rest of the Concord suite uses). Remove Instinct and every animal is a byte-compatible vanilla animal plus inert attachment data. New registrations are limited to one block (feeding trough), three items (command whistle, vet kit, pedigree treat), five sounds, and the block entity behind the trough. All gameplay decisions run server-side; the client receives only display state (downed pose flag, trough fill).
+**Architectural philosophy:** Augment, never replace. Instinct never registers replacement entity types, never swaps or subclasses vanilla animals, and never rewrites a vanilla AI brain — all behavior changes are *additional* goals, goal wrappers, and pathfinding penalties injected into vanilla mobs at load, and all persistent state (veterancy, bloodline grade, downed status, trough-fed recency) rides **persistent Fabric data attachments** on the vanilla entities (the same `AttachmentType` mechanism the rest of the Concord suite uses). Remove Instinct and every animal is a byte-compatible vanilla animal plus inert attachment data. New registrations are limited to one block (feeding trough), three items (command whistle, vet kit, pedigree treat), six sounds, and the block entity behind the trough. All gameplay decisions run server-side; the client receives only display state (downed pose flag, trough fill).
 
-**Asset philosophy:** Vanilla animals keep vanilla looks, always — grades and ranks surface through inspection lines and tooltips, never retextures. Custom pixel art (glyph pipeline — `/glyph`, `mc-textures` skill, concord `design/DESIGN-SYSTEM.md` §8, `.glyph` sources beside masters) covers only what Instinct adds: trough block faces, the three item sprites, and the 16×16 Jade glyph. Particles are vanilla (`heart`, `smoke`, `happy_villager`). Sounds stay vanilla where the cue is organic (eating, whines, block fill); the whistle's three commands and the two milestone moments (rank-up, revival) are custom synthesized cues via the `/sfx` pipeline (§9), each with a subtitle.
+**Asset philosophy:** Vanilla animals keep vanilla looks, always — grades and ranks surface through inspection lines and tooltips, never retextures. Custom pixel art (glyph pipeline — `/glyph`, `mc-textures` skill, concord `design/DESIGN-SYSTEM.md` §8, `.glyph` sources beside masters) covers only what Instinct adds: trough block faces, the three item sprites, and the 16×16 Jade glyph. Particles are vanilla (`heart`, `smoke`, `happy_villager`). Sounds stay vanilla where the cue is organic (eating, whines, block fill, a pet's warning growl); the whistle's four commands and the two milestone moments (rank-up, revival) are custom synthesized cues via the `/sfx` pipeline (§9), each with a subtitle.
 
 ---
 
@@ -13,8 +13,8 @@ Minecraft 1.21.1 Fabric mod. Husbandry overhaul.
 Every feature below applies to one of two membership sets, resolved per entity type. The goal: a modded animal that behaves like a vanilla one gets Instinct's treatment automatically, with no code from its author — and every automatic decision can be overridden by that author, a pack maker, or a server owner.
 
 **The two sets:**
-- **Pets** — self-preservation (§1), veterancy (§2), the whistle (§6), downed & revival (§7). Each feature additionally requires the individual animal to be tamed.
-- **Livestock** — genetics (§3), flocking (§4), the trough (§5).
+- **Pets** — self-preservation (§1), veterancy (§2), herding work (§4/§6), the whistle (§6), downed & revival (§7). Each feature additionally requires the individual animal to be tamed.
+- **Livestock** — genetics (§3), flocking & being herded (§4/§6), the trough (§5).
 
 **Resolution order** (first match wins), per entity type:
 
@@ -129,6 +129,20 @@ Per-rank increments are `healthPerRank` (default 2.0) and `damagePerRank` (defau
 
 **Rank-up moment.** The tick a rank is gained (pet loaded): the pet is healed by the health increment (no phantom empty hearts), 7 `heart` particles burst over it, the custom rank-up cue plays at the pet, and the owner — if online and within 32 blocks — sees the ✦ action-bar line: `✦ <name> has grown stronger.` (`<name>` = custom name, else species name). If the rank is crossed while unloaded/offline, the attribute update applies silently on next load; the moment is not queued.
 
+**Rank behaviors.** While `enableRankBehaviors` is true (default), each rank also grants one learned behavior, cumulative. Behaviors follow the derived rank exactly: a demoted pet (threshold change, revival penalty §7) loses the behaviors above its new rank.
+
+| Rank | Behavior |
+|---|---|
+| 1 Seasoned | **Warning** — the pet warns its owner of hostile attention |
+| 2 Veteran | **Knows your swing** — the owner's sweep attacks no longer strike the pet |
+| 3 Venerable | **Mentor** — nearby lower-rank pets accrue veterancy 25% faster |
+
+**Warning (rank 1+).** Evaluated on a 40-tick server cadence per online owner with loaded rank-1+ pets: for each monster within `warningRadiusBlocks` (default 16) of such a pet whose current attack target is that pet's owner, and which no pet of that owner has warned about in the last 300 ticks — the nearest eligible pet warns: it faces the threat and plays its species' own aggression or hurt sound (wolf growl, cat hiss, parrot's threat imitation — always the entity's own vanilla voice, volume 1.0). No text, no particles; the pet's voice *is* the message. A sitting pet warns without standing; a downed pet never warns. One warning per threat per owner per 300 ticks, however many pets qualify.
+
+**Knows your swing (rank 2+).** The owner's sweeping-edge area damage skips their own rank-2+ pets. Direct hits are unchanged — the pet learned to duck the arc, not to be immune to its owner. Other players' sweeps, and all other damage, are unaffected.
+
+**Mentor (rank 3).** While a rank-3 pet is loaded, alive, and not downed, every pets-set tamed animal of rank 0–2 within `mentorRadiusBlocks` (default 16) accrues veterancy at ×(1 + `mentorRateBonus`) (default 0.25). Non-stacking: any number of mentors in range yields one bonus. Composes multiplicatively with the veterancy-rate provider (§Public API) — e.g. Tribulation's 2.0 × the mentor's 1.25 = 2.5. Like provider rates, it applies to live loaded accrual only; unloaded gaps stay at 1.0. Owners may differ — any rank-3 pet steadies any lower-rank pet.
+
 **Inspection.** While `enableInspection` is true: a crouching owner whose crosshair rests on their own pet within 8 blocks receives an action-bar line: `✦ <name> has seen <days> days.` at rank 0, or `✦ <name> has seen <days> days — <rank name>.` at rank 1+. Emitted once per crosshair acquisition (re-emitted only after the crosshair leaves the pet or crouch is released). Server-computed, action bar only, nothing persistent on screen.
 
 ### Rank loss
@@ -142,10 +156,13 @@ Revival from the downed state costs one rank when `downedRankPenalty` is true �
 - **Untamed:** if a pet somehow becomes untamed, accrual stops and bonuses are removed; the attachment is retained (re-taming the same entity resumes from prior days).
 - **Threshold config changes:** rank is always derived from `accruedDays` against the *current* threshold list — shortening thresholds can promote pets on next load; lengthening can demote (attributes follow).
 - **Vanilla health cap:** max-health bonus stacks with vanilla healing behavior; current health is clamped to new max on demotion.
+- **Warning without a voice:** a modded species with no registered hurt/ambient sound warns silently (faces the threat only) — never a crash, never a substituted foreign sound.
+- **Warning vs. engaged threats:** the warning keys on the monster's *target*, not on combat state — a threat the owner is already fighting still gets its one warning, then goes quiet for 300 ticks. Cheap and predictable beats clever here.
+- **Pets without an attack attribute** (parrots, many modded companions) get every rank behavior — warning, sweep-safety, and mentor are all non-combat. Only the damage bonus skips them.
 
 ### Multiplayer
 
-Per-pet, owner-agnostic accrual (game time is global). The inspection line answers only the pet's owner; other players see nothing.
+Per-pet, owner-agnostic accrual (game time is global). The inspection line answers only the pet's owner; other players see nothing. Warnings fire per owner against that owner's own threats; the sweep guard applies only between a pet and its own owner. The mentor aura is deliberately cross-owner — a server's shared kennel benefits everyone's pups equally.
 
 ### Config
 
@@ -155,6 +172,10 @@ Per-pet, owner-agnostic accrual (game time is global). The inspection line answe
 | `veterancyThresholdDays` | int list | `[10, 30, 60]` | ascending, 1–3 entries, each 1–1000 |
 | `healthPerRank` | double | `2.0` | 0.0–20.0 |
 | `damagePerRank` | double | `1.0` | 0.0–10.0 |
+| `enableRankBehaviors` | bool | `true` | warning / sweep-safety / mentor |
+| `warningRadiusBlocks` | int | `16` | 8–24 |
+| `mentorRadiusBlocks` | int | `16` | 8–32 |
+| `mentorRateBonus` | double | `0.25` | 0.0–1.0 |
 | `downedRankPenalty` | bool | `true` | (see §7) |
 | `enableInspection` | bool | `true` | (shared with §3) |
 
@@ -165,6 +186,9 @@ Per-pet, owner-agnostic accrual (game time is global). The inspection line answe
 - Rank derivation is pure: `Veterancy.rankFor(days, thresholds)`.
 - Inspection detection: server-side, on the crouching player's tick — a 8-block raycast for the crosshair entity; per-player "last inspected entity" field provides the once-per-acquisition edge.
 - The rate provider hook is a single registered `ToDoubleFunction<TamableAnimal>` defaulting to `1.0`; non-finite or non-positive returns are clamped to 1.0 (error isolation per API-STANDARD).
+- Warning: rides a 40-tick server sweep over online players with rank-1+ pets loaded (`mc-tick-work` discipline — one AABB monster query per such owner per sweep, radius `warningRadiusBlocks` + pet spread); the warned-threat dedupe is a per-owner transient map of entity id → expiry tick, cleared on `SERVER_STOPPED`. Facing uses the pet's look control only — no goal injection needed.
+- Knows your swing: a mixin filtering the sweep-AoE victim collection in `Player#attack` — skip entities that resolve to a pets-set tamed animal owned by the attacker at rank ≥ 2. One predicate helper (`Veterancy.ducksSweep(pet, attacker)`), two-line guard.
+- Mentor: resolved inside the existing accrual pass — when accruing a rank 0–2 pet, one AABB query for a qualifying rank-3 pet within `mentorRadiusBlocks`, result folded into the same `rate` passed to `Veterancy.accrue(data, now, rate)`. The 200-tick accrual cadence bounds the query cost.
 
 ---
 
@@ -193,7 +217,25 @@ Applies to every animal in the **livestock set** (Animal Coverage).
    - both or neither → base grade unchanged.
 5. **Pedigree treat override:** if either parent carries the treat flag (below), the offspring is born **prime**, the flag is cleared from that parent, and steps 1–4 are skipped.
 
-**Birth perk.** A newborn of grade 1+ rolls one inherited perk, 50/50: **hardy** (+1.0 max health × grade) or **fleet** (+4% movement speed × grade). Grade-0 newborns get no perk. The perk and grade are permanent and survive growing up.
+**Birth perks.** A newborn of grade 1+ is born with exactly one perk; grade-0 newborns get none. The pool:
+
+| Perk | Effect |
+|---|---|
+| **Hardy** | +1.0 max health × grade |
+| **Fleet** | +4% movement speed × grade |
+| **Fertile** | breeding cooldown −15% × grade (the animal's own post-breed cooldown; prime fertile = −30%) |
+| **Placid** | the panic sprint from damage or startle is suppressed (binary, all grades) — unless the animal is on fire or in lava, where flight overrides calm |
+
+The perk and grade are permanent and survive growing up.
+
+**Perk inheritance.** The newborn's perk is rolled from the parents' perks — but the bias applies only when the breeding is **well-fed** (rule 2 above); a breeding that is not well-fed rolls uniformly at random from the pool. Tended pastures are how bloodlines stabilize:
+
+- both parents share perk P → P at **80%**, else uniform among the other three;
+- parents carry different perks P and Q → **40% / 40%**, uniform 20%;
+- exactly one parent has a perk P → P at **50%**, uniform 50%;
+- neither parent has a perk → uniform.
+
+An uncovered or grade-0 parent counts as perkless. The pedigree treat forces the *grade* (rule 5); the perk still rolls by these rules.
 
 **Yield — death drops.** When a covered animal dies and drops its products (any death that produces loot, regardless of killer), bonus drops are added after the vanilla roll (Looting and sibling effects included, untouched). Products come from the species' product-data row (Animal Coverage); species without a row use the mirror fallback. The shipped vanilla rows:
 
@@ -217,7 +259,7 @@ Applies to every animal in the **livestock set** (Animal Coverage).
 
 **Pedigree treat.** New item `instinct:pedigree_treat`, stack size 16. Crafted shapeless: 1 golden carrot + 1 hay bale + 1 honey bottle → 1 treat (bottle returned). Using it on an adult covered animal consumes the treat, plays the eat sound with `happy_villager` particles, and sets a persistent flag: that animal's **next** offspring is born prime (resolution rule 5). Feeding a second treat to the same animal before it breeds does nothing and is refused (hand swing, no consume, no message). The flag survives save/load and shows in `/instinct info`.
 
-**Inspection.** Same crouch-look mechanism as §2, for covered animals within 8 blocks (any player, not just an owner — livestock have no owner): `✦ A sturdy cow.` / `✦ A prime sheep.` Ordinary animals produce no line (silence is the baseline).
+**Inspection.** Same crouch-look mechanism as §2, for covered animals within 8 blocks (any player, not just an owner — livestock have no owner): `✦ A sturdy cow — hardy.` / `✦ A prime sheep — placid.` (grade, then perk — the read a breeder culls by). Ordinary animals produce no line (silence is the baseline).
 
 ### Edge cases
 
@@ -225,6 +267,8 @@ Applies to every animal in the **livestock set** (Animal Coverage).
 - **Conversions:** where vanilla copies entity data across a conversion (mooshroom sheared → cow), the grade and perk copy with it.
 - **Uncovered partners:** if only one parent's type is in the livestock set (membership edited mid-world, or a cross-mod pairing where one side is excluded), the missing grade counts as 0.
 - **Hay bale detection** is by block state in the scan radius; hay in item frames or inventories does not count.
+- **Fertile scope:** fertile scales only the vanilla post-breed love cooldown (each parent's own, by its own perk and grade); it never touches the chicken egg timer (that is grade's renewable, above) or baby growth.
+- **Placid under drive:** being pressed by a herding pet (§4/§6) is not damage and startles nothing — but when a drive takes fire, placid animals hold the line while the rest panic-sprint and straggle; drive assist recovers the stragglers. Placid is the drover's perk.
 - **Zombification, lightning:** covered species have no such conversions in vanilla; no behavior specified.
 
 ### Multiplayer
@@ -248,8 +292,10 @@ Grade and perk are entity state, visible and beneficial to every player equally.
 ### Implementation Notes
 
 - Attachment `GeneticsData { int grade; Perk perk; boolean primeNextOffspring; long lastTroughFeedTime; }` on the entity, persistent. Absent ⇒ ordinary/no perk.
-- Inheritance hook: mixin at `Animal#spawnChildFromBreeding` (after the child exists, before `finalizeSpawnChildFromBreeding` completes), computing grade via a pure helper `Genetics.resolveGrade(baseA, baseB, wellFed, crowded, random)` — unit-testable with a seeded random.
-- Birth perks are fixed-id attribute modifiers (`instinct:genetic_health` ADD_VALUE, `instinct:genetic_speed` MULTIPLY_BASE), applied once at birth and re-asserted idempotently on load.
+- Inheritance hook: mixin at `Animal#spawnChildFromBreeding` (after the child exists, before `finalizeSpawnChildFromBreeding` completes), computing grade via a pure helper `Genetics.resolveGrade(baseA, baseB, wellFed, crowded, random)` and the perk via `Genetics.resolvePerk(perkA, perkB, wellFed, random)` — both unit-testable with a seeded random.
+- Hardy and fleet are fixed-id attribute modifiers (`instinct:genetic_health` ADD_VALUE, `instinct:genetic_speed` MULTIPLY_BASE), applied once at birth and re-asserted idempotently on load.
+- Fertile: scale the post-breed love cooldown at the `spawnChildFromBreeding` site (each parent's reset scaled by its own perk × grade).
+- Placid: the exact-class vanilla `PanicGoal` on covered animals is swapped for a perk-aware subclass that stands down unless the animal is on fire or in lava — the same swap discipline as §4's tempt swap (a modded `PanicGoal` subclass is never touched; disabled or perkless ⇒ vanilla behavior exactly).
 - Death drops: `ServerLivingEntityEvents.AFTER_DEATH` spawns the bonus `ItemEntity`s beside vanilla loot; the species→product table is a `SimpleSynchronousResourceReloadListener` over `instinct/products/*.json` (Animal Coverage), falling back to the drop mirror; cooked-in-kind mirrors whether the vanilla roll was cooked (entity on fire at death).
 - Shear bonus: mixin at the sheep shear drop site; egg interval: scale `eggTime` when (re)rolled, guarded by grade.
 - `InstinctAnimalBredCallback` (§Public API) fires after grade resolution with parents, child, and final grade.
@@ -274,15 +320,26 @@ Applies to every animal in the **livestock set** (Animal Coverage) whose tempt i
 
 Baby animals keep their vanilla follow-parent behavior underneath; leads override temptation entirely (vanilla rule, untouched).
 
+**Drive assist.** While `enableHerding` is true: when a player is tempting at least 3 covered animals (a **drive**), up to `herdingMaxPets` (default 2) of that player's pets work the drive automatically. A working pet is pets-set, tamed by the driving player, following (not sitting), not downed, not in combat, not fleeing a creeper (§1 wins), and within 12 blocks of the player.
+
+1. A **straggler** is a covered animal whose tempt target is the player but which is more than 8 blocks from the player.
+2. A working pet claims the nearest unclaimed straggler (a transient claim with a 200-tick expiry — same shape as the trough's pathing claim, §5), paths to a point 2 blocks behind it on the straggler→player axis (recomputed at most every 10 ticks), and holds there.
+3. A **pressed** animal moves toward the player at 1.2× its normal speed while its presser is within 3 blocks of that behind-point; the press and the claim end when the animal is within 5 blocks of the player, the claim expires, or the drive ends.
+4. With no stragglers, working pets resume normal follow.
+
+The pet presses; it never attacks, and being pressed is not damage — pressed animals never panic from it. Any pets-set species herds: herding is follow-work, not combat, so a cat drives cows as well as a wolf does. §6's round-up order reuses this exact press mechanic with a whistle trigger.
+
 ### Edge cases
 
-- **Multiple luring players:** vanilla target selection (nearest qualifying player) is unchanged; the flock splits by target, and spacing applies within each flock.
+- **Multiple luring players:** vanilla target selection (nearest qualifying player) is unchanged; the flock splits by target, and spacing applies within each flock. Drive assist follows the split — each player's own pets work each player's own drive.
 - **Doorways and chokepoints:** spacing is a steering preference, not a collision rule — animals still funnel through 1-wide gaps single-file.
 - **The trough (§5)** never tempts; flocking applies only to player-held food.
+- **Straggler behind a wall:** if the working pet cannot path to the behind-point within its claim window, the claim expires and the straggler becomes claimable again (or is simply left — the drive never stalls waiting on one animal).
+- **`enableFlocking = false`, `enableHerding = true`:** drive assist requires a tempt flock, so it never activates; the whistle round-up (§6) still works.
 
 ### Multiplayer
 
-Server-side movement adjustment; every player experiences the same herd shape.
+Server-side movement adjustment; every player experiences the same herd shape. Drive assist uses only the driving player's own pets; two players driving herds side by side each get their own pets' help and never each other's.
 
 ### Config
 
@@ -291,11 +348,15 @@ Server-side movement adjustment; every player experiences the same herd shape.
 | `enableFlocking` | bool | `true` | |
 | `flockSpeedMultiplier` | double | `1.15` | 1.0–1.5 |
 | `flockSpacingBlocks` | double | `2.0` | 1.0–4.0 |
+| `enableHerding` | bool | `true` | drive assist + round-up (§6) |
+| `herdingMaxPets` | int | `2` | 1–4 |
 
 ### Implementation Notes
 
 - On entity load, an exact-class vanilla `TemptGoal` on covered animals is replaced with a `FlockingTemptGoal` subclass (same priority, same tempt items via the entity's own food predicate) adding the speed factor, the separation vector (computed against other flock members within 2× spacing, capped contribution), and the 2.5-block standoff. A modded `TemptGoal` *subclass* is never swapped — the animal keeps its custom behavior untouched (Animal Coverage → graceful degradation).
-- Goal replacement is the one place Instinct swaps rather than adds — it swaps a goal for a *subclass* of itself, preserving all vanilla semantics when the feature toggles off mid-world (disabled ⇒ the subclass behaves exactly as vanilla `TemptGoal`).
+- Goal replacement is the only pattern where Instinct swaps rather than adds — always a vanilla goal for a *subclass* of itself (tempt here; panic for §3's placid perk), preserving all vanilla semantics when the feature toggles off mid-world (disabled ⇒ the subclass behaves exactly as the vanilla goal).
+- Drive assist is two injected goals plus math: a `HerdWorkGoal` on pets (idle unless its owner is driving; computes the behind-point, holds the claim) and a press response on the claimed straggler via a transient high-priority move impulse (no persistent state — the claim map lives server-side, cleared on `SERVER_STOPPED`). The behind-point and straggler selection are pure helpers (`Herding.pressPoint(straggler, player)`, `Herding.stragglersOf(flock, player)`) for unit testing.
+- **Feel over choreography:** gametests assert outcomes (the herd converges within the time budget), never appearance; the looks-right bar — arcs, pacing, no jitter — lives in manual testing. If pet positioning proves janky, the pressure valve is staging: the pet holds a fixed rear point and only the straggler's hustle carries the read. Drive assist is the core promise; round-up (§6) is the detachable extension.
 
 ---
 
@@ -391,9 +452,17 @@ C B C
 - Otherwise (all sitting) → **Follow**: all of them stand. Feedback: `✦ <n> pets will follow.` + the rising follow cue.
 - No pets in radius: `✦ No pets in range.`, no cue.
 
-**Right-click (use):** raycasts from the player's eyes up to `whistleTargetRangeBlocks` (default 24) for a living entity. On a valid target — any living entity that is not the user, not a tamed animal owned by the user, not downed, not a spectator/creative player, and (if a player) only when PvP is enabled:
+**Right-click (use):** raycasts from the player's eyes up to `whistleTargetRangeBlocks` (default 24) for a living entity. Two orders, resolved by what the ray hits:
+
+**Attack.** On a valid attack target — any living entity that is not the user, not a tamed animal owned by the user, not a covered livestock-set animal (those order a round-up, below), not downed, not a spectator/creative player, and (if a player) only when PvP is enabled:
 - Every owned, tamed, non-downed, **combat-capable** pet (a pet with an attack-damage attribute — wolves and most modded fighters; cats and parrots are not combat-capable) within `whistleRadiusBlocks` stands (an attack order overrides Stay) and sets its attack target to the raycast entity. Feedback: `✦ <n> pets attack.` + the sharp attack cue.
 - No valid target on the ray: `✦ No target in sight.`, no cue.
+
+**Round-up.** When the raycast entity is a covered livestock-set animal and `enableHerding` is true (§4), the whistle orders a round-up — covered livestock are never whistle attack targets:
+- The **drive group** is the target animal plus every covered animal of the same species within `roundUpGroupRadiusBlocks` (default 8) of it. Leashed and in-vehicle animals are excluded.
+- Every owned, tamed, non-downed pet within `whistleRadiusBlocks` joins the order, at most `herdingMaxPets` working at once; they press the group toward the player using §4's press mechanic, with the player's live position as the destination.
+- Each group animal is done when within 5 blocks of the player; the order ends when every animal is done or after 600 ticks, and the pets return to their prior follow state. Whistling a new order (any kind) replaces a running round-up.
+- Feedback: `✦ <n> pets round up the herd.` + the herd cue. Empty drive group (all excluded, or herding disabled): `✦ Nothing to round up.`, no cue.
 
 **Cooldown:** `whistleCooldownTicks` (default 20) item cooldown after any whistle action (vanilla item-cooldown overlay on the slot).
 
@@ -402,6 +471,8 @@ C B C
 - Pets commanded onto a creeper still keep the §1 creeper berth — they engage, and break off while a fuse burns. Working as intended.
 - Downed pets (§7) neither respond nor count toward `<n>`.
 - The whistle commands only the user's own pets; it never affects another player's animals, regardless of permissions.
+- A round-up presses any player's covered livestock (livestock have no owner), but only toward the whistling player — the same neutrality as luring them with wheat.
+- Pets on a round-up keep the §1 creeper berth and break off to flee; a pet that enters combat drops its herding claim (§4's eligibility re-applies).
 
 ### Edge cases
 
@@ -422,6 +493,7 @@ Server-authoritative: the left-click gesture is reported by the client, but pet 
 | `whistleRadiusBlocks` | int | `20` | 8–48 |
 | `whistleTargetRangeBlocks` | int | `24` | 8–64 |
 | `whistleCooldownTicks` | int | `20` | 0–100 |
+| `roundUpGroupRadiusBlocks` | int | `8` | 4–16 |
 
 ### Implementation Notes
 
@@ -429,6 +501,7 @@ Server-authoritative: the left-click gesture is reported by the client, but pet 
 - Left-click on air produces no server event in vanilla; the client detects the swing while holding the whistle (client attack hook) and sends one custom payload (`instinct:whistle_toggle`, empty body). The server validates: main hand holds a whistle, not on cooldown, feature enabled — then executes. Left-click on a block or entity routes through `AttackBlockCallback`/`AttackEntityCallback` to the same handler (and cancels the attack, so the whistle never punches).
 - Pet enumeration: server entity lookup by AABB, filtered on `TamableAnimal#isTame` + `isOwnedBy(player)` + not downed.
 - Attack order: `pet.setOrderedToSit(false)` then `pet.setTarget(target)`; combat-capability = `getAttribute(ATTACK_DAMAGE) != null`.
+- Round-up: builds the drive group by AABB + same-type filter, then hands the group and the ordering player to §4's press machinery (claims, behind-points, expiries) with a 600-tick order deadline. No new goals — the whistle is a second trigger on the same `HerdWorkGoal`.
 
 ---
 
@@ -461,7 +534,7 @@ The downed state is indefinite: it persists across saves, chunk unloads, dimensi
 
 Siblings and packs extend the tag to add their own remedies (Animal Coverage → item tags).
 
-The item is consumed; the pet revives: health set to `reviveHealthFraction` (default 0.5) × max health, Regeneration II for 10 seconds, 60 ticks of post-revive invulnerability, stands in Stay (sitting) state, revival cue + 5 `heart` particles. If `downedRankPenalty` is true and the pet has a veterancy rank, it loses exactly one rank: `accruedDays` is set to the threshold of the new rank (rank 1 → its threshold day count; rank 1 dropping to 0 → 0 days). Feedback to the reviving player: `✦ <name> is back on their feet.`
+The item is consumed; the pet revives: health set to `reviveHealthFraction` (default 0.5) × max health, Regeneration II for 10 seconds, 60 ticks of post-revive invulnerability, stands in Stay (sitting) state, revival cue + 5 `heart` particles. If `downedRankPenalty` is true and the pet has a veterancy rank, it loses exactly one rank: `accruedDays` is set to the threshold of the new rank (rank 1 → its threshold day count; rank 1 dropping to 0 → 0 days) — and with the rank go the learned behaviors above it (§2): a demoted Veteran forgets your swing, a demoted Venerable stops mentoring. Feedback to the reviving player: `✦ <name> is back on their feet.`
 
 **Wrong item on a downed pet:** nothing happens (no swing, no consume). Regular interactions (sit toggle, dye, food) are all suppressed while downed.
 
@@ -516,6 +589,10 @@ All features are independently toggleable via a ModMenu / Cloth Config screen an
 | `veterancyThresholdDays` | int list | [10, 30, 60] | Days for ranks 1–3, ascending (each 1–1000) |
 | `healthPerRank` | double | 2.0 | Max-health bonus per rank (0.0–20.0) |
 | `damagePerRank` | double | 1.0 | Attack-damage bonus per rank (0.0–10.0) |
+| `enableRankBehaviors` | bool | true | §2 rank behaviors: warning, sweep-safety, mentor |
+| `warningRadiusBlocks` | int | 16 | Radius a Seasoned pet watches for threats (8–24) |
+| `mentorRadiusBlocks` | int | 16 | Venerable mentor aura radius (8–32) |
+| `mentorRateBonus` | double | 0.25 | Accrual bonus near a mentor (0.0–1.0) |
 | `enableGenetics` | bool | true | §3 master toggle |
 | `enableGenericDropMirror` | bool | true | Mirror-fallback drop bonus for species without a product row |
 | `hayRadiusBlocks` | int | 8 | Hay-bale scan radius for the well-fed test (2–16) |
@@ -526,14 +603,17 @@ All features are independently toggleable via a ModMenu / Cloth Config screen an
 | `enableFlocking` | bool | true | §4 master toggle |
 | `flockSpeedMultiplier` | double | 1.15 | Tempt-speed multiplier while flocking (1.0–1.5) |
 | `flockSpacingBlocks` | double | 2.0 | Preferred spacing between flock members (1.0–4.0) |
+| `enableHerding` | bool | true | Drive assist (§4) + whistle round-up (§6) |
+| `herdingMaxPets` | int | 2 | Pets working a drive or round-up at once (1–4) |
 | `enableTrough` | bool | true | §5 feeding loop toggle (block stays as inert storage) |
 | `troughRadiusBlocks` | int | 10 | Trough feeding radius (4–24) |
 | `troughFeedIntervalTicks` | int | 40 | Ticks between trough feed attempts (10–200) |
 | `troughPopulationCap` | int | 16 | Max animals in radius before breeding pauses (0–64, 0 = uncapped) |
 | `enableWhistle` | bool | true | §6 master toggle (item stays craftable, inert) |
 | `whistleRadiusBlocks` | int | 20 | Pet command radius (8–48) |
-| `whistleTargetRangeBlocks` | int | 24 | Attack-target raycast range (8–64) |
+| `whistleTargetRangeBlocks` | int | 24 | Target raycast range for attack and round-up (8–64) |
 | `whistleCooldownTicks` | int | 20 | Item cooldown after a whistle action (0–100) |
+| `roundUpGroupRadiusBlocks` | int | 8 | Round-up gathers same-species animals within this radius (4–16) |
 | `enableDownedState` | bool | true | §7 master toggle |
 | `reviveHealthFraction` | double | 0.5 | Health fraction restored on revival (0.1–1.0) |
 | `downedRankPenalty` | bool | true | Revival costs one veterancy rank |
@@ -569,6 +649,7 @@ Package **`com.rfizzle.instinct.api`** — the only stable package, per concord 
 | `InstinctAPI.isPet(EntityType<?>)` | pets-set membership after full resolution (Animal Coverage) |
 | `InstinctAPI.isLivestock(EntityType<?>)` | livestock-set membership after full resolution |
 | `InstinctAPI.getGrade(Animal)` | `Grade` enum (`ORDINARY`, `STURDY`, `PRIME`); `ORDINARY` for uncovered/absent |
+| `InstinctAPI.getPerk(Animal)` | `Perk` enum (`NONE`, `HARDY`, `FLEET`, `FERTILE`, `PLACID`); `NONE` for uncovered/absent |
 | `InstinctAPI.getVeterancyDays(TamableAnimal)` | accrued days (double), `0.0` if untracked |
 | `InstinctAPI.getVeterancyRank(TamableAnimal)` | rank 0–3 |
 | `InstinctAPI.isDowned(LivingEntity)` | downed state (§7) |
@@ -578,7 +659,7 @@ Package **`com.rfizzle.instinct.api`** — the only stable package, per concord 
 
 | Hook | Contract |
 |---|---|
-| `InstinctAPI.setVeterancyRateProvider(ToDoubleFunction<TamableAnimal>)` | Multiplies live veterancy accrual (§2). Non-finite or ≤ 0 returns are clamped to 1.0; a throwing provider is caught, logged once, and treated as 1.0. Last registration wins. |
+| `InstinctAPI.setVeterancyRateProvider(ToDoubleFunction<TamableAnimal>)` | Multiplies live veterancy accrual (§2). Non-finite or ≤ 0 returns are clamped to 1.0; a throwing provider is caught, logged once, and treated as 1.0. Last registration wins. Composes multiplicatively with §2's mentor bonus. |
 
 ### Events (Fabric `Event` objects, fired server-side)
 
@@ -637,6 +718,8 @@ Custom cues are synthesized via the `/sfx` pipeline (concord `design/DESIGN-SYST
 | Whistle — Follow (§6) | left-click, pack stands | custom `instinct:whistle_follow` — rising two-note trill | "Whistle rises" |
 | Whistle — Stay (§6) | left-click, pack sits | custom `instinct:whistle_stay` — falling two-note trill | "Whistle falls" |
 | Whistle — Attack (§6) | right-click on target | custom `instinct:whistle_attack` — three sharp pips | "Whistle snaps" |
+| Whistle — Round-up (§6) | right-click on livestock | custom `instinct:whistle_herd` — two quick pips | "Whistle herds" |
+| Warning (§2) | Seasoned pet warns | the pet's own vanilla aggression/hurt sound, volume 1.0 | — |
 | Veterancy rank-up (§2) | rank gained, pet loaded | custom `instinct:rank_up` — warm two-chime | "Pet grows stronger" |
 | Revival (§7) | downed pet revived | custom `instinct:revive` — soft rising shimmer | "Pet revives" |
 | Trough insert (§5) | items added | vanilla `block.composter.fill` | — |
@@ -696,8 +779,11 @@ Instinct has **no HUD element** and publishes no HUD accessors — the slot deci
 - Membership resolution: config > tag > heuristic precedence, exclude-beats-include at each layer, pet-never-heuristic-livestock, `autoDetectAnimals = false` reduces to tags + config.
 - Product data: JSON parsing (optional fields, `special: wool_coat`), unknown entity/item ids skipped, duplicate-id override order.
 - Mirror fallback: candidate selection (edible + `#instinct:mirror_products`), largest/second-largest ordering, no-candidate = no bonus.
-- Veterancy math: `accrue()` with rate multipliers and gaps, `rankFor()` boundaries (exactly 10/30/60), threshold-list edits promoting/demoting, revival rank-penalty day arithmetic.
+- Veterancy math: `accrue()` with rate multipliers and gaps, `rankFor()` boundaries (exactly 10/30/60), threshold-list edits promoting/demoting, revival rank-penalty day arithmetic, mentor × provider composition (2.0 × 1.25 = 2.5), mentor non-stacking.
+- Warning bookkeeping: per-owner threat dedupe (one warning per threat per 300 ticks), nearest-pet selection, `ducksSweep()` predicate (rank ≥ 2, owner-only).
 - Genetics resolution: `resolveGrade()` with seeded random — all 9 parent-grade combinations × {well-fed, crowded, both, neither}; treat override; uncovered-partner = 0.
+- Perk resolution: `resolvePerk()` with seeded random — shared-perk 80%, split 40/40/20, single-parent 50/50, perkless uniform; not-well-fed always uniform; grade-0 offspring always `NONE`; fertile cooldown arithmetic (−15% × grade).
+- Herding math: `pressPoint()` geometry (2 blocks behind on the straggler→player axis), `stragglersOf()` selection at the 8-block threshold, claim expiry accounting.
 - Drop-bonus table: per-species primary/secondary counts at each grade, cooked-in-kind mirroring, goat = no products.
 - Trough storage: accepted-item predicate, hay→9-wheat conversion (capacity guard, type guard), hopper insert/no-extract, comparator levels.
 - Whistle selection: ownership/tamed/downed filtering, standing-check toggle direction, combat-capability filter, PvP gate.
@@ -708,7 +794,10 @@ Instinct has **no HUD element** and publishes no HUD accessors — the slot deci
 
 - Self-preservation: wolf paths around a lava strip to reach its owner; wolf escapes when spawned on a cactus-adjacent node; ignited creeper at 3 blocks → sitting wolf stands, moves ≥ 4 blocks, re-sits; owner on a falling platform → no teleport, owner lands → teleport resumes.
 - Veterancy: set game time forward 10 days → rank 1, max health +2, healed; `/instinct set veterancy` re-derives attributes.
+- Rank behaviors: zombie targeting the owner within 16 blocks → the Seasoned wolf's warning fires (dedupe state set) and does not re-fire inside 300 ticks; owner sweep-attacks through a rank-2 wolf → wolf undamaged, a rank-0 wolf beside it is hit; pup accruing beside a Venerable wolf gains days at 1.25× a control pup.
 - Genetics: breed two cows beside a hay bale with `gradeUpgradeChance = 1.0` → sturdy calf; breed inside a 13-animal crush with `gradeDowngradeChance = 1.0` → downgrade; pedigree treat → prime calf, flag cleared; prime cow death drops +2 beef +1 leather.
+- Perks: two fleet parents bred well-fed with a seeded roll → fleet calf at the 80% branch; the same pair not well-fed → uniform branch; placid cow shot by an arrow → no panic sprint (navigation stays idle); placid cow set on fire → flees; fertile prime parents → love cooldown 4200 ticks, non-fertile control 6000.
+- Herding: 6 tempted cows with one straggler at 12 blocks + a following wolf → all cows within 5 blocks of the player inside the time budget, wolf never damages a cow; whistle right-click on a cow in a group of 3 → all 3 reach the player within 600 ticks, no cow acquires an attack target, feedback line correct; whistle right-click on a cow with `enableHerding = false` → `Nothing to round up.`, no attack.
 - Trough: filled trough + 2 eligible cows → both enter love within the interval budget and a calf appears; population cap 2 with 3 cows → no new love states; hopper feeds trough; empty-hand withdraw returns the stack.
 - Whistle: 3 wolves mixed sit states → one toggle payload sits all; second stands all; attack command sets all wolves' target to a zombie; downed wolf ignored.
 - Downed: lethal arrow → wolf at 1.0 health, invulnerable, no mob targets it; golden apple → revived at 50% max, rank reduced by one; lava-swim lethal damage → actual death; `/kill` on a downed pet → death.
@@ -718,6 +807,7 @@ Instinct has **no HUD element** and publishes no HUD accessors — the slot deci
 ### Manual Testing
 
 - Flocking feel at chokepoints and river crossings; standoff behavior at 2.5 blocks.
+- Herding choreography — the looks-right bar lives here, not in gametests: pet arcs and pacing on a drive, no oscillation at the behind-point, round-up across broken terrain; warning audio register (growl/hiss/squawk reads as a warning, not random ambience).
 - Downed pose, whine cadence, and particle rendering on all three species; revival visuals.
 - Whistle cue audio character and subtitles; rank-up moment (particles + chime + line together).
 - Jade/WTHIT lines on animals and trough; Cloth Config screen; Sodium/Iris smoke test.
