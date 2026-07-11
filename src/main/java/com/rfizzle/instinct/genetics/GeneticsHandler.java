@@ -124,7 +124,11 @@ public final class GeneticsHandler {
         int gradeA = InstinctAPI.getGrade(parentA).level();
         int gradeB = InstinctAPI.getGrade(parentB).level();
 
-        boolean treated = consumeTreatFlag(parentA) || consumeTreatFlag(parentB);
+        // Clear the flag on both parents that carry one (never short-circuit): this offspring is the
+        // "next offspring" each treat promised, so a treated parent's promise never carries forward.
+        boolean treatedA = consumeTreatFlag(parentA);
+        boolean treatedB = consumeTreatFlag(parentB);
+        boolean treated = treatedA || treatedB;
         // Well-fed feeds both the grade roll and the perk bias; scan for it once (the hay cube scan
         // is the costly part), and only when a roll will actually consult it.
         boolean wellFed = !treated && isWellFed(parentA, parentB, config);

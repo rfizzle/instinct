@@ -121,6 +121,22 @@ public class GeneticsGameTest implements FabricGameTest {
     }
 
     @GameTest(template = EMPTY_STRUCTURE)
+    public void treatingBothParentsClearsBothFlags(GameTestHelper helper) {
+        Cow a = helper.spawn(EntityType.COW, new BlockPos(2, 2, 2));
+        Cow b = helper.spawn(EntityType.COW, new BlockPos(3, 2, 2));
+        a.setAttached(InstinctAttachments.GENETICS, new GeneticsData(0, Perk.NONE, true, 0L));
+        b.setAttached(InstinctAttachments.GENETICS, new GeneticsData(0, Perk.NONE, true, 0L));
+
+        Animal calf = breed(helper, a, b);
+        helper.assertTrue(calf != null && InstinctAPI.getGrade(calf) == Grade.PRIME, "the calf is prime");
+        helper.assertFalse(a.getAttached(InstinctAttachments.GENETICS).primeNextOffspring(),
+                "parent A's flag is cleared");
+        helper.assertFalse(b.getAttached(InstinctAttachments.GENETICS).primeNextOffspring(),
+                "parent B's flag is cleared too — the promise does not carry to a later breeding");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY_STRUCTURE)
     public void primeCowDeathDropsTheGradedBonus(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         Cow cow = helper.spawn(EntityType.COW, new BlockPos(3, 2, 3));
