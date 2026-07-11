@@ -1,0 +1,6 @@
+accessWidener v2 named
+
+# Goal injection happens from the ENTITY_LOAD handler (SelfPreservation), which is not a
+# mixin subclass and so cannot see the protected selector; gametests read it back to
+# assert injection and idempotency.
+accessible field net/minecraft/world/entity/Mob goalSelector Lnet/minecraft/world/entity/ai/goal/GoalSelector;

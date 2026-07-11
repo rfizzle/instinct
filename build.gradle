@@ -146,6 +146,7 @@ configurations {
 
 loom {
     splitEnvironmentSourceSets()
+    accessWidenerPath = file("src/main/resources/instinct.accesswidener")
 
     runs {
         datagen {
