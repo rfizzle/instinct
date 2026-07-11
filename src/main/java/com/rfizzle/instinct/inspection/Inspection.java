@@ -36,8 +36,17 @@ public final class Inspection {
     /** How far the crosshair reaches, per SPEC §2 (same 8 blocks as {@code /instinct info}). */
     public static final double INSPECT_RANGE_BLOCKS = 8.0;
 
+    /**
+     * The raycast cadence (the {@code mc-tick-work} modulo gate for AABB entity queries): a
+     * 4-tick acquisition lag is imperceptible on an action-bar line, and the per-player edge in
+     * {@link #LAST_INSPECTED} tolerates coarse sampling.
+     */
+    static final int INSPECT_INTERVAL_TICKS = 4;
+
     /** player UUID → entity id currently under the crouching crosshair (the acquisition edge). */
     private static final Map<UUID, Integer> LAST_INSPECTED = new HashMap<>();
+
+    private static int tickCounter;
 
     private Inspection() {
     }
@@ -46,11 +55,14 @@ public final class Inspection {
         ServerTickEvents.END_SERVER_TICK.register(Inspection::onServerTick);
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) ->
                 LAST_INSPECTED.remove(handler.player.getUUID()));
-        ServerLifecycleEvents.SERVER_STOPPED.register(server -> LAST_INSPECTED.clear());
+        ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
+            LAST_INSPECTED.clear();
+            tickCounter = 0;
+        });
     }
 
     private static void onServerTick(MinecraftServer server) {
-        if (!InstinctConfig.get().enableInspection) {
+        if (++tickCounter % INSPECT_INTERVAL_TICKS != 0 || !InstinctConfig.get().enableInspection) {
             return;
         }
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {

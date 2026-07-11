@@ -32,7 +32,6 @@ import net.minecraft.world.entity.animal.Parrot;
 import net.minecraft.world.entity.animal.Wolf;
 import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.phys.AABB;
 import net.minecraft.sounds.SoundEvents;
 
 import java.util.ArrayList;
@@ -120,9 +119,10 @@ public final class VeterancyHandler {
 
     /**
      * The 200-tick live-accrual sweep: composes the provider rate with the mentor bonus, accrues,
-     * and re-derives rank and bonuses — celebrating live crossings. With veterancy disabled the
-     * pass only strips stale bonuses, so a toggle takes effect within one interval. Public
-     * (internal, not API) so gametests can drive a deterministic pass.
+     * and re-derives rank — bonuses are re-asserted (and celebrated) only on a rank change, so a
+     * no-change pass sends no attribute resync. With veterancy disabled the pass only strips
+     * stale bonuses, so a toggle takes effect within one interval. Public (internal, not API) so
+     * gametests can drive a deterministic pass.
      */
     public static void accrualPass() {
         InstinctConfig config = InstinctConfig.get();
@@ -133,16 +133,19 @@ public final class VeterancyHandler {
             }
             return;
         }
+        // The mentor roster is snapshotted once per pass — O(pets + pets × mentors) instead of a
+        // full O(pets²) pairwise scan, since rank-3 animals are the rare case.
+        List<TamableAnimal> mentors = config.enableRankBehaviors ? collectMentors(config) : List.of();
         for (TamableAnimal pet : List.copyOf(TRACKED)) {
             try {
-                accruePet(pet, config);
+                accruePet(pet, config, mentors);
             } catch (Exception e) {
                 Instinct.LOGGER.error("Veterancy accrual failed for {}", pet.getType(), e);
             }
         }
     }
 
-    private static void accruePet(TamableAnimal pet, InstinctConfig config) {
+    private static void accruePet(TamableAnimal pet, InstinctConfig config, List<TamableAnimal> mentors) {
         if (!pet.isTame() || !AnimalCoverage.membershipOf(pet).pet()) {
             // Untamed (or uncovered): accrual stops and bonuses drop; the attachment is retained
             // so re-taming the same animal resumes from its prior days.
@@ -153,13 +156,18 @@ public final class VeterancyHandler {
         VeterancyData data = pet.getAttachedOrCreate(InstinctAttachments.VETERANCY);
         int oldRank = Veterancy.rankFor(data.accruedDays(), config.veterancyThresholdDays);
         double provider = InstinctAPI.resolveVeterancyRate(pet);
-        boolean mentored = config.enableRankBehaviors && oldRank < 3 && mentorNearby(pet, config);
+        boolean mentored = oldRank < 3 && mentorNearby(pet, mentors, config);
         VeterancyData updated = Veterancy.accrue(data, now,
                 Veterancy.liveRate(provider, mentored, config.mentorRateBonus));
         pet.setAttached(InstinctAttachments.VETERANCY, updated);
 
         int newRank = Veterancy.rankFor(updated.accruedDays(), config.veterancyThresholdDays);
-        applyBonuses(pet, newRank);
+        if (newRank != oldRank) {
+            // Only a crossing touches the attributes: re-applying an unchanged modifier would
+            // still dirty the map and resend the attribute packet to every tracking player.
+            // Config edits to the per-rank values retro-apply on each pet's next load (SPEC §2).
+            applyBonuses(pet, newRank);
+        }
         if (newRank > oldRank) {
             celebrate(pet, newRank - oldRank, config);
         }
@@ -167,20 +175,30 @@ public final class VeterancyHandler {
     }
 
     /**
-     * Whether a mentor steadies this pet: any loaded, alive, tamed, non-downed pets-set animal at
-     * rank 3 within {@code mentorRadiusBlocks} — any owner (a shared kennel benefits everyone's
-     * pups). Non-stacking by construction: one match is all the rate ever uses.
+     * The pass's mentor roster: every loaded, alive, tamed, non-downed pets-set animal at rank 3
+     * — any owner (a shared kennel benefits everyone's pups). Snapshotted at pass start.
      */
-    private static boolean mentorNearby(TamableAnimal pet, InstinctConfig config) {
-        double radiusSq = (double) config.mentorRadiusBlocks * config.mentorRadiusBlocks;
+    private static List<TamableAnimal> collectMentors(InstinctConfig config) {
+        List<TamableAnimal> mentors = new ArrayList<>();
         for (TamableAnimal other : TRACKED) {
-            if (other == pet || other.isRemoved() || !other.isAlive() || !other.isTame()
-                    || other.level() != pet.level()
-                    || other.distanceToSqr(pet) > radiusSq
-                    || InstinctAPI.isDowned(other)) {
+            if (other.isRemoved() || !other.isAlive() || !other.isTame() || InstinctAPI.isDowned(other)) {
                 continue;
             }
             if (InstinctAPI.getVeterancyRank(other) == 3 && AnimalCoverage.membershipOf(other).pet()) {
+                mentors.add(other);
+            }
+        }
+        return mentors;
+    }
+
+    /**
+     * Whether a mentor steadies this pet: any roster mentor within {@code mentorRadiusBlocks} in
+     * the same level. Non-stacking by construction: one match is all the rate ever uses.
+     */
+    private static boolean mentorNearby(TamableAnimal pet, List<TamableAnimal> mentors, InstinctConfig config) {
+        double radiusSq = (double) config.mentorRadiusBlocks * config.mentorRadiusBlocks;
+        for (TamableAnimal mentor : mentors) {
+            if (mentor != pet && mentor.level() == pet.level() && mentor.distanceToSqr(pet) <= radiusSq) {
                 return true;
             }
         }
@@ -309,10 +327,10 @@ public final class VeterancyHandler {
     }
 
     /**
-     * The 40-tick warning sweep: one AABB monster query per online owner with loaded rank-1+
-     * pets; each threat targeting that owner gets one warning per 300 ticks, voiced by the
-     * nearest eligible pet (which faces it — a sitting pet warns without standing). Returns the
-     * number of warnings fired. Public (internal, not API) so gametests can drive a
+     * The 40-tick warning sweep: one radius-bounded monster query per loaded rank-1+ pet of each
+     * online owner; each threat targeting that owner gets one warning per 300 ticks, voiced by
+     * the nearest eligible pet (which faces it — a sitting pet warns without standing). Returns
+     * the number of warnings fired. Public (internal, not API) so gametests can drive a
      * deterministic pass.
      */
     public static int warningPass() {
@@ -346,31 +364,35 @@ public final class VeterancyHandler {
 
     private static int warnOwner(ServerPlayer owner, List<TamableAnimal> pets, InstinctConfig config) {
         double radius = config.warningRadiusBlocks;
-        AABB box = pets.get(0).getBoundingBox();
-        for (TamableAnimal pet : pets) {
-            box = box.minmax(pet.getBoundingBox());
-        }
+        double radiusSq = radius * radius;
         ServerLevel level = (ServerLevel) owner.level();
         long now = level.getGameTime();
+        // One query per pet, not one union box: a pet loaded far from its owner (a base kennel
+        // kept loaded by another player) would balloon a union into a world-scale section scan.
+        // The per-threat nearest map dedupes threats that overlapping pet boxes return twice.
+        Map<Mob, TamableAnimal> nearestPetByThreat = new LinkedHashMap<>();
+        Map<Mob, Double> nearestDistSqByThreat = new LinkedHashMap<>();
+        for (TamableAnimal pet : pets) {
+            for (Mob threat : level.getEntitiesOfClass(Mob.class, pet.getBoundingBox().inflate(radius),
+                    mob -> mob instanceof Enemy && mob.isAlive() && mob.getTarget() == owner)) {
+                double distSq = pet.distanceToSqr(threat);
+                if (distSq > radiusSq) {
+                    continue; // box corners exceed the radius
+                }
+                Double best = nearestDistSqByThreat.get(threat);
+                if (best == null || distSq < best) {
+                    nearestDistSqByThreat.put(threat, distSq);
+                    nearestPetByThreat.put(threat, pet);
+                }
+            }
+        }
         int fired = 0;
-        for (Mob threat : level.getEntitiesOfClass(Mob.class, box.inflate(radius),
-                mob -> mob instanceof Enemy && mob.isAlive() && mob.getTarget() == owner)) {
+        for (Map.Entry<Mob, TamableAnimal> entry : nearestPetByThreat.entrySet()) {
+            Mob threat = entry.getKey();
             if (WARNINGS.warnedRecently(owner.getUUID(), threat.getId(), now)) {
                 continue;
             }
-            TamableAnimal nearest = null;
-            double best = radius * radius;
-            for (TamableAnimal pet : pets) {
-                double distSq = pet.distanceToSqr(threat);
-                if (distSq <= best) {
-                    best = distSq;
-                    nearest = pet;
-                }
-            }
-            if (nearest == null) {
-                continue;
-            }
-            warn(nearest, threat);
+            warn(entry.getValue(), threat);
             WARNINGS.markWarned(owner.getUUID(), threat.getId(), now);
             fired++;
         }
