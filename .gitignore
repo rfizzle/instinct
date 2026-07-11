@@ -60,3 +60,6 @@ art/audio/**/*.ogg
 art/audio/**/*.wav
 art/audio/**/*.report.png
 # concord:gitignore:end
+
+# The generated assets/data under src/main/generated are committed.
+src/main/generated/.cache/
