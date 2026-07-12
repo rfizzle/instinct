@@ -57,6 +57,9 @@ public class CoverageGameTest implements FabricGameTest {
         CoverageResolver.Membership membership = AnimalCoverage.membershipOf(EntityType.HORSE);
         helper.assertFalse(membership.livestock(), "horse should be excluded from livestock");
         helper.assertValueEqual(membership.livestockRule(), MembershipRule.TAG, "horse exclusion rule");
+        helper.assertTrue(membership.mount(), "horse should be in the mounts set");
+        helper.assertValueEqual(membership.mountRule(), MembershipRule.TAG, "horse mount granting rule");
+        helper.assertFalse(membership.pet(), "horse is not a pet");
         helper.succeed();
     }
 

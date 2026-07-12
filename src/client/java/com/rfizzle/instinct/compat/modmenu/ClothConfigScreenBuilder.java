@@ -61,6 +61,16 @@ final class ClothConfigScreenBuilder {
                 .setTooltip(tooltip("livestockExclude"))
                 .setSaveConsumer(v -> working.livestockExclude = new ArrayList<>(v))
                 .build());
+        coverage.addEntry(entry.startStrList(label("mountsInclude"), config.mountsInclude)
+                .setDefaultValue(defaults.mountsInclude)
+                .setTooltip(tooltip("mountsInclude"))
+                .setSaveConsumer(v -> working.mountsInclude = new ArrayList<>(v))
+                .build());
+        coverage.addEntry(entry.startStrList(label("mountsExclude"), config.mountsExclude)
+                .setDefaultValue(defaults.mountsExclude)
+                .setTooltip(tooltip("mountsExclude"))
+                .setSaveConsumer(v -> working.mountsExclude = new ArrayList<>(v))
+                .build());
 
         // --- Pet Self-Preservation (§1) ---
         ConfigCategory selfPreservation = builder.getOrCreateCategory(Component.translatable("config.instinct.category.self_preservation"));

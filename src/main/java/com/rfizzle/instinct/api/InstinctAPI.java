@@ -45,6 +45,14 @@ public final class InstinctAPI {
         return AnimalCoverage.isLivestock(type);
     }
 
+    /**
+     * Mounts-set membership after full Animal Coverage resolution (config → tag → heuristic). The
+     * horse family; a mount receives self-preservation (§1) and downed/revival (§7) only.
+     */
+    public static boolean isMount(EntityType<?> type) {
+        return AnimalCoverage.isMount(type);
+    }
+
     /** The animal's bloodline grade; {@link Grade#ORDINARY} when uncovered or untracked. */
     public static Grade getGrade(Animal animal) {
         GeneticsData data = animal.getAttached(InstinctAttachments.GENETICS);

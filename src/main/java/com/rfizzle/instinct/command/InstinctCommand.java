@@ -165,6 +165,7 @@ public final class InstinctCommand {
                 BuiltInRegistries.ENTITY_TYPE.getKey(animal.getType()).toString()));
         lines.add(setLine("pets", membership.pet(), membership.petRule()));
         lines.add(setLine("livestock", membership.livestock(), membership.livestockRule()));
+        lines.add(setLine("mounts", membership.mount(), membership.mountRule()));
 
         if (membership.livestock()) {
             Grade grade = InstinctAPI.getGrade(animal);
@@ -195,9 +196,12 @@ public final class InstinctCommand {
             } else {
                 lines.add(Component.translatable("command.instinct.info.veterancy", days));
             }
-            if (InstinctAPI.isDowned(pet)) {
-                lines.add(Component.translatable("command.instinct.info.downed"));
-            }
+        }
+
+        // Downed status applies to pets and mounts alike (§7), so it lives outside the
+        // veterancy block a mount would never enter.
+        if (InstinctAPI.isDowned(animal)) {
+            lines.add(Component.translatable("command.instinct.info.downed"));
         }
         return lines;
     }
