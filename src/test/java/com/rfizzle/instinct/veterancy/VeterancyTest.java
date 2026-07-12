@@ -31,6 +31,15 @@ class VeterancyTest {
     }
 
     @Test
+    void revivalPenaltyDropsToTheThresholdOfTheRankBelow() {
+        // Rank n → the threshold day-count of rank n−1; rank 1 (and rank 0) → 0 days (SPEC §7).
+        assertEquals(30.0, Veterancy.daysForRankBelow(3, DEFAULTS), EPSILON, "Venerable → Veteran's 30-day floor");
+        assertEquals(10.0, Veterancy.daysForRankBelow(2, DEFAULTS), EPSILON, "Veteran → Seasoned's 10-day floor");
+        assertEquals(0.0, Veterancy.daysForRankBelow(1, DEFAULTS), EPSILON, "Seasoned → 0 days");
+        assertEquals(0.0, Veterancy.daysForRankBelow(0, DEFAULTS), EPSILON, "an unranked pet has nothing to lose");
+    }
+
+    @Test
     void rankKeysNameTheThreeRanks() {
         assertEquals("instinct.rank.seasoned", Veterancy.rankKey(1));
         assertEquals("instinct.rank.veteran", Veterancy.rankKey(2));
