@@ -1,6 +1,7 @@
 package com.rfizzle.instinct.data;
 
 import com.rfizzle.instinct.Instinct;
+import com.rfizzle.instinct.registry.InstinctItems;
 import net.fabricmc.fabric.api.datagen.v1.FabricDataOutput;
 import net.fabricmc.fabric.api.datagen.v1.provider.FabricTagProvider;
 import net.minecraft.core.HolderLookup;
@@ -15,8 +16,8 @@ import java.util.concurrent.CompletableFuture;
 /**
  * Instinct's item tags ({@code design/SPEC.md} §Animal Coverage — item tags): what the trough
  * accepts, what the mirror fallback may duplicate, and what revives a downed pet. Animal mods and
- * packs extend them with ordinary tag entries. {@code instinct:vet_kit} is an optional entry —
- * the item registers with the downed-pets feature, and the tag must load without it.
+ * packs extend them with ordinary tag entries; the revive tag is open by convention for siblings
+ * (e.g. Distillation's brewed remedy) to add their own entries.
  */
 public class InstinctItemTagProvider extends FabricTagProvider.ItemTagProvider {
 
@@ -52,7 +53,7 @@ public class InstinctItemTagProvider extends FabricTagProvider.ItemTagProvider {
         getOrCreateTagBuilder(REVIVE_ITEMS)
                 .add(Items.GOLDEN_APPLE)
                 .add(Items.ENCHANTED_GOLDEN_APPLE)
-                .addOptional(Instinct.id("vet_kit"));
+                .add(InstinctItems.VET_KIT);
     }
 
     private static TagKey<Item> tag(String path) {

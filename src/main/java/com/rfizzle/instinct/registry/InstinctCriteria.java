@@ -3,6 +3,7 @@ package com.rfizzle.instinct.registry;
 import com.rfizzle.instinct.Instinct;
 import com.rfizzle.instinct.advancement.BredGradeTrigger;
 import com.rfizzle.instinct.advancement.PetRankTrigger;
+import com.rfizzle.instinct.advancement.PetRevivedTrigger;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 
@@ -18,6 +19,9 @@ public final class InstinctCriteria {
     /** Fires with a newborn's grade for the breeder, after grade resolution at breeding (§3). */
     public static final BredGradeTrigger BRED_GRADE = new BredGradeTrigger();
 
+    /** Fires for the player who revives a downed pet, at the revival transition (§7). */
+    public static final PetRevivedTrigger PET_REVIVED = new PetRevivedTrigger();
+
     private static boolean registered = false;
 
     private InstinctCriteria() {
@@ -31,5 +35,6 @@ public final class InstinctCriteria {
         registered = true;
         Registry.register(BuiltInRegistries.TRIGGER_TYPES, Instinct.id("pet_rank"), PET_RANK);
         Registry.register(BuiltInRegistries.TRIGGER_TYPES, Instinct.id("bred_grade"), BRED_GRADE);
+        Registry.register(BuiltInRegistries.TRIGGER_TYPES, Instinct.id("pet_revived"), PET_REVIVED);
     }
 }

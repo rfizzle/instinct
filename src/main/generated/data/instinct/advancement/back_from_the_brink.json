@@ -1,0 +1,27 @@
+{
+  "parent": "instinct:root",
+  "criteria": {
+    "revived_a_pet": {
+      "trigger": "instinct:pet_revived"
+    }
+  },
+  "display": {
+    "description": {
+      "translate": "advancements.instinct.back_from_the_brink.description"
+    },
+    "frame": "goal",
+    "icon": {
+      "count": 1,
+      "id": "instinct:vet_kit"
+    },
+    "title": {
+      "translate": "advancements.instinct.back_from_the_brink.title"
+    }
+  },
+  "requirements": [
+    [
+      "revived_a_pet"
+    ]
+  ],
+  "sends_telemetry_event": true
+}

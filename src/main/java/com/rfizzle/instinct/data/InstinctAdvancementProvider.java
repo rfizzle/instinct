@@ -3,6 +3,7 @@ package com.rfizzle.instinct.data;
 import com.rfizzle.instinct.Instinct;
 import com.rfizzle.instinct.advancement.BredGradeTrigger;
 import com.rfizzle.instinct.advancement.PetRankTrigger;
+import com.rfizzle.instinct.advancement.PetRevivedTrigger;
 import com.rfizzle.instinct.api.Grade;
 import com.rfizzle.instinct.registry.InstinctCriteria;
 import com.rfizzle.instinct.registry.InstinctItems;
@@ -25,10 +26,11 @@ import java.util.function.Consumer;
 
 /**
  * Instinct's advancement tab ({@code design/SPEC.md} §Advancements). The root grants on taming any
- * animal or crafting one of the mod's items — the pedigree treat is the first; as the whistle, vet
- * kit, and trough ship, their crafting criteria join the same OR-list and the root icon becomes the
- * command whistle. {@code old_friend} hangs off it on the {@code instinct:pet_rank} criterion at
- * rank 3, and {@code best_in_show} on the {@code instinct:bred_grade} criterion at prime.
+ * animal or crafting one of the mod's items — the pedigree treat and the vet kit are the first; as
+ * the whistle and trough ship, their crafting criteria join the same OR-list and the root icon
+ * becomes the command whistle. {@code old_friend} hangs off it on the {@code instinct:pet_rank}
+ * criterion at rank 3, {@code best_in_show} on the {@code instinct:bred_grade} criterion at prime,
+ * and {@code back_from_the_brink} on the {@code instinct:pet_revived} criterion.
  */
 public class InstinctAdvancementProvider extends FabricAdvancementProvider {
 
@@ -47,6 +49,7 @@ public class InstinctAdvancementProvider extends FabricAdvancementProvider {
         InstinctItems.register();
 
         ResourceLocation treatRecipe = BuiltInRegistries.ITEM.getKey(InstinctItems.PEDIGREE_TREAT);
+        ResourceLocation vetKitRecipe = BuiltInRegistries.ITEM.getKey(InstinctItems.VET_KIT);
         AdvancementHolder root = Advancement.Builder.advancement()
                 .display(new ItemStack(Items.LEAD),
                         Component.translatable("advancements.instinct.root.title"),
@@ -55,6 +58,8 @@ public class InstinctAdvancementProvider extends FabricAdvancementProvider {
                 .addCriterion("tamed_an_animal", TameAnimalTrigger.TriggerInstance.tamedAnimal())
                 .addCriterion("crafted_pedigree_treat",
                         RecipeCraftedTrigger.TriggerInstance.craftedItem(treatRecipe))
+                .addCriterion("crafted_vet_kit",
+                        RecipeCraftedTrigger.TriggerInstance.craftedItem(vetKitRecipe))
                 .requirements(net.minecraft.advancements.AdvancementRequirements.Strategy.OR)
                 .save(consumer, Instinct.id("root").toString());
 
@@ -77,5 +82,15 @@ public class InstinctAdvancementProvider extends FabricAdvancementProvider {
                 .addCriterion("bred_a_prime_animal", InstinctCriteria.BRED_GRADE.createCriterion(
                         BredGradeTrigger.TriggerInstance.forGrade(Grade.PRIME.level())))
                 .save(consumer, Instinct.id("best_in_show").toString());
+
+        Advancement.Builder.advancement()
+                .parent(root)
+                .display(new ItemStack(InstinctItems.VET_KIT),
+                        Component.translatable("advancements.instinct.back_from_the_brink.title"),
+                        Component.translatable("advancements.instinct.back_from_the_brink.description"),
+                        null, AdvancementType.GOAL, true, true, false)
+                .addCriterion("revived_a_pet", InstinctCriteria.PET_REVIVED.createCriterion(
+                        PetRevivedTrigger.TriggerInstance.instance()))
+                .save(consumer, Instinct.id("back_from_the_brink").toString());
     }
 }

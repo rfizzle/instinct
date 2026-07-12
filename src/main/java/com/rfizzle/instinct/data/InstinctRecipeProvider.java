@@ -12,9 +12,10 @@ import net.minecraft.world.item.Items;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * Instinct's crafting recipes ({@code design/SPEC.md} §3). The pedigree treat is shapeless — a
- * golden carrot, a hay bale, and a honey bottle — and the honey bottle's own glass-bottle craft
- * remainder returns the bottle, so no custom serializer is needed.
+ * Instinct's crafting recipes ({@code design/SPEC.md} §3, §7). Both are shapeless and both use a
+ * honey bottle, whose own glass-bottle craft remainder returns the bottle — so neither needs a
+ * custom serializer: the pedigree treat (golden carrot, hay bale, honey bottle) and the vet kit
+ * (paper, string, honey bottle).
  */
 public class InstinctRecipeProvider extends FabricRecipeProvider {
 
@@ -30,6 +31,13 @@ public class InstinctRecipeProvider extends FabricRecipeProvider {
                 .requires(Items.HAY_BLOCK)
                 .requires(Items.HONEY_BOTTLE)
                 .unlockedBy("has_hay_block", has(Items.HAY_BLOCK))
+                .save(output);
+
+        ShapelessRecipeBuilder.shapeless(RecipeCategory.MISC, InstinctItems.VET_KIT)
+                .requires(Items.PAPER)
+                .requires(Items.STRING)
+                .requires(Items.HONEY_BOTTLE)
+                .unlockedBy("has_honey_bottle", has(Items.HONEY_BOTTLE))
                 .save(output);
     }
 

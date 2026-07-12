@@ -4,5 +4,11 @@
       "instinct:rank_up"
     ],
     "subtitle": "subtitles.instinct.rank_up"
+  },
+  "revive": {
+    "sounds": [
+      "instinct:revive"
+    ],
+    "subtitle": "subtitles.instinct.revive"
   }
 }
