@@ -155,6 +155,30 @@ public class InstinctConfig {
         }
     }
 
+    /**
+     * A deep working copy for the Cloth Config screen, built through the same JSON round-trip
+     * GSON uses on disk. It is already at {@link ConfigMigrator#CURRENT_VERSION}, so it must never
+     * be re-migrated; the screen edits it and hands it to {@link #publish}.
+     */
+    public InstinctConfig copy() {
+        return GSON.fromJson(GSON.toJson(this), InstinctConfig.class);
+    }
+
+    /**
+     * Publishes an edited working copy as the active config — null-healed, clamped, persisted, then
+     * atomically swapped in, so a concurrent reader only ever observes a fully-applied edit. The
+     * Cloth screen's save seam; it goes through the same single {@code volatile} store as
+     * {@link #reload()} (the two are op-only / single-session in practice and never race).
+     */
+    public static void publish(InstinctConfig next) {
+        next.fillDefaults();
+        next.validate();
+        next.save(configPath());
+        synchronized (InstinctConfig.class) {
+            INSTANCE = next;
+        }
+    }
+
     static InstinctConfig load(Path path) {
         if (!Files.exists(path)) {
             Instinct.LOGGER.info("Config file missing; creating default at {}", path);

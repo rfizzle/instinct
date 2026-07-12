@@ -34,6 +34,9 @@
             "com.rfizzle.instinct.gametest.DownedGameTest",
             "com.rfizzle.instinct.gametest.FeedingTroughGameTest",
             "com.rfizzle.instinct.gametest.WhistleGameTest"
+        ],
+        "modmenu": [
+            "com.rfizzle.instinct.compat.modmenu.ModMenuIntegration"
         ]
     },
     "mixins": [
