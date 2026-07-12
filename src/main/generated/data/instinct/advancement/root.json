@@ -6,6 +6,12 @@
       },
       "trigger": "minecraft:recipe_crafted"
     },
+    "crafted_vet_kit": {
+      "conditions": {
+        "recipe_id": "instinct:vet_kit"
+      },
+      "trigger": "minecraft:recipe_crafted"
+    },
     "tamed_an_animal": {
       "trigger": "minecraft:tame_animal"
     }
@@ -27,7 +33,8 @@
   "requirements": [
     [
       "tamed_an_animal",
-      "crafted_pedigree_treat"
+      "crafted_pedigree_treat",
+      "crafted_vet_kit"
     ]
   ],
   "sends_telemetry_event": true

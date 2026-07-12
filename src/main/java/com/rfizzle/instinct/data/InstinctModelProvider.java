@@ -8,8 +8,8 @@ import net.minecraft.data.models.ItemModelGenerators;
 import net.minecraft.data.models.model.ModelTemplates;
 
 /**
- * Instinct's item and block models ({@code design/SPEC.md} §3). The pedigree treat is a flat 2D
- * item sprite; its {@code .glyph} master lives under {@code art/glyphs/}.
+ * Instinct's item and block models ({@code design/SPEC.md} §3, §7). The pedigree treat and the vet
+ * kit are flat 2D item sprites; their {@code .glyph} masters live under {@code art/glyphs/}.
  */
 public class InstinctModelProvider extends FabricModelProvider {
 
@@ -24,5 +24,6 @@ public class InstinctModelProvider extends FabricModelProvider {
     @Override
     public void generateItemModels(ItemModelGenerators generators) {
         generators.generateFlatItem(InstinctItems.PEDIGREE_TREAT, ModelTemplates.FLAT_ITEM);
+        generators.generateFlatItem(InstinctItems.VET_KIT, ModelTemplates.FLAT_ITEM);
     }
 }

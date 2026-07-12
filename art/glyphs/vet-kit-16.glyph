@@ -1,0 +1,32 @@
+# Instinct 16x16 vet kit — a cloth-wrapped remedy pouch with a leaf-green cross.
+# Soft-cornered linen pouch, ink silhouette outline, warm off-white cloth ramp
+# (bone highlight upper-left → ash midtone → smoke shadow lower-right), and a bold
+# emerald cross centered on the face. Light from top-left.
+size: 16
+
+legend:
+  @ ink
+  h bone
+  l ash
+  s smoke
+  g emerald
+  G emerald-bright
+  . transparent
+
+frame:
+  ................
+  ....@@@@@@@@....
+  ...@hhhhhhll@...
+  ..@hhhhhhhlls@..
+  ..@hhhhhhllss@..
+  ..@hhhhGglsss@..
+  ..@hhhhGglsss@..
+  ..@hhGGGgggss@..
+  ..@hhggggggss@..
+  ..@hlllggssss@..
+  ..@hlllggssss@..
+  ..@llllssssss@..
+  ..@llssssssss@..
+  ...@llssssss@...
+  ....@@@@@@@@....
+  ................

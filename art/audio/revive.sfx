@@ -1,0 +1,33 @@
+{
+  "name": "revive",
+  "sample_rate": 44100,
+  "peak_dbfs": -1.0,
+  "subtitle": "subtitles.instinct.revive",
+  "seed": 47,
+  "layers": [
+    {
+      "waveform": "sine",
+      "from": 440.0, "to": 880.0, "glide": "exp",
+      "start": 0.0, "duration": 0.55, "gain": 0.7,
+      "env": {"attack": 0.03, "decay": 0.25, "sustain": 0.45, "release": 0.3}
+    },
+    {
+      "waveform": "triangle",
+      "from": 880.0, "to": 1760.0, "glide": "exp",
+      "start": 0.0, "duration": 0.5, "gain": 0.14,
+      "env": {"attack": 0.03, "decay": 0.2, "sustain": 0.3, "release": 0.28}
+    },
+    {
+      "waveform": "sine",
+      "freq": 293.66,
+      "start": 0.0, "duration": 0.6, "gain": 0.12,
+      "env": {"attack": 0.05, "decay": 0.3, "sustain": 0.35, "release": 0.3}
+    },
+    {
+      "waveform": "sine",
+      "freq": 1760.0,
+      "start": 0.34, "duration": 0.34, "gain": 0.1,
+      "env": {"attack": 0.02, "decay": 0.18, "sustain": 0.12, "release": 0.24}
+    }
+  ]
+}

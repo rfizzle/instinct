@@ -13,9 +13,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Instinct's registered items and its creative tab ({@code design/SPEC.md} §3). The pedigree treat
- * is the first of the mod's items; the whistle, vet kit, and trough join this class and the tab as
- * their features land. Registered once from {@code onInitialize}, before the creative tab
+ * Instinct's registered items and its creative tab ({@code design/SPEC.md} §3, §7). The pedigree
+ * treat and the vet kit are the mod's first items; the whistle and trough join this class and the
+ * tab as their features land. Registered once from {@code onInitialize}, before the creative tab
  * enumerates them.
  */
 public final class InstinctItems {
@@ -25,6 +25,9 @@ public final class InstinctItems {
 
     /** The pedigree treat — flags an animal's next offspring to be born prime, stacks to 16 (§3). */
     public static final Item PEDIGREE_TREAT = new PedigreeTreatItem(new Item.Properties().stacksTo(16));
+
+    /** The vet kit — a plain revival remedy in {@code #instinct:revive_items}, stacks to 16 (§7). */
+    public static final Item VET_KIT = new Item(new Item.Properties().stacksTo(16));
 
     private static boolean registered = false;
 
@@ -38,6 +41,7 @@ public final class InstinctItems {
         }
         registered = true;
         registerItem("pedigree_treat", PEDIGREE_TREAT);
+        registerItem("vet_kit", VET_KIT);
         registerCreativeTab();
     }
 

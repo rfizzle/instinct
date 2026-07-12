@@ -15,6 +15,10 @@ public final class InstinctSounds {
     public static final SoundEvent RANK_UP =
             SoundEvent.createVariableRangeEvent(Instinct.id("rank_up"));
 
+    /** The revival cue — a soft rising shimmer played at a revived pet (SPEC §7). */
+    public static final SoundEvent REVIVE =
+            SoundEvent.createVariableRangeEvent(Instinct.id("revive"));
+
     private static boolean registered = false;
 
     private InstinctSounds() {
@@ -27,5 +31,6 @@ public final class InstinctSounds {
         }
         registered = true;
         Registry.register(BuiltInRegistries.SOUND_EVENT, Instinct.id("rank_up"), RANK_UP);
+        Registry.register(BuiltInRegistries.SOUND_EVENT, Instinct.id("revive"), REVIVE);
     }
 }

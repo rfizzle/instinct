@@ -20,6 +20,13 @@
 | Asset | Source | Final / derived copies |
 |---|---|---|
 | Pedigree treat item sprite | `art/glyphs/pedigree-treat-16.glyph` (16 native) | `src/main/resources/assets/instinct/textures/item/pedigree_treat.png` |
+| Vet kit item sprite | `art/glyphs/vet-kit-16.glyph` (16 native) | `src/main/resources/assets/instinct/textures/item/vet_kit.png` |
+
+## Audio cues
+
+| Asset | Source | Final / derived copies |
+|---|---|---|
+| Revival shimmer | `art/audio/revive.sfx` | `src/main/resources/assets/instinct/sounds/revive.ogg` |
 
 ## Not yet created
 
@@ -27,9 +34,6 @@
 |---|---|---|
 | Feeding trough block textures (top/side/bottom/inner) | `/glyph` | `assets/instinct/textures/block/feeding_trough_*.png` — (planned) |
 | Command whistle item sprite | `/glyph` | `assets/instinct/textures/item/command_whistle.png` — (planned) |
-| Vet kit item sprite | `/glyph` | `assets/instinct/textures/item/vet_kit.png` — (planned) |
 | Whistle — follow cue | `/sfx` | `art/audio/whistle-follow.sfx` → `assets/instinct/sounds/whistle_follow.ogg` — (planned) |
 | Whistle — stay cue | `/sfx` | `art/audio/whistle-stay.sfx` → `assets/instinct/sounds/whistle_stay.ogg` — (planned) |
 | Whistle — attack cue | `/sfx` | `art/audio/whistle-attack.sfx` → `assets/instinct/sounds/whistle_attack.ogg` — (planned) |
-| Rank-up chime | `/sfx` | `art/audio/rank-up.sfx` → `assets/instinct/sounds/rank_up.ogg` — (planned) |
-| Revival shimmer | `/sfx` | `art/audio/revive.sfx` → `assets/instinct/sounds/revive.ogg` — (planned) |
