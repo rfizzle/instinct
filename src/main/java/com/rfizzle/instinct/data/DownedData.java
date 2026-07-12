@@ -4,8 +4,9 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 
 /**
- * Per-pet downed state ({@code design/SPEC.md} §7), persisted as an entity attachment. Presence of
- * the attachment is the downed flag; {@code downedAtGameTime} records when the pet went down.
+ * Per pet/mount downed state ({@code design/SPEC.md} §7), persisted as an entity attachment.
+ * Presence of the attachment is the downed flag; {@code downedAtGameTime} records when the animal
+ * went down.
  */
 public record DownedData(long downedAtGameTime) {
 

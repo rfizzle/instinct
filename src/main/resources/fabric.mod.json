@@ -24,6 +24,7 @@
             "com.rfizzle.instinct.gametest.InstinctCommandGameTest",
             "com.rfizzle.instinct.gametest.MockPlayersGameTest",
             "com.rfizzle.instinct.gametest.SelfPreservationGameTest",
+            "com.rfizzle.instinct.gametest.MountsGameTest",
             "com.rfizzle.instinct.gametest.VeterancyGameTest",
             "com.rfizzle.instinct.gametest.RankBehaviorsGameTest",
             "com.rfizzle.instinct.gametest.GeneticsGameTest",
