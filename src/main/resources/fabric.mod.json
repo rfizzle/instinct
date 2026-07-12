@@ -50,8 +50,10 @@
     "accessWidener": "instinct.accesswidener",
     "suggests": {
         "modmenu": "*",
+        "cloth-config": "*",
         "jade": "*",
-        "wthit": "*"
+        "wthit": "*",
+        "tribulation": "*"
     },
     "depends": {
         "fabricloader": ">=0.16.10",

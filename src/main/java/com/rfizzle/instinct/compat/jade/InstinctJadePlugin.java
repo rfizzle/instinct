@@ -14,7 +14,7 @@ import snownee.jade.api.WailaPlugin;
  * providers key on the block-entity / entity class; component providers on the block / entity class
  * — Jade walks the hierarchy, so registering on {@code Animal} covers every covered species.
  */
-@WailaPlugin
+@WailaPlugin("instinct")
 public class InstinctJadePlugin implements IWailaPlugin {
 
     @Override
