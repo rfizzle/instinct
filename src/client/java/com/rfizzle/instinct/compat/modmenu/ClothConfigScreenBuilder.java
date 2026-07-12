@@ -183,6 +183,12 @@ final class ClothConfigScreenBuilder {
                 .setTooltip(tooltip("gradeDowngradeChance"))
                 .setSaveConsumer(v -> working.gradeDowngradeChance = v)
                 .build());
+        genetics.addEntry(entry.startDoubleField(label("fertileRenewableReduction"), config.fertileRenewableReduction)
+                .setDefaultValue(defaults.fertileRenewableReduction)
+                .setMin(0.0).setMax(0.5)
+                .setTooltip(tooltip("fertileRenewableReduction"))
+                .setSaveConsumer(v -> working.fertileRenewableReduction = v)
+                .build());
 
         // --- Flocking & Herding (§4) ---
         ConfigCategory herding = builder.getOrCreateCategory(Component.translatable("config.instinct.category.herding"));

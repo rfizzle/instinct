@@ -70,6 +70,7 @@ public class InstinctConfig {
     public int crowdingRadiusBlocks = 8;
     public double gradeUpgradeChance = 0.5;
     public double gradeDowngradeChance = 0.5;
+    public double fertileRenewableReduction = 0.15;
 
     // §4 Flocking & Herding
     public boolean enableFlocking = true;
@@ -289,6 +290,7 @@ public class InstinctConfig {
         crowdingRadiusBlocks = clampInt("crowdingRadiusBlocks", crowdingRadiusBlocks, 4, 16);
         gradeUpgradeChance = clampDouble("gradeUpgradeChance", gradeUpgradeChance, 0.0, 1.0);
         gradeDowngradeChance = clampDouble("gradeDowngradeChance", gradeDowngradeChance, 0.0, 1.0);
+        fertileRenewableReduction = clampDouble("fertileRenewableReduction", fertileRenewableReduction, 0.0, 0.5);
         flockSpeedMultiplier = clampDouble("flockSpeedMultiplier", flockSpeedMultiplier, 1.0, 1.5);
         flockSpacingBlocks = clampDouble("flockSpacingBlocks", flockSpacingBlocks, 1.0, 4.0);
         herdingMaxPets = clampInt("herdingMaxPets", herdingMaxPets, 1, 4);

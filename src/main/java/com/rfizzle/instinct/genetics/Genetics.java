@@ -18,6 +18,9 @@ public final class Genetics {
     /** Fertile shortens the post-breed love cooldown by this fraction per grade (prime = 30%). */
     static final double FERTILE_COOLDOWN_REDUCTION_PER_GRADE = 0.15;
 
+    /** Grade shortens a living renewable's cadence (egg interval, wool regrowth) by this fraction per grade. */
+    static final double GRADE_RENEWABLE_REDUCTION_PER_GRADE = 0.10;
+
     private Genetics() {
     }
 
@@ -116,6 +119,23 @@ public final class Genetics {
         }
         double factor = 1.0 - FERTILE_COOLDOWN_REDUCTION_PER_GRADE * grade;
         return (int) Math.round(baseCooldown * Math.max(0.0, factor));
+    }
+
+    /**
+     * The multiplier a covered animal applies to a living renewable's cadence — the chicken egg
+     * interval and the sheep wool-regrowth graze roll ({@code design/SPEC.md} §3 renewables). Grade
+     * shortens it {@value #GRADE_RENEWABLE_REDUCTION_PER_GRADE} per grade; the fertile perk shortens
+     * it a further {@code fertileReductionPerGrade} per grade, composed multiplicatively so a prime
+     * fertile animal is the ceiling. A grade-0 or non-fertile-at-grade-0 animal returns {@code 1.0}
+     * (no change). Clamped to {@code [0.01, 1.0]} so a maxed config can never zero a cadence.
+     */
+    public static double renewableIntervalFactor(int grade, Perk perk, double fertileReductionPerGrade) {
+        if (grade <= 0) {
+            return 1.0;
+        }
+        double gradeFactor = 1.0 - GRADE_RENEWABLE_REDUCTION_PER_GRADE * grade;
+        double fertileFactor = perk == Perk.FERTILE ? 1.0 - fertileReductionPerGrade * grade : 1.0;
+        return Math.clamp(gradeFactor * fertileFactor, 0.01, 1.0);
     }
 
     /** Bonus primary-product count by grade: sturdy +1, prime +2 ({@code design/SPEC.md} §3 yield). */

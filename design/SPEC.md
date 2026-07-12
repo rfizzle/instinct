@@ -228,7 +228,7 @@ Applies to every animal in the **livestock set** (Animal Coverage).
 |---|---|
 | **Hardy** | +1.0 max health × grade |
 | **Fleet** | +4% movement speed × grade |
-| **Fertile** | breeding cooldown −15% × grade (the animal's own post-breed cooldown; prime fertile = −30%) |
+| **Fertile** | fecundity: breeding cooldown, egg-lay interval, and wool-regrowth cadence each −15% × grade (prime fertile = −30% on each), composed on top of grade's own renewable scaling |
 | **Placid** | the panic sprint from damage or startle is suppressed (binary, all grades) — unless the animal is on fire or in lava, where flight overrides calm |
 
 The perk and grade are permanent and survive growing up.
@@ -258,9 +258,10 @@ An uncovered or grade-0 parent counts as perkless. The pedigree treat forces the
 - Goats have no vanilla products; their genetics carry only the birth perk and bloodline value.
 - Baby animals drop nothing bonus (vanilla babies drop nothing).
 
-**Yield — renewables.**
-- Shearing a sheep yields +1 wool at sturdy, +2 at prime (on top of the vanilla 1–3).
-- Chicken egg-lay interval is reduced 10% at sturdy, 20% at prime.
+**Yield — renewables.** Grade shortens a living animal's renewable cadence, and the fertile perk shortens it further; the two compose multiplicatively, and the combined factor floors so a maxed config can never zero a cadence.
+- Shearing a sheep yields +1 wool at sturdy, +2 at prime (on top of the vanilla 1–3) — a quantity bonus, unchanged.
+- Chicken egg-lay interval is reduced 10% at sturdy, 20% at prime; a fertile hen's interval is reduced a further `fertileRenewableReduction` (default 0.15) per grade.
+- Sheep wool regrowth: a sheep regrows shorn wool by eating grass, and grade (10% at sturdy, 20% at prime) plus the fertile perk (a further `fertileRenewableReduction` per grade) raise how often it seeks and eats grass, so a graded or fertile sheep re-wools sooner. There is no separate re-wool timer; the cadence is the grass-eating rate.
 
 **Pedigree treat.** New item `instinct:pedigree_treat`, stack size 16. Crafted shapeless: 1 golden carrot + 1 hay bale + 1 honey bottle → 1 treat (bottle returned). Using it on an adult covered animal consumes the treat, plays the eat sound with `happy_villager` particles, and sets a persistent flag: that animal's **next** offspring is born prime (resolution rule 5). Feeding a second treat to the same animal before it breeds does nothing and is refused (hand swing, no consume, no message). The flag survives save/load and shows in `/instinct info`.
 
@@ -272,7 +273,7 @@ An uncovered or grade-0 parent counts as perkless. The pedigree treat forces the
 - **Conversions:** where vanilla copies entity data across a conversion (mooshroom sheared → cow), the grade and perk copy with it.
 - **Uncovered partners:** if only one parent's type is in the livestock set (membership edited mid-world, or a cross-mod pairing where one side is excluded), the missing grade counts as 0.
 - **Hay bale detection** is by block state in the scan radius; hay in item frames or inventories does not count.
-- **Fertile scope:** fertile scales only the vanilla post-breed love cooldown (each parent's own, by its own perk and grade); it never touches the chicken egg timer (that is grade's renewable, above) or baby growth.
+- **Fertile scope:** fertile is the fecundity perk — it shortens the vanilla post-breed love cooldown (each parent's own), the chicken egg-lay interval, and the sheep wool-regrowth graze rate, each by its own grade × `fertileRenewableReduction`. It never touches baby growth, milk (no vanilla cadence axis), or the shear quantity bonus (that stays grade-only).
 - **Placid under drive:** being pressed by a herding pet (§4/§6) is not damage and startles nothing — but when a drive takes fire, placid animals hold the line while the rest panic-sprint and straggle; drive assist recovers the stragglers. Placid is the drover's perk.
 - **Placid panic coverage:** panic suppression swaps the exact-class vanilla `PanicGoal`, so it reaches cattle, pigs, sheep, and chickens. Rabbits panic through a `PanicGoal` subclass and goats through a brain behavior — neither is swapped (the same discipline that never touches a modded panic goal), so a placid rabbit or goat still flees but carries the grade, bloodline value, and perk as state.
 - **Zombification, lightning:** covered species have no such conversions in vanilla; no behavior specified.
@@ -292,6 +293,7 @@ Grade and perk are entity state, visible and beneficial to every player equally.
 | `crowdingRadiusBlocks` | int | `8` | 4–16 |
 | `gradeUpgradeChance` | double | `0.5` | 0.0–1.0 |
 | `gradeDowngradeChance` | double | `0.5` | 0.0–1.0 |
+| `fertileRenewableReduction` | double | `0.15` | 0.0–0.5 (fertile's per-grade cut to egg-lay and wool-regrowth cadence; 0 = breeding only) |
 
 `enableGenetics = false` freezes grades (no inheritance rolls, no bonus yields, no treat effect); existing attachment data is retained untouched.
 
@@ -300,10 +302,10 @@ Grade and perk are entity state, visible and beneficial to every player equally.
 - Attachment `GeneticsData { int grade; Perk perk; boolean primeNextOffspring; long lastTroughFeedTime; }` on the entity, persistent. Absent ⇒ ordinary/no perk.
 - Inheritance hook: mixin at `Animal#spawnChildFromBreeding` (after the child exists, before `finalizeSpawnChildFromBreeding` completes), computing grade via a pure helper `Genetics.resolveGrade(baseA, baseB, wellFed, crowded, random)` and the perk via `Genetics.resolvePerk(perkA, perkB, wellFed, random)` — both unit-testable with a seeded random.
 - Hardy and fleet are fixed-id attribute modifiers (`instinct:genetic_health` ADD_VALUE, `instinct:genetic_speed` MULTIPLY_BASE), applied once at birth and re-asserted idempotently on load.
-- Fertile: scale the post-breed love cooldown at the `spawnChildFromBreeding` site (each parent's reset scaled by its own perk × grade).
+- Fertile: scale the post-breed love cooldown at the `spawnChildFromBreeding` site (each parent's reset scaled by its own perk × grade). The egg-lay and wool-regrowth cadences fold the same perk in through a shared pure helper `Genetics.renewableIntervalFactor(grade, perk, fertileRenewableReduction)`.
 - Placid: the exact-class vanilla `PanicGoal` on covered animals is swapped for a perk-aware subclass that stands down unless the animal is on fire or in lava — the same swap discipline as §4's tempt swap (a modded `PanicGoal` subclass is never touched; disabled or perkless ⇒ vanilla behavior exactly).
 - Death drops: `ServerLivingEntityEvents.AFTER_DEATH` spawns the bonus `ItemEntity`s beside vanilla loot; the species→product table is a `SimpleSynchronousResourceReloadListener` over `instinct/products/*.json` (Animal Coverage), falling back to the drop mirror; cooked-in-kind mirrors whether the vanilla roll was cooked (entity on fire at death).
-- Shear bonus: mixin at the sheep shear drop site; egg interval: scale `eggTime` when (re)rolled, guarded by grade.
+- Shear bonus: mixin at the sheep shear drop site (grade-only quantity). Egg interval: scale `eggTime` when (re)rolled through the renewable factor. Wool regrowth: a `@ModifyArg` mixin on `EatBlockGoal#canUse`'s `nextInt` modulus scales the graze roll for covered sheep (the goal is shared, so the handler gates to sheep and floors the modulus at 1).
 - `InstinctAnimalBredCallback` (§Public API) fires after grade resolution with parents, child, and final grade.
 
 ---
@@ -608,6 +610,7 @@ All features are independently toggleable via a ModMenu / Cloth Config screen an
 | `crowdingRadiusBlocks` | int | 8 | Radius for the crowding count (4–16) |
 | `gradeUpgradeChance` | double | 0.5 | Chance a well-fed breeding gains a grade (0.0–1.0) |
 | `gradeDowngradeChance` | double | 0.5 | Chance a crowded breeding loses a grade (0.0–1.0) |
+| `fertileRenewableReduction` | double | 0.15 | Fertile's per-grade cut to egg-lay and wool-regrowth cadence (0.0–0.5; 0 = breeding only) |
 | `enableFlocking` | bool | true | §4 master toggle |
 | `flockSpeedMultiplier` | double | 1.15 | Tempt-speed multiplier while flocking (1.0–1.5) |
 | `flockSpacingBlocks` | double | 2.0 | Preferred spacing between flock members (1.0–4.0) |
