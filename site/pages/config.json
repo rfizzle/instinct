@@ -39,6 +39,7 @@
             ["<code>crowdingRadiusBlocks</code>", "int", "<code>8</code>", "4–16", "Genetics"],
             ["<code>gradeUpgradeChance</code>", "double", "<code>0.5</code>", "0.0–1.0", "Genetics"],
             ["<code>gradeDowngradeChance</code>", "double", "<code>0.5</code>", "0.0–1.0", "Genetics"],
+            ["<code>fertileRenewableReduction</code>", "double", "<code>0.15</code>", "0.0–0.5 (0 = breeding only)", "Genetics"],
             ["<code>enableFlocking</code>", "bool", "<code>true</code>", "—", "Flocking"],
             ["<code>flockSpeedMultiplier</code>", "double", "<code>1.15</code>", "1.0–1.5", "Flocking"],
             ["<code>flockSpacingBlocks</code>", "double", "<code>2.0</code>", "1.0–4.0", "Flocking"],
