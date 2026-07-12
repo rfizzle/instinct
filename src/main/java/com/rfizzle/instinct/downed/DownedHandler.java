@@ -78,7 +78,6 @@ public final class DownedHandler {
     private static final Set<TamableAnimal> DOWNED = new LinkedHashSet<>();
     /** Revived pets still inside their post-revive invulnerability window: pet → game time it ends. */
     private static final Map<TamableAnimal, Long> POST_REVIVE_INVULN = new LinkedHashMap<>();
-    private static int tickCounter;
 
     private DownedHandler() {
     }
@@ -103,15 +102,25 @@ public final class DownedHandler {
         });
         UseEntityCallback.EVENT.register(DownedHandler::onUseEntity);
         ServerTickEvents.END_SERVER_TICK.register(DownedHandler::onServerTick);
-        ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
+        // Clear the post-revive window BEFORE the world save. SERVER_STOPPING fires at the head of
+        // the shutdown, ahead of the chunk save; SERVER_STOPPED fires after it. Clearing the
+        // vanilla-NBT-backed invulnerable flag here keeps a pet revived just before /stop from
+        // persisting permanent invulnerability to disk (a downed pet stays invulnerable by design).
+        ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
             for (TamableAnimal pet : POST_REVIVE_INVULN.keySet()) {
-                if (!pet.isRemoved() && !InstinctAPI.isDowned(pet)) {
-                    pet.setInvulnerable(false);
+                try {
+                    if (!pet.isRemoved() && !InstinctAPI.isDowned(pet)) {
+                        pet.setInvulnerable(false);
+                    }
+                } catch (Exception e) {
+                    Instinct.LOGGER.error("Failed to clear post-revive invulnerability on stop for {}",
+                            pet.getType(), e);
                 }
             }
+        });
+        ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
             DOWNED.clear();
             POST_REVIVE_INVULN.clear();
-            tickCounter = 0;
         });
     }
 
@@ -274,14 +283,15 @@ public final class DownedHandler {
     // --- Cadence & lifecycle ----------------------------------------------------------------
 
     private static void onServerTick(MinecraftServer server) {
-        tickCounter++;
-        expirePostReviveInvuln();
-        if (tickCounter % WHINE_INTERVAL_TICKS == 0) {
-            try {
-                whinePass();
-            } catch (Exception e) {
-                Instinct.LOGGER.error("Downed whine sweep failed", e);
-            }
+        try {
+            expirePostReviveInvuln();
+        } catch (Exception e) {
+            Instinct.LOGGER.error("Post-revive invuln expiry failed", e);
+        }
+        try {
+            whinePass();
+        } catch (Exception e) {
+            Instinct.LOGGER.error("Downed whine sweep failed", e);
         }
     }
 
@@ -307,14 +317,33 @@ public final class DownedHandler {
     }
 
     private static void whinePass() {
+        if (DOWNED.isEmpty()) {
+            return;
+        }
         DOWNED.removeIf(pet -> pet.isRemoved() || !InstinctAPI.isDowned(pet));
         for (TamableAnimal pet : DOWNED) {
             try {
-                whine(pet);
+                if (isWhineTick(pet)) {
+                    whine(pet);
+                }
             } catch (Exception e) {
                 Instinct.LOGGER.error("Downed whine failed for {}", pet.getType(), e);
             }
         }
+    }
+
+    /**
+     * Whether this tick is a whine beat for the pet — every {@code WHINE_INTERVAL_TICKS} ticks on
+     * the pet's own clock, anchored to when it went down, so a pack of downed pets whimper out of
+     * sync rather than in unison.
+     */
+    private static boolean isWhineTick(TamableAnimal pet) {
+        DownedData data = pet.getAttached(InstinctAttachments.DOWNED);
+        if (data == null) {
+            return false;
+        }
+        long elapsed = pet.level().getGameTime() - data.downedAtGameTime();
+        return elapsed > 0 && elapsed % WHINE_INTERVAL_TICKS == 0;
     }
 
     /** The species' own hurt sound at half volume plus one smoke wisp — the whole downed read. */

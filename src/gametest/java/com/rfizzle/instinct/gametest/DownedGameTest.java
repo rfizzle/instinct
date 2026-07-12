@@ -8,6 +8,7 @@ import com.rfizzle.instinct.config.InstinctConfig;
 import com.rfizzle.instinct.data.InstinctAttachments;
 import com.rfizzle.instinct.gametest.util.MockPlayers;
 import com.rfizzle.instinct.veterancy.VeterancyHandler;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.fabric.api.gametest.v1.FabricGameTest;
 import net.minecraft.advancements.AdvancementHolder;
@@ -83,6 +84,28 @@ public class DownedGameTest implements FabricGameTest {
             helper.assertTrue(wolf.hasEffect(MobEffects.REGENERATION), "revival grants Regeneration");
             helper.assertTrue(wolf.isInvulnerable(), "the post-revive invulnerability window is active");
             helper.assertTrue(wolf.isOrderedToSit(), "a revived pet stands in Stay");
+            wolf.discard();
+            helper.succeed();
+        } finally {
+            reviver.discard();
+        }
+    }
+
+    @GameTest(template = EMPTY_STRUCTURE)
+    public void revivedPetDoesNotPersistInvulnerability(GameTestHelper helper) {
+        Wolf wolf = spawnTamedWolf(helper, new BlockPos(3, 2, 3));
+        downWithArrow(helper, wolf);
+        ServerPlayer reviver = MockPlayers.serverPlayerInLevel(helper);
+        try {
+            reviver.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Items.GOLDEN_APPLE));
+            revive(helper, reviver, wolf);
+            helper.assertTrue(wolf.isInvulnerable(), "precondition: inside the post-revive window");
+            // Leaving the loaded set within the window (chunk unload, or shutdown, which clears the
+            // window before the world save) must strip the transient invulnerability — otherwise a
+            // revived, no-longer-downed pet would persist a permanent Invulnerable flag to disk.
+            ServerEntityEvents.ENTITY_UNLOAD.invoker().onUnload(wolf, helper.getLevel());
+            helper.assertFalse(wolf.isInvulnerable(),
+                    "a revived pet's transient invulnerability is cleared, never persisted");
             wolf.discard();
             helper.succeed();
         } finally {
@@ -265,10 +288,11 @@ public class DownedGameTest implements FabricGameTest {
     /** Applies a lethal arrow hit (not beyond saving), downing a healthy tamed pet. */
     private static void downWithArrow(GameTestHelper helper, Wolf wolf) {
         AbstractArrow arrow = EntityType.ARROW.create(helper.getLevel());
-        wolf.hurt(helper.getLevel().damageSources().arrow(arrow, null), 1000.0F);
-        if (arrow != null) {
-            arrow.discard();
+        if (arrow == null) {
+            throw new IllegalStateException("could not create an arrow");
         }
+        wolf.hurt(helper.getLevel().damageSources().arrow(arrow, null), 1000.0F);
+        arrow.discard();
     }
 
     private static InteractionResult revive(GameTestHelper helper, ServerPlayer reviver, Wolf wolf) {
