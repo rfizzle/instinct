@@ -29,7 +29,8 @@
             "com.rfizzle.instinct.gametest.GeneticsGameTest",
             "com.rfizzle.instinct.gametest.PerkBehaviorGameTest",
             "com.rfizzle.instinct.gametest.YieldGameTest",
-            "com.rfizzle.instinct.gametest.BestInShowGameTest"
+            "com.rfizzle.instinct.gametest.BestInShowGameTest",
+            "com.rfizzle.instinct.gametest.HerdingGameTest"
         ]
     },
     "mixins": [
