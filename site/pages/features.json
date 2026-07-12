@@ -88,7 +88,8 @@
           "type": "prose",
           "html": [
             "Cut from copper and bone, the whistle speaks to every tamed pet within 20 blocks. Left-click toggles the pack between Stay and Follow — one press, one coherent pack state, answered in one dry line (<code>✦ 3 pets will stay.</code>). Right-click while pointing at a mob up to 24 blocks away and every combat-capable pet stands and attacks it.",
-            "Commanding fifteen wolves stops meaning fifteen crouch-clicks — and pets sent after a creeper still break off when the fuse lights."
+            "Point instead at one of your livestock and it becomes a round-up: your pets fall in behind that animal and its whole nearby herd — same species, within 8 blocks — and drive the group home to you, up to two pets working at once, until every animal is at your side or ten seconds pass. A short shared cooldown paces the whole thing.",
+            "Commanding fifteen wolves stops meaning fifteen crouch-clicks — and pets sent after a creeper still break off when the fuse lights. Turn <code>enableWhistle</code> off and the whistle still crafts, but goes quiet in the hand."
           ]
         }
       ]
