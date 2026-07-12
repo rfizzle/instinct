@@ -298,6 +298,30 @@ final class ClothConfigScreenBuilder {
                 .setSaveConsumer(v -> working.downedRankPenalty = v)
                 .build());
 
+        // --- Predator Watch (§8) ---
+        ConfigCategory predatorWatch = builder.getOrCreateCategory(Component.translatable("config.instinct.category.predator_watch"));
+        predatorWatch.addEntry(entry.startBooleanToggle(label("enablePredatorWatch"), config.enablePredatorWatch)
+                .setDefaultValue(defaults.enablePredatorWatch)
+                .setTooltip(tooltip("enablePredatorWatch"))
+                .setSaveConsumer(v -> working.enablePredatorWatch = v)
+                .build());
+        predatorWatch.addEntry(entry.startIntField(label("predatorWatchRadiusBlocks"), config.predatorWatchRadiusBlocks)
+                .setDefaultValue(defaults.predatorWatchRadiusBlocks)
+                .setMin(4).setMax(24)
+                .setTooltip(tooltip("predatorWatchRadiusBlocks"))
+                .setSaveConsumer(v -> working.predatorWatchRadiusBlocks = v)
+                .build());
+        predatorWatch.addEntry(entry.startStrList(label("predatorsInclude"), config.predatorsInclude)
+                .setDefaultValue(defaults.predatorsInclude)
+                .setTooltip(tooltip("predatorsInclude"))
+                .setSaveConsumer(v -> working.predatorsInclude = new ArrayList<>(v))
+                .build());
+        predatorWatch.addEntry(entry.startStrList(label("predatorsExclude"), config.predatorsExclude)
+                .setDefaultValue(defaults.predatorsExclude)
+                .setTooltip(tooltip("predatorsExclude"))
+                .setSaveConsumer(v -> working.predatorsExclude = new ArrayList<>(v))
+                .build());
+
         // --- Inspection (§2/§3 shared) ---
         ConfigCategory inspection = builder.getOrCreateCategory(Component.translatable("config.instinct.category.inspection"));
         inspection.addEntry(entry.startBooleanToggle(label("enableInspection"), config.enableInspection)

@@ -67,6 +67,20 @@
       ]
     },
     {
+      "id": "predator-watch",
+      "title": "The Dog That Guards the Pen",
+      "intro": "A pet on Stay near livestock turns wild predators from the pasture.",
+      "blocks": [
+        {
+          "type": "prose",
+          "html": [
+            "Leave a pet on Stay by your animals and it watches the fence line. A fox creeping in on the chickens or a wild wolf stalking the sheep finds its hunt broken and itself driven back from the pasture — and your dog stands off its seat to put its body between the predator and the pen, then settles again once the coast is clear. Any pet guards, so a cat turns a fox as a wolf does; a wolf also fights what it reaches, the way vanilla wolves already do.",
+            "It costs no command and touches nothing it shouldn't. A predator with no stationed pet nearby behaves exactly as vanilla, and a guardian with no livestock in range leaves passing animals alone — the watch is for a pasture, not a patrol. Predators default to foxes and wild wolves, and like every animal set they are edited by tag or config, so a modded prowler joins the watch by name. Self-preservation still comes first: a lit creeper always sends the guardian fleeing before it guards."
+          ]
+        }
+      ]
+    },
+    {
       "id": "trough",
       "title": "The Feeding Trough",
       "intro": "Passive, low-lag farm automation in one wooden block.",

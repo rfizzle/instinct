@@ -577,6 +577,56 @@ Per-pet server state. Any player can revive (co-op rescue is a feature); only th
 
 ---
 
+## 8. Predator Watch
+
+A pet on Stay near livestock turns wild predators from the pasture — the dog that herds also guards.
+
+### Problem
+
+Foxes hunt chickens and rabbits; untamed wolves hunt sheep and rabbits. A pet stationed at the pasture watches its prey get taken and does nothing — the dog that drives a herd (§4/§6) should also keep the fox off it. The only vanilla defense is a wall, and a wall is not a dog.
+
+### Behavior
+
+Applies to every tamed **pets-set** animal that is **on Stay** (ordered to sit) with covered livestock inside `predatorWatchRadiusBlocks` (default 12). Any pets-set species guards — watching is stationing, not combat, so a cat turns a fox as a wolf does; a combat-capable guardian additionally fights what it reaches, exactly as vanilla wolves already fight foxes. While a **wild predator** (a predator-set member that is not a tamed animal) is inside the radius, the guardian does two things each scan:
+
+**Deter.** Every wild predator in the radius has any covered-livestock attack target cleared — its hunt broken — and is driven away from the guardian along the guardian→predator axis, so it paths away from the watched pasture rather than into it.
+
+**Intercept.** The guardian stands from its seat and paths to a blocking point between the nearest predator and that predator's nearest prey, putting its body in the way. When no predator or no livestock remains in the radius it re-sits where it stands — stay means stay, minus the predator.
+
+A guardian with no livestock in range has no pasture to keep, so a predator merely passing a lone stationed pet is never harassed. The predator set defaults to fox and wolf and is edited like any coverage set: the `#instinct:predators` entity-type tag plus `predatorsInclude`, minus `predatorsExclude`. Only wild instances ever count — a tamed wolf is someone's pet, never a predator.
+
+### Sitting and commanded state
+
+The watch engages only a **Stay** pet; a following pet keeps following. Standing to guard clears the sit order for the duration and restores it on completion (the §1 berth's was-sitting memory). Self-preservation always wins: a swelling creeper within the §1 berth's awareness radius ends the watch at once, freeing the guardian to flee. Downed pets (§7) have no AI and never guard.
+
+### Edge cases
+
+- **Deterrence is scoped to a live guardian.** A wild predator with no stationed pet nearby behaves exactly as vanilla — nothing about the world's predators changes until a guardian is watching them, and no goal is ever installed on a wild fox or wolf.
+- **Multiple guardians** each deter independently; overlapping deterrence is idempotent (a target is cleared once), and each guardian intercepts its own nearest threat.
+- **`enablePredatorWatch = false`:** no pet ever leaves its seat and no predator's hunt is touched — exact vanilla behavior.
+
+### Multiplayer
+
+Livestock is unowned, so a guardian keeps the pasture for whoever's animals stand in it — cross-owner by design, like the §2 mentor aura, and it needs no online owner. There is no per-player or server-wide state: a stationed dog guards a shared farm the same for everyone, and the absent player is never punished.
+
+### Config
+
+| Key | Type | Default | Range |
+|---|---|---|---|
+| `enablePredatorWatch` | bool | `true` | |
+| `predatorWatchRadiusBlocks` | int | `12` | 4–24 |
+| `predatorsInclude` | list | `[]` | |
+| `predatorsExclude` | list | `[]` | |
+
+### Implementation Notes
+
+- One injected goal, `PredatorWatchGoal` (priority 1), added to every tamed pets-set animal on `ServerEntityEvents.ENTITY_LOAD` (idempotent, the §4 install pattern). Both halves run from the guardian, so no goal is ever installed on a wild predator: an untamed fox or wolf with no guardian nearby is exactly vanilla and costs nothing.
+- Inert until engaged: scans are interval-gated (`adjustedTickDelay`, the §1 berth cadence), and a stationed pet with no predator in range pays only the scan. Deterrence is `setTarget(null)` on a covered-livestock target plus a re-issued away-navigation; interception is a move to `PredatorWatch.interceptPoint(...)`.
+- Priority 1 ties `CreeperBerthGoal`; rather than lean on priority (equal priorities never preempt mid-run), the watch yields to a swelling creeper itself — it never engages while one is near and stands down when one appears — so the berth always takes the slot within a scan.
+- Predator-set resolution (`#instinct:predators` ∪ `predatorsInclude`, minus `predatorsExclude`) has no heuristic layer; the pure geometry (`interceptPoint`, `fleePoint`) is unit-tested, the live behavior gametested.
+
+---
+
 ## Configuration
 
 All features are independently toggleable via a ModMenu / Cloth Config screen and a JSON config file (`config/instinct.json`), created with defaults on first launch. `configVersion` is **1**. Unknown/missing fields are filled with defaults and clamped to their stated ranges after load; a corrupted file falls back to defaults and is left untouched on disk.
@@ -628,6 +678,10 @@ All features are independently toggleable via a ModMenu / Cloth Config screen an
 | `enableDownedState` | bool | true | §7 master toggle |
 | `reviveHealthFraction` | double | 0.5 | Health fraction restored on revival (0.1–1.0) |
 | `downedRankPenalty` | bool | true | Revival costs one veterancy rank |
+| `enablePredatorWatch` | bool | true | §8 master toggle |
+| `predatorWatchRadiusBlocks` | int | 12 | Radius a Stay guardian watches for predators over livestock (4–24) |
+| `predatorsInclude` | list | [] | Entity types forced into the wild-predator set |
+| `predatorsExclude` | list | [] | Entity types forced out of the wild-predator set |
 | `enableInspection` | bool | true | Crouch-look inspection lines (§2/§3) |
 
 ### Client Config
