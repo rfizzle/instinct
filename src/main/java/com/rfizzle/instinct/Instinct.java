@@ -8,10 +8,13 @@ import com.rfizzle.instinct.downed.DownedHandler;
 import com.rfizzle.instinct.genetics.GeneticsHandler;
 import com.rfizzle.instinct.herding.Herding;
 import com.rfizzle.instinct.inspection.Inspection;
+import com.rfizzle.instinct.registry.InstinctBlockEntities;
+import com.rfizzle.instinct.registry.InstinctBlocks;
 import com.rfizzle.instinct.registry.InstinctCriteria;
 import com.rfizzle.instinct.registry.InstinctItems;
 import com.rfizzle.instinct.registry.InstinctSounds;
 import com.rfizzle.instinct.selfpreservation.SelfPreservation;
+import com.rfizzle.instinct.trough.Trough;
 import com.rfizzle.instinct.veterancy.VeterancyHandler;
 import net.fabricmc.api.ModInitializer;
 import net.minecraft.resources.ResourceLocation;
@@ -30,6 +33,8 @@ public class Instinct implements ModInitializer {
     public void onInitialize() {
         InstinctConfig.init();
         InstinctAttachments.init();
+        InstinctBlocks.register();
+        InstinctBlockEntities.register();
         InstinctItems.register();
         InstinctSounds.register();
         InstinctCriteria.register();
@@ -39,6 +44,7 @@ public class Instinct implements ModInitializer {
         GeneticsHandler.register();
         Herding.register();
         DownedHandler.register();
+        Trough.register();
         Inspection.register();
         InstinctCommand.init();
         LOGGER.info("Instinct initialized");

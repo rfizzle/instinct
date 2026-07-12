@@ -21,6 +21,7 @@
 |---|---|---|
 | Pedigree treat item sprite | `art/glyphs/pedigree-treat-16.glyph` (16 native) | `src/main/resources/assets/instinct/textures/item/pedigree_treat.png` |
 | Vet kit item sprite | `art/glyphs/vet-kit-16.glyph` (16 native) | `src/main/resources/assets/instinct/textures/item/vet_kit.png` |
+| Feeding trough block faces (top/side/bottom/inner) | `art/glyphs/feeding-trough-{top,side,bottom,inner}-16.glyph` (16 native) | `src/main/resources/assets/instinct/textures/block/feeding_trough_{top,side,bottom,inner}.png` |
 
 ## Audio cues
 
@@ -32,7 +33,6 @@
 
 | Asset | Intended source | Destination |
 |---|---|---|
-| Feeding trough block textures (top/side/bottom/inner) | `/glyph` | `assets/instinct/textures/block/feeding_trough_*.png` — (planned) |
 | Command whistle item sprite | `/glyph` | `assets/instinct/textures/item/command_whistle.png` — (planned) |
 | Whistle — follow cue | `/sfx` | `art/audio/whistle-follow.sfx` → `assets/instinct/sounds/whistle_follow.ogg` — (planned) |
 | Whistle — stay cue | `/sfx` | `art/audio/whistle-stay.sfx` → `assets/instinct/sounds/whistle_stay.ogg` — (planned) |

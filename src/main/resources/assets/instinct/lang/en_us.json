@@ -32,6 +32,7 @@
   "command.instinct.reload_failed": "Instinct config reload failed: %s",
   "item.instinct.pedigree_treat": "Pedigree Treat",
   "item.instinct.vet_kit": "Vet Kit",
+  "block.instinct.feeding_trough": "Feeding Trough",
   "itemGroup.instinct": "Instinct",
   "notification.instinct.rank_up": "✦ %s has grown stronger.",
   "notification.instinct.inspect_pet": "✦ %s has seen %s days.",
