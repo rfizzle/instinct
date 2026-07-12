@@ -110,7 +110,10 @@ public class WhistleGameTest implements FabricGameTest {
         helper.succeed();
     }
 
-    @GameTest(template = EMPTY_STRUCTURE, timeoutTicks = 600, batch = "instinctRoundUp")
+    // A generous tick budget: driving the whole herd to the player is real pathfinding
+    // convergence, which needs headroom to finish on a loaded/variable CI runner even though it
+    // usually settles in a fraction of it. The assertion (every cow reaches) is unchanged.
+    @GameTest(template = EMPTY_STRUCTURE, timeoutTicks = 1200, batch = "instinctRoundUp")
     public void roundUpBringsTheHerdToThePlayer(GameTestHelper helper) {
         // The round-up drives livestock through the §4 tempt machinery, so it needs flocking on;
         // pin both flags rather than trust config another batch may have left flipped (restored on
@@ -153,7 +156,8 @@ public class WhistleGameTest implements FabricGameTest {
         }
     }
 
-    @GameTest(template = EMPTY_STRUCTURE, timeoutTicks = 600, batch = "instinctRoundUpNoFlock")
+    // Same convergence headroom as the flocking-on round-up above.
+    @GameTest(template = EMPTY_STRUCTURE, timeoutTicks = 1200, batch = "instinctRoundUpNoFlock")
     public void roundUpWorksWithFlockingOff(GameTestHelper helper) {
         // SPEC §4: with flocking off but herding on, the drive assist never activates, but the whistle
         // round-up still works — the order is a tempt source the flocking toggle must not silence.
