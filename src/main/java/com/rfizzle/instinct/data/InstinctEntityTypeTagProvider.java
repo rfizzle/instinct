@@ -38,6 +38,14 @@ public class InstinctEntityTypeTagProvider extends FabricTagProvider.EntityTypeT
                 .add(EntityType.RABBIT)
                 .add(EntityType.GOAT);
 
+        // §8 Predator Watch: the wild hunters a stationed guardian turns from the pasture. Foxes
+        // hunt chickens and rabbits, wolves hunt sheep and rabbits — the two vanilla neutral
+        // predators of livestock. Only wild instances count; a tamed wolf pet is never a predator.
+        // A pack or animal mod adds its own via this tag or the predatorsInclude config.
+        getOrCreateTagBuilder(AnimalCoverage.PREDATORS_TAG)
+                .add(EntityType.FOX)
+                .add(EntityType.WOLF);
+
         getOrCreateTagBuilder(AnimalCoverage.LIVESTOCK_EXCLUDE_TAG)
                 .add(EntityType.HORSE)
                 .add(EntityType.DONKEY)
