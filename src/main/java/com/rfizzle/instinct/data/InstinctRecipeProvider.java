@@ -44,6 +44,15 @@ public class InstinctRecipeProvider extends FabricRecipeProvider {
                 .unlockedBy("has_honey_bottle", has(Items.HONEY_BOTTLE))
                 .save(output);
 
+        // The command whistle — copper around a bone, one result, stack 1 (§6).
+        ShapedRecipeBuilder.shaped(RecipeCategory.TOOLS, InstinctItems.COMMAND_WHISTLE)
+                .pattern(" C ")
+                .pattern("CBC")
+                .define('C', Items.COPPER_INGOT)
+                .define('B', Items.BONE)
+                .unlockedBy("has_copper_ingot", has(Items.COPPER_INGOT))
+                .save(output);
+
         // The feeding trough — a plank frame around a fence, open at the top (§5).
         ShapedRecipeBuilder.shaped(RecipeCategory.DECORATIONS, InstinctBlocks.FEEDING_TROUGH)
                 .pattern("P P")
