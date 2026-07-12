@@ -58,15 +58,17 @@ public class FlockingTemptGoal extends TemptGoal {
 
     @Override
     public boolean canUse() {
-        if (!InstinctConfig.get().enableFlocking) {
-            return super.canUse();
-        }
-        // A whistle round-up order is a second tempt source: it moves the animal toward its orderer
-        // without food and bypasses the post-tempt calm-down, since a command shouldn't have to wait.
+        // A whistle round-up order is a second tempt source, honored even with flocking off (SPEC §4:
+        // "enableFlocking=false, enableHerding=true: ... the whistle round-up still works"). It moves
+        // the animal toward its orderer without food — vanilla tick() delegates when flocking is off,
+        // and it navigates to this.player all the same — and bypasses the post-tempt calm-down.
         Player ordered = Herding.roundUpOrderer(this.mob);
         if (ordered != null) {
             this.player = ordered;
             return true;
+        }
+        if (!InstinctConfig.get().enableFlocking) {
+            return super.canUse();
         }
         if (this.flockCalmDown > 0) {
             this.flockCalmDown--;
@@ -78,11 +80,9 @@ public class FlockingTemptGoal extends TemptGoal {
 
     @Override
     public boolean canContinueToUse() {
-        if (!InstinctConfig.get().enableFlocking) {
-            return super.canContinueToUse();
-        }
-        // Keep pulling the animal in while its round-up order stands; the sweep clears the order once
-        // it arrives (within 5 blocks) or the deadline passes, and then the food check resumes.
+        // Keep pulling the animal in while its round-up order stands, whatever the flocking toggle; the
+        // sweep clears the order once it arrives (within 5 blocks) or the deadline passes, and then the
+        // normal food/vanilla check resumes.
         Player ordered = Herding.roundUpOrderer(this.mob);
         if (ordered != null) {
             this.player = ordered;

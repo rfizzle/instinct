@@ -120,13 +120,12 @@ public class WhistleGameTest implements FabricGameTest {
         try {
             buildFloor(helper, 16, 8);
             ServerPlayer owner = mockPlayer(helper, new BlockPos(2, 2, 4));
-            List<Cow> cows = new ArrayList<>();
-            Cow target = helper.spawn(EntityType.COW, new BlockPos(11, 2, 4));
-            cows.add(target);
-            cows.add(helper.spawn(EntityType.COW, new BlockPos(12, 2, 4)));
-            cows.add(helper.spawn(EntityType.COW, new BlockPos(11, 2, 5)));
+            // A following pet drives the herd home — the §6 promise (and what pushes the last straggler
+            // through the animals already gathered at the player, exactly as in the §4 drive).
+            Wolf wolf = spawnTamedWolf(helper, new BlockPos(3, 2, 4), owner.getUUID());
+            List<Cow> cows = spawnHerd(helper);
 
-            WhistleActions.WhistleResult result = WhistleActions.roundUp(owner, target);
+            WhistleActions.WhistleResult result = WhistleActions.roundUp(owner, cows.get(0));
             helper.assertValueEqual(result.outcome(), WhistleActions.WhistleResult.Outcome.ROUND_UP, "a cow orders a round-up");
             // Each animal's order clears once it is within 5 blocks (§6), after which it resumes normal
             // AI and may drift, so success is "every cow reached at some point", not "all within 5 at once".
@@ -139,6 +138,43 @@ public class WhistleGameTest implements FabricGameTest {
                     }
                 }
                 helper.assertTrue(reached.containsAll(cows), "every rounded-up cow reaches within 5 blocks of the player");
+                cows.forEach(Animal::discard);
+                wolf.discard();
+                owner.discard();
+                InstinctConfig.get().enableFlocking = savedFlock;
+                InstinctConfig.get().enableHerding = savedHerd;
+            });
+        } catch (RuntimeException e) {
+            InstinctConfig.get().enableFlocking = savedFlock;
+            InstinctConfig.get().enableHerding = savedHerd;
+            throw e;
+        }
+    }
+
+    @GameTest(template = EMPTY_STRUCTURE, timeoutTicks = 600, batch = "instinctRoundUpNoFlock")
+    public void roundUpWorksWithFlockingOff(GameTestHelper helper) {
+        // SPEC §4: with flocking off but herding on, the drive assist never activates, but the whistle
+        // round-up still works — the order is a tempt source the flocking toggle must not silence.
+        boolean savedFlock = InstinctConfig.get().enableFlocking;
+        boolean savedHerd = InstinctConfig.get().enableHerding;
+        InstinctConfig.get().enableFlocking = false;
+        InstinctConfig.get().enableHerding = true;
+        try {
+            buildFloor(helper, 16, 8);
+            ServerPlayer owner = mockPlayer(helper, new BlockPos(2, 2, 4));
+            List<Cow> cows = spawnHerd(helper);
+
+            helper.assertValueEqual(WhistleActions.roundUp(owner, cows.get(0)).outcome(),
+                    WhistleActions.WhistleResult.Outcome.ROUND_UP, "a round-up is ordered even with flocking off");
+            Set<Cow> reached = new HashSet<>();
+            helper.succeedWhen(() -> {
+                for (Cow cow : cows) {
+                    if (cow.position().distanceTo(owner.position()) <= 5.0) {
+                        reached.add(cow);
+                    }
+                }
+                helper.assertTrue(reached.containsAll(cows),
+                        "every cow reaches the player on the order alone, with flocking off");
                 cows.forEach(Animal::discard);
                 owner.discard();
                 InstinctConfig.get().enableFlocking = savedFlock;
@@ -181,6 +217,20 @@ public class WhistleGameTest implements FabricGameTest {
         BlockPos abs = helper.absolutePos(rel);
         player.teleportTo(abs.getX() + 0.5, abs.getY(), abs.getZ() + 0.5);
         return player;
+    }
+
+    /**
+     * A three-cow herd just outside the 5-block arrival ring (~6 blocks from the player at 2,2,4),
+     * fanned across z so each animal crosses the ring in its own lane before the herd reconverges and
+     * piles up. cows.get(0) is the round-up target. The short travel keeps convergence robust against
+     * pathfinding RNG while still starting the herd outside the arrival ring.
+     */
+    private static List<Cow> spawnHerd(GameTestHelper helper) {
+        List<Cow> cows = new ArrayList<>();
+        cows.add(helper.spawn(EntityType.COW, new BlockPos(8, 2, 4)));
+        cows.add(helper.spawn(EntityType.COW, new BlockPos(8, 2, 2)));
+        cows.add(helper.spawn(EntityType.COW, new BlockPos(8, 2, 6)));
+        return cows;
     }
 
     private static Wolf spawnTamedWolf(GameTestHelper helper, BlockPos rel, UUID owner) {
