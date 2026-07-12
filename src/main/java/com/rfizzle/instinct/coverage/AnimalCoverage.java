@@ -12,6 +12,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.entity.animal.Animal;
+import net.minecraft.world.entity.animal.horse.AbstractHorse;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -34,6 +35,8 @@ public final class AnimalCoverage {
     public static final TagKey<EntityType<?>> PETS_EXCLUDE_TAG = tag("pets_exclude");
     public static final TagKey<EntityType<?>> LIVESTOCK_TAG = tag("livestock");
     public static final TagKey<EntityType<?>> LIVESTOCK_EXCLUDE_TAG = tag("livestock_exclude");
+    public static final TagKey<EntityType<?>> MOUNTS_TAG = tag("mounts");
+    public static final TagKey<EntityType<?>> MOUNTS_EXCLUDE_TAG = tag("mounts_exclude");
 
     private static final Map<EntityType<?>, AnimalCapability> CAPABILITIES = new ConcurrentHashMap<>();
 
@@ -62,6 +65,11 @@ public final class AnimalCoverage {
         return membershipOf(type).livestock();
     }
 
+    /** Mounts-set membership for a type, after full config → tag → heuristic resolution. */
+    public static boolean isMount(EntityType<?> type) {
+        return membershipOf(type).mount();
+    }
+
     /** Resolves a type's membership from the current config, bound tags, and capability cache. */
     public static CoverageResolver.Membership membershipOf(EntityType<?> type) {
         InstinctConfig config = InstinctConfig.get();
@@ -72,10 +80,14 @@ public final class AnimalCoverage {
                 config.petsIncludeSet.contains(id),
                 config.livestockExcludeSet.contains(id),
                 config.livestockIncludeSet.contains(id),
+                config.mountsExcludeSet.contains(id),
+                config.mountsIncludeSet.contains(id),
                 type.is(PETS_EXCLUDE_TAG),
                 type.is(PETS_TAG),
                 type.is(LIVESTOCK_EXCLUDE_TAG),
                 type.is(LIVESTOCK_TAG),
+                type.is(MOUNTS_EXCLUDE_TAG),
+                type.is(MOUNTS_TAG),
                 config.autoDetectAnimals,
                 capability));
     }
@@ -100,6 +112,9 @@ public final class AnimalCoverage {
     private static AnimalCapability capabilityOf(Entity entity) {
         if (entity instanceof TamableAnimal) {
             return AnimalCapability.TAMABLE;
+        }
+        if (entity instanceof AbstractHorse) {
+            return AnimalCapability.MOUNT;
         }
         if (entity instanceof Animal) {
             return AnimalCapability.BREEDABLE;

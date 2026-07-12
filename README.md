@@ -40,8 +40,9 @@ package is internal and may change in any release.
 
 **The stable surface**
 
-- `InstinctAPI.isPet(EntityType<?>)` / `InstinctAPI.isLivestock(EntityType<?>)` —
-  set membership after full Animal Coverage resolution
+- `InstinctAPI.isPet(EntityType<?>)` / `InstinctAPI.isLivestock(EntityType<?>)` /
+  `InstinctAPI.isMount(EntityType<?>)` — set membership after full Animal Coverage
+  resolution (mounts are the horse family: self-preservation and downed only)
 - `InstinctAPI.getGrade(Animal)` / `InstinctAPI.getPerk(Animal)` — bloodline grade
   and birth perk (`ORDINARY`/`NONE` for untracked animals)
 - `InstinctAPI.getVeterancyDays(TamableAnimal)` / `InstinctAPI.getVeterancyRank(TamableAnimal)` —

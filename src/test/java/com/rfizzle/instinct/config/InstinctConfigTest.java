@@ -19,6 +19,7 @@ class InstinctConfigTest {
     /** Every key the SPEC Configuration table requires the file to carry. */
     private static final List<String> SPEC_KEYS = List.of(
             "autoDetectAnimals", "petsInclude", "petsExclude", "livestockInclude", "livestockExclude",
+            "mountsInclude", "mountsExclude",
             "enableSelfPreservation", "creeperBerthBlocks", "teleportSuppressFallDistance",
             "enableVeterancy", "veterancyThresholdDays", "healthPerRank", "damagePerRank",
             "enableRankBehaviors", "warningRadiusBlocks", "mentorRadiusBlocks", "mentorRateBonus",

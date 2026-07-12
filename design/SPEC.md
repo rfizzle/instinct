@@ -12,17 +12,18 @@ Minecraft 1.21.1 Fabric mod. Husbandry overhaul.
 
 Every feature below applies to one of two membership sets, resolved per entity type. The goal: a modded animal that behaves like a vanilla one gets Instinct's treatment automatically, with no code from its author — and every automatic decision can be overridden by that author, a pack maker, or a server owner.
 
-**The two sets:**
+**The three sets:**
 - **Pets** — self-preservation (§1), veterancy (§2), herding work (§4/§6), the whistle (§6), downed & revival (§7). Each feature additionally requires the individual animal to be tamed.
 - **Livestock** — genetics (§3), flocking & being herded (§4/§6), the trough (§5).
+- **Mounts** — self-preservation (§1, riderless) and downed & revival (§7), and nothing else. The horse family carries vanilla bred-stat inheritance, so it stays out of genetics; but self-preservation and downed answer a survival need that inheritance does not, so the horse family gets exactly those two. Each feature additionally requires the individual animal to be tamed.
 
-**Resolution order** (first match wins), per entity type:
+**Resolution order** (first match wins), per entity type and per set:
 
-1. **Config** — `petsExclude` / `livestockExclude`, then `petsInclude` / `livestockInclude`. The server owner has the last word.
-2. **Tags** — `#instinct:pets_exclude` / `#instinct:livestock_exclude`, then `#instinct:pets` / `#instinct:livestock`. Entity-type tags are ordinary data: a third-party animal mod ships a one-file tag entry in Instinct's namespace, a pack maker uses a datapack — no compile-time dependency, no API call, nothing to guard.
-3. **Heuristic** (when `autoDetectAnimals` is true, the default) — a tamable animal type (`TamableAnimal`) is a **pet**; any other breedable animal type (`Animal`) is **livestock**. A type that qualifies as a pet is never heuristically livestock.
+1. **Config** — `petsExclude` / `livestockExclude` / `mountsExclude`, then `petsInclude` / `livestockInclude` / `mountsInclude`. The server owner has the last word.
+2. **Tags** — `#instinct:pets_exclude` / `#instinct:livestock_exclude` / `#instinct:mounts_exclude`, then `#instinct:pets` / `#instinct:livestock` / `#instinct:mounts`. Entity-type tags are ordinary data: a third-party animal mod ships a one-file tag entry in Instinct's namespace, a pack maker uses a datapack — no compile-time dependency, no API call, nothing to guard.
+3. **Heuristic** (when `autoDetectAnimals` is true, the default) — a tamable animal type (`TamableAnimal`) is a **pet**; a horse-family type (`AbstractHorse`) is a **mount**; any other breedable animal type (`Animal`) is **livestock**. The three are mutually exclusive by class, so a pet is never heuristically a mount or livestock, and a mount is never heuristically livestock.
 
-Instinct ships its vanilla membership as default tag contents, overridable like any tag: `#instinct:pets` = wolf, cat, parrot; `#instinct:livestock` = cow, sheep, pig, chicken, rabbit, goat; `#instinct:livestock_exclude` = the horse family (horse, donkey, mule, camel, llama, trader llama, skeleton horse, zombie horse) — vanilla horses already have their own bred-stat inheritance, and grafting grades onto it would double-dip.
+Instinct ships its vanilla membership as default tag contents, overridable like any tag: `#instinct:pets` = wolf, cat, parrot; `#instinct:livestock` = cow, sheep, pig, chicken, rabbit, goat; `#instinct:livestock_exclude` = the horse family (horse, donkey, mule, camel, llama, trader llama, skeleton horse, zombie horse) — vanilla horses already have their own bred-stat inheritance, and grafting grades onto it would double-dip; `#instinct:mounts` = the tamable horse family (horse, donkey, mule, camel, llama, trader llama). The undead horses (skeleton horse, zombie horse) are not husbandry animals — they are neither livestock nor mounts — but a pack may add them to `#instinct:mounts` like any tag entry.
 
 **Graceful degradation.** Membership guarantees the *state* features — veterancy days, grades, perks, downed, whistle selection — because they run on attachments and attribute modifiers every living entity has. The *behavior* features attach best-effort: hazard maluses and the creeper berth apply to any pathfinding animal; teleport refusal gates the vanilla follow-owner behavior, so pets using a custom follow goal keep their own teleport rules; flocking upgrades only the vanilla tempt behavior and leaves a custom modded tempt goal untouched rather than broken. A feature that cannot attach simply doesn't — never a crash, never an altered vanilla-mod behavior.
 
@@ -57,9 +58,9 @@ Vanilla tamed wolves and cats pathfind through lava and cacti, sit next to hissi
 
 ### Behavior
 
-Applies to every tamed animal in the **pets set** (Animal Coverage). Three independent protections:
+Applies to every tamed animal in the **pets set** and every tamed animal in the **mounts set** (Animal Coverage). Three independent protections:
 
-**1. Hazard-aware pathing.** The pet's navigation treats lava, fire, and cactus path nodes as impassable — it paths around them or, if no safe route exists, stays put rather than walking through. This affects navigation only; combat targeting, sitting, and all other AI are untouched.
+**1. Hazard-aware pathing.** The pet's navigation treats lava, fire, and cactus path nodes as impassable — it paths around them or, if no safe route exists, stays put rather than walking through. This affects navigation only; combat targeting, sitting, and all other AI are untouched. On a mount, the maluses apply the same way while riderless; a ridden mount's navigation is idle (its rider steers), so the maluses simply never come into play.
 
 **2. Creeper berth.** When a creeper's fuse is ignited (swelling, by player flint-and-steel, or trigger) within `creeperBerthBlocks + 3` blocks of the pet, the pet immediately moves away at 1.4× speed until it is at least `creeperBerthBlocks` (default 4) blocks from that creeper, then resumes its previous behavior.
 - A **sitting** pet stands, steps clear to the berth distance, and **sits again** at its new position. Stay means stay — minus the blast radius.
@@ -76,6 +77,10 @@ While suppressed, the pet continues normal follow pathing (it will still *walk* 
 ### Sitting and commanded state
 
 Protections 1 and 2 apply regardless of sit state (a sitting pet flees a fuse, then re-sits). Protection 3 is inherently about following pets. Downed pets (§7) have no AI and are exempt from all three.
+
+### Mounts
+
+Protections 1 and 2 apply to tamed mounts, with three differences from pets. The berth fires only while the mount is **riderless** — a ridden mount answers to its rider, not its instinct — and a mount has no sit pose, so it simply resumes its prior behavior after clearing the berth rather than re-sitting. The berth is a goal-selector goal, so it attaches only to **goal-driven** mounts; a brain-driven mount (the camel, whose movement runs on a brain rather than the goal selector) gets hazard-aware pathing (protection 1, which prices path nodes regardless of AI architecture) but not the creeper berth — graceful degradation per Animal Coverage, never a broken goal fighting the brain. Protection 3 (teleport refusal) does not apply: a mount never follow-teleports to an owner, so there is nothing to suppress. A downed mount (§7) has no AI and is exempt.
 
 ### Multiplayer
 
@@ -516,7 +521,7 @@ One creeper, one skeleton volley, one mistake — a pet representing sixty days 
 
 ### Behavior
 
-Applies to every tamed animal in the **pets set** (Animal Coverage).
+Applies to every tamed animal in the **pets set** and every tamed animal in the **mounts set** (Animal Coverage). A downed mount differs from a downed pet in three ways: it has no sit pose (the AI stop, whine, and smoke carry the read), it ejects any rider the instant it goes down (a mount kept mounted could otherwise still be steered), and revival costs no rank because a mount has no veterancy. Everything else — the 1.0-health pin, invulnerability, target immunity, the owner notice, the whine cadence, the beyond-saving edges, and the revival item path — is identical.
 
 **Going down.** When lethal damage would kill the pet, the death is cancelled and the pet enters the **downed** state instead:
 - health is set to 1.0; the pet is invulnerable to all further damage (exceptions below),
@@ -583,7 +588,9 @@ All features are independently toggleable via a ModMenu / Cloth Config screen an
 | `petsExclude` | list | [] | Entity types forced out of the pets set |
 | `livestockInclude` | list | [] | Entity types forced into the livestock set |
 | `livestockExclude` | list | [] | Entity types forced out of the livestock set |
-| `enableSelfPreservation` | bool | true | §1 master toggle |
+| `mountsInclude` | list | [] | Entity types forced into the mounts set |
+| `mountsExclude` | list | [] | Entity types forced out of the mounts set |
+| `enableSelfPreservation` | bool | true | §1 master toggle (pets and mounts) |
 | `creeperBerthBlocks` | int | 4 | Distance pets keep from ignited creepers (2–8) |
 | `teleportSuppressFallDistance` | double | 3.0 | Owner fall distance that suppresses pet teleport (0.5–10.0) |
 | `enableVeterancy` | bool | true | §2 master toggle |
@@ -649,6 +656,7 @@ Package **`com.rfizzle.instinct.api`** — the only stable package, per concord 
 |---|---|
 | `InstinctAPI.isPet(EntityType<?>)` | pets-set membership after full resolution (Animal Coverage) |
 | `InstinctAPI.isLivestock(EntityType<?>)` | livestock-set membership after full resolution |
+| `InstinctAPI.isMount(EntityType<?>)` | mounts-set membership after full resolution (the horse family; §1 + §7 only) |
 | `InstinctAPI.getGrade(Animal)` | `Grade` enum (`ORDINARY`, `STURDY`, `PRIME`); `ORDINARY` for uncovered/absent |
 | `InstinctAPI.getPerk(Animal)` | `Perk` enum (`NONE`, `HARDY`, `FLEET`, `FERTILE`, `PLACID`); `NONE` for uncovered/absent |
 | `InstinctAPI.getVeterancyDays(TamableAnimal)` | accrued days (double), `0.0` if untracked |
@@ -777,7 +785,7 @@ Instinct has **no HUD element** and publishes no HUD accessors — the slot deci
 ### Unit Tests (JUnit + `fabric-loader-junit`, `src/test/`)
 
 - Config round-trip: defaults, clamping to ranges, corrupted-file fallback, list parsing.
-- Membership resolution: config > tag > heuristic precedence, exclude-beats-include at each layer, pet-never-heuristic-livestock, `autoDetectAnimals = false` reduces to tags + config.
+- Membership resolution: config > tag > heuristic precedence, exclude-beats-include at each layer, pet-never-heuristic-livestock, mount-never-heuristic-livestock, tamable-never-heuristic-mount, `autoDetectAnimals = false` reduces to tags + config.
 - Product data: JSON parsing (optional fields, `special: wool_coat`), unknown entity/item ids skipped, duplicate-id override order.
 - Mirror fallback: candidate selection (edible + `#instinct:mirror_products`), largest/second-largest ordering, no-candidate = no bonus.
 - Veterancy math: `accrue()` with rate multipliers and gaps, `rankFor()` boundaries (exactly 10/30/60), threshold-list edits promoting/demoting, revival rank-penalty day arithmetic, mentor × provider composition (2.0 × 1.25 = 2.5), mentor non-stacking.
@@ -802,6 +810,7 @@ Instinct has **no HUD element** and publishes no HUD accessors — the slot deci
 - Trough: filled trough + 2 eligible cows → both enter love within the interval budget and a calf appears; population cap 2 with 3 cows → no new love states; hopper feeds trough; empty-hand withdraw returns the stack.
 - Whistle: 3 wolves mixed sit states → one toggle payload sits all; second stands all; attack command sets all wolves' target to a zombie; downed wolf ignored.
 - Downed: lethal arrow → wolf at 1.0 health, invulnerable, no mob targets it; golden apple → revived at 50% max, rank reduced by one; lava-swim lethal damage → actual death; `/kill` on a downed pet → death.
+- Mounts: the horse family resolves into the mounts set via the shipped tag (and stays out of pets/livestock), while skeleton/zombie horses do not; a tamed horse paths around a lava strip; a riderless horse flees a swelling creeper while a ridden one does not; a lethal arrow downs a tamed horse (health 1.0, invulnerable, untargetable, rider ejected); a golden apple / vet kit revives it with no rank penalty; lava is a real death; an untamed horse dies normally; the downed state survives an NBT round trip; `enableDownedState = false` restores vanilla death; a tamed **camel** (brain-driven) gets hazard maluses and downs/revives but is injected no berth goal (graceful degradation).
 - Flocking: 6 tempted cows hold ≥ 2-block spacing after path settle; tempted speed ≈ 1.15× vanilla tempt.
 - Coverage overrides: a cow in `livestockExclude` (or `#instinct:livestock_exclude` via a test datapack) breeds with no grade roll and drops no bonus; a fox (heuristic livestock) breeds with grade inheritance and mirror-fallback drops.
 

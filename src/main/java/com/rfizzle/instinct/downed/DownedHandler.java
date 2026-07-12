@@ -6,6 +6,8 @@ import com.rfizzle.instinct.api.InstinctPetDownedCallback;
 import com.rfizzle.instinct.api.InstinctPetRevivedCallback;
 import com.rfizzle.instinct.config.InstinctConfig;
 import com.rfizzle.instinct.coverage.AnimalCoverage;
+import com.rfizzle.instinct.coverage.CoverageResolver;
+import com.rfizzle.instinct.coverage.OwnedAnimals;
 import com.rfizzle.instinct.data.DownedData;
 import com.rfizzle.instinct.data.InstinctAttachments;
 import com.rfizzle.instinct.data.InstinctItemTagProvider;
@@ -34,6 +36,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.TamableAnimal;
+import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -46,23 +49,32 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 /**
- * The downed-pets engine ({@code design/SPEC.md} §7). A lethal blow to a tamed pets-set animal that
- * is not <b>beyond saving</b> (fire, lava, void, {@code /kill}) is cancelled into the downed state
- * — health pinned to 1.0, {@link Entity#setInvulnerable invulnerable} (which alone yields the
- * correct "immune to everything except void and {@code /kill}" semantics), AI stopped, and sat in
- * the best-effort vanilla pose. Invulnerability also makes the pet untargetable for free — vanilla
- * targeting drops any entity whose {@code canBeSeenAsEnemy()} is false — and an on-down sweep
- * clears the target of any mob already locked on. Any player revives it with a
+ * The downed engine ({@code design/SPEC.md} §7). A lethal blow to a tamed pets-set animal or a
+ * tamed mounts-set animal (the horse family) that is not <b>beyond saving</b> (fire, lava, void,
+ * {@code /kill}) is cancelled into the downed state — health pinned to 1.0,
+ * {@link Entity#setInvulnerable invulnerable} (which alone yields the correct "immune to everything
+ * except void and {@code /kill}" semantics), AI stopped, any rider ejected, and (for a pet) sat in
+ * the best-effort vanilla pose. Invulnerability also makes the animal untargetable for free —
+ * vanilla targeting drops any entity whose {@code canBeSeenAsEnemy()} is false — and an on-down
+ * sweep clears the target of any mob already locked on. Any player revives it with a
  * {@code #instinct:revive_items} item through {@link UseEntityCallback}, before vanilla
  * interactions; wrong items and empty-hand interactions are suppressed while downed.
  *
+ * <p>A mount has no sit pose and no veterancy: the AI-stop, whine, and particle carry the downed
+ * read, and revival takes no rank penalty. Ejecting the rider matters only for mounts — a downed
+ * mount kept mounted could still be steered, since {@code AbstractHorse} lets its rider drive it
+ * regardless of {@code setNoAi} — and is a harmless no-op for a pet, which is never a vehicle. The
+ * pet-only public callbacks ({@link InstinctPetDownedCallback}/{@link InstinctPetRevivedCallback})
+ * fire only for {@link TamableAnimal}.
+ *
  * <p>All state here is server-thread-confined and transient: {@code DOWNED} mirrors loaded downed
- * pets for the whine sweep, {@code POST_REVIVE_INVULN} tracks the brief post-revive grace window.
- * The downed flag itself is the persistent {@link DownedData} attachment; {@code setInvulnerable} /
- * {@code setNoAi} / the sit pose ride vanilla entity NBT. Everything clears on {@code
- * SERVER_STOPPED}.
+ * animals for the whine sweep, {@code POST_REVIVE_INVULN} tracks the brief post-revive grace
+ * window. The downed flag itself is the persistent {@link DownedData} attachment;
+ * {@code setInvulnerable} / {@code setNoAi} / the sit pose ride vanilla entity NBT. Everything
+ * clears on {@code SERVER_STOPPED}.
  */
 public final class DownedHandler {
 
@@ -74,10 +86,10 @@ public final class DownedHandler {
     static final double UNTARGET_RADIUS_BLOCKS = 16.0;
     static final int REVIVE_HEART_PARTICLES = 5;
 
-    /** Loaded downed pets, driving the whine/smoke sweep. Membership-agnostic re-filter each pass. */
-    private static final Set<TamableAnimal> DOWNED = new LinkedHashSet<>();
-    /** Revived pets still inside their post-revive invulnerability window: pet → game time it ends. */
-    private static final Map<TamableAnimal, Long> POST_REVIVE_INVULN = new LinkedHashMap<>();
+    /** Loaded downed animals, driving the whine/smoke sweep. Membership-agnostic re-filter each pass. */
+    private static final Set<Animal> DOWNED = new LinkedHashSet<>();
+    /** Revived animals still inside their post-revive invulnerability window: animal → game time it ends. */
+    private static final Map<Animal, Long> POST_REVIVE_INVULN = new LinkedHashMap<>();
 
     private DownedHandler() {
     }
@@ -85,19 +97,19 @@ public final class DownedHandler {
     public static void register() {
         ServerLivingEntityEvents.ALLOW_DEATH.register(DownedHandler::onAllowDeath);
         ServerEntityEvents.ENTITY_LOAD.register((entity, level) -> {
-            if (entity instanceof TamableAnimal pet && InstinctAPI.isDowned(pet)) {
-                DOWNED.add(pet);
+            if (entity instanceof Animal animal && InstinctAPI.isDowned(animal)) {
+                DOWNED.add(animal);
                 try {
-                    reassertDownedState(pet);
+                    reassertDownedState(animal);
                 } catch (Exception e) {
                     Instinct.LOGGER.error("Failed to re-assert downed state on load for {}", entity.getType(), e);
                 }
             }
         });
         ServerEntityEvents.ENTITY_UNLOAD.register((entity, level) -> {
-            if (entity instanceof TamableAnimal pet) {
-                DOWNED.remove(pet);
-                clearPostReviveInvuln(pet);
+            if (entity instanceof Animal animal) {
+                DOWNED.remove(animal);
+                clearPostReviveInvuln(animal);
             }
         });
         UseEntityCallback.EVENT.register(DownedHandler::onUseEntity);
@@ -107,14 +119,14 @@ public final class DownedHandler {
         // vanilla-NBT-backed invulnerable flag here keeps a pet revived just before /stop from
         // persisting permanent invulnerability to disk (a downed pet stays invulnerable by design).
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
-            for (TamableAnimal pet : POST_REVIVE_INVULN.keySet()) {
+            for (Animal animal : POST_REVIVE_INVULN.keySet()) {
                 try {
-                    if (!pet.isRemoved() && !InstinctAPI.isDowned(pet)) {
-                        pet.setInvulnerable(false);
+                    if (!animal.isRemoved() && !InstinctAPI.isDowned(animal)) {
+                        animal.setInvulnerable(false);
                     }
                 } catch (Exception e) {
                     Instinct.LOGGER.error("Failed to clear post-revive invulnerability on stop for {}",
-                            pet.getType(), e);
+                            animal.getType(), e);
                 }
             }
         });
@@ -127,90 +139,107 @@ public final class DownedHandler {
     // --- Going down -------------------------------------------------------------------------
 
     private static boolean onAllowDeath(LivingEntity entity, DamageSource source, float amount) {
-        if (!(entity instanceof TamableAnimal pet)) {
+        if (!(entity instanceof Animal animal)) {
             return true;
         }
         try {
-            return allowDeath(pet, source);
+            return allowDeath(animal, source);
         } catch (Exception e) {
-            // Fail open: a broken downed check must never leave a pet unkillable.
-            Instinct.LOGGER.error("Downed death check failed for {}", pet.getType(), e);
+            // Fail open: a broken downed check must never leave an animal unkillable.
+            Instinct.LOGGER.error("Downed death check failed for {}", animal.getType(), e);
             return true;
         }
     }
 
     /**
-     * The death verdict. Beyond-saving blows always kill — downed or not. An already-downed pet
+     * The death verdict. Beyond-saving blows always kill — downed or not. An already-downed animal
      * otherwise stays down (its invulnerability should have absorbed the blow; this is a defensive
-     * re-pin). A healthy tamed covered pet goes down instead of dying while the feature is on;
-     * with it off, deaths are exactly vanilla and no new downs occur.
+     * re-pin). A healthy tamed covered animal — a pets-set pet or a mounts-set mount — goes down
+     * instead of dying while the feature is on; with it off, deaths are exactly vanilla and no new
+     * downs occur.
      */
-    static boolean allowDeath(TamableAnimal pet, DamageSource source) {
+    static boolean allowDeath(Animal animal, DamageSource source) {
         if (Downed.beyondSaving(source)) {
             return true;
         }
-        if (InstinctAPI.isDowned(pet)) {
-            pet.setHealth(1.0F);
+        if (InstinctAPI.isDowned(animal)) {
+            animal.setHealth(1.0F);
             return false;
         }
-        if (!InstinctConfig.get().enableDownedState || !pet.isTame()
-                || !AnimalCoverage.membershipOf(pet).pet()) {
+        if (!InstinctConfig.get().enableDownedState || !OwnedAnimals.isTamed(animal)
+                || !covered(animal)) {
             return true;
         }
-        goDown(pet, source);
+        goDown(animal, source);
         return false;
     }
 
-    private static void goDown(TamableAnimal pet, DamageSource source) {
-        pet.setAttached(InstinctAttachments.DOWNED, new DownedData(pet.level().getGameTime()));
-        pet.setHealth(1.0F);
-        pet.setInvulnerable(true);
-        pet.setNoAi(true);
-        pet.setOrderedToSit(true);
-        pet.getNavigation().stop();
-        pet.setTarget(null);
-        clearAttackers(pet);
-        DOWNED.add(pet);
-        POST_REVIVE_INVULN.remove(pet);
-        notifyOwnerDown(pet);
-        fireDownedCallback(pet, source);
+    /** Whether the animal is in a set the downed state covers — pets or mounts (SPEC §7). */
+    private static boolean covered(Animal animal) {
+        CoverageResolver.Membership membership = AnimalCoverage.membershipOf(animal);
+        return membership.pet() || membership.mount();
     }
 
-    /** Clears the target of every mob currently locked onto the pet, so aggressors visibly stand down. */
-    private static void clearAttackers(TamableAnimal pet) {
-        if (!(pet.level() instanceof ServerLevel level)) {
+    private static void goDown(Animal animal, DamageSource source) {
+        animal.setAttached(InstinctAttachments.DOWNED, new DownedData(animal.level().getGameTime()));
+        animal.setHealth(1.0F);
+        animal.setInvulnerable(true);
+        animal.setNoAi(true);
+        // A ridden mount stays steerable through setNoAi, so drop any rider; a pet is never a
+        // vehicle, making this a no-op there.
+        animal.ejectPassengers();
+        if (animal instanceof TamableAnimal pet) {
+            pet.setOrderedToSit(true);
+        }
+        animal.getNavigation().stop();
+        animal.setTarget(null);
+        clearAttackers(animal);
+        DOWNED.add(animal);
+        POST_REVIVE_INVULN.remove(animal);
+        notifyOwnerDown(animal);
+        if (animal instanceof TamableAnimal pet) {
+            fireDownedCallback(pet, source);
+        }
+    }
+
+    /** Clears the target of every mob currently locked onto the animal, so aggressors visibly stand down. */
+    private static void clearAttackers(Animal animal) {
+        if (!(animal.level() instanceof ServerLevel level)) {
             return;
         }
         for (Mob mob : level.getEntitiesOfClass(Mob.class,
-                pet.getBoundingBox().inflate(UNTARGET_RADIUS_BLOCKS), m -> m.getTarget() == pet)) {
+                animal.getBoundingBox().inflate(UNTARGET_RADIUS_BLOCKS), m -> m.getTarget() == animal)) {
             mob.setTarget(null);
         }
     }
 
     /** The single owner chat line — sent to chat, not the action bar, so it cannot be missed (SPEC §7). */
-    private static void notifyOwnerDown(TamableAnimal pet) {
-        if (pet.getOwnerUUID() == null || !(pet.level() instanceof ServerLevel level)) {
+    private static void notifyOwnerDown(Animal animal) {
+        UUID ownerUUID = OwnedAnimals.ownerUUID(animal);
+        if (ownerUUID == null || !(animal.level() instanceof ServerLevel level)) {
             return;
         }
-        ServerPlayer owner = level.getServer().getPlayerList().getPlayer(pet.getOwnerUUID());
+        ServerPlayer owner = level.getServer().getPlayerList().getPlayer(ownerUUID);
         if (owner != null) {
             owner.sendSystemMessage(
-                    Component.translatable("notification.instinct.pet_downed", pet.getName()));
+                    Component.translatable("notification.instinct.pet_downed", animal.getName()));
         }
     }
 
     /** Idempotent load-time re-assertion in case a datapack or mod cleared a persisted downed flag. */
-    private static void reassertDownedState(TamableAnimal pet) {
-        pet.setInvulnerable(true);
-        pet.setNoAi(true);
-        pet.setOrderedToSit(true);
+    private static void reassertDownedState(Animal animal) {
+        animal.setInvulnerable(true);
+        animal.setNoAi(true);
+        if (animal instanceof TamableAnimal pet) {
+            pet.setOrderedToSit(true);
+        }
     }
 
     // --- Revival ----------------------------------------------------------------------------
 
     private static InteractionResult onUseEntity(Player player, Level level, InteractionHand hand,
                                                  Entity entity, @Nullable EntityHitResult hitResult) {
-        if (!(entity instanceof TamableAnimal pet) || !InstinctAPI.isDowned(pet)) {
+        if (!(entity instanceof Animal animal) || !InstinctAPI.isDowned(animal)) {
             return InteractionResult.PASS;
         }
         boolean reviveItem = player.getItemInHand(hand).is(InstinctItemTagProvider.REVIVE_ITEMS);
@@ -224,9 +253,9 @@ public final class DownedHandler {
         }
         ItemStack stack = player.getItemInHand(hand);
         try {
-            revive(pet, player, stack);
+            revive(animal, player, stack);
         } catch (Exception e) {
-            Instinct.LOGGER.error("Revival failed for {}", pet.getType(), e);
+            Instinct.LOGGER.error("Revival failed for {}", animal.getType(), e);
             return InteractionResult.FAIL;
         }
         if (!player.getAbilities().instabuild) {
@@ -236,30 +265,35 @@ public final class DownedHandler {
     }
 
     /**
-     * Brings a downed pet back. The rank penalty is applied <b>first</b> so the restored health
-     * fraction reflects the post-demotion max health (a demotion lowers max health); then health,
-     * Regeneration II, the post-revive invulnerability window, the Stay pose, and the cue land.
+     * Brings a downed animal back. The rank penalty (pets only — a mount has no veterancy) is
+     * applied <b>first</b> so the restored health fraction reflects the post-demotion max health (a
+     * demotion lowers max health); then health, Regeneration II, the post-revive invulnerability
+     * window, the Stay pose (pets only), and the cue land.
      */
-    static void revive(TamableAnimal pet, Player reviver, ItemStack stack) {
+    static void revive(Animal animal, Player reviver, ItemStack stack) {
         InstinctConfig config = InstinctConfig.get();
-        if (config.downedRankPenalty) {
+        if (config.downedRankPenalty && animal instanceof TamableAnimal pet) {
             applyRankPenalty(pet, config);
         }
-        pet.removeAttached(InstinctAttachments.DOWNED);
-        DOWNED.remove(pet);
-        pet.setNoAi(false);
-        pet.setOrderedToSit(true);
-        pet.setHealth((float) (config.reviveHealthFraction * pet.getMaxHealth()));
-        pet.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 200, 1));
-        pet.setInvulnerable(true);
-        POST_REVIVE_INVULN.put(pet, pet.level().getGameTime() + POST_REVIVE_INVULN_TICKS);
-        reviveEffects(pet);
+        animal.removeAttached(InstinctAttachments.DOWNED);
+        DOWNED.remove(animal);
+        animal.setNoAi(false);
+        if (animal instanceof TamableAnimal pet) {
+            pet.setOrderedToSit(true);
+        }
+        animal.setHealth((float) (config.reviveHealthFraction * animal.getMaxHealth()));
+        animal.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 200, 1));
+        animal.setInvulnerable(true);
+        POST_REVIVE_INVULN.put(animal, animal.level().getGameTime() + POST_REVIVE_INVULN_TICKS);
+        reviveEffects(animal);
         if (reviver instanceof ServerPlayer serverReviver) {
             serverReviver.displayClientMessage(
-                    Component.translatable("notification.instinct.pet_revived", pet.getName()), true);
+                    Component.translatable("notification.instinct.pet_revived", animal.getName()), true);
             InstinctCriteria.PET_REVIVED.trigger(serverReviver);
         }
-        fireRevivedCallback(pet, reviver, stack);
+        if (animal instanceof TamableAnimal pet) {
+            fireRevivedCallback(pet, reviver, stack);
+        }
     }
 
     private static void applyRankPenalty(TamableAnimal pet, InstinctConfig config) {
@@ -271,12 +305,12 @@ public final class DownedHandler {
                 Veterancy.daysForRankBelow(rank, config.veterancyThresholdDays));
     }
 
-    private static void reviveEffects(TamableAnimal pet) {
-        if (pet.level() instanceof ServerLevel level) {
+    private static void reviveEffects(Animal animal) {
+        if (animal.level() instanceof ServerLevel level) {
             level.sendParticles(ParticleTypes.HEART,
-                    pet.getX(), pet.getY() + pet.getBbHeight() + 0.3, pet.getZ(),
-                    REVIVE_HEART_PARTICLES, pet.getBbWidth() * 0.6, 0.3, pet.getBbWidth() * 0.6, 0.02);
-            level.playSound(null, pet, InstinctSounds.REVIVE, pet.getSoundSource(), 1.0F, 1.0F);
+                    animal.getX(), animal.getY() + animal.getBbHeight() + 0.3, animal.getZ(),
+                    REVIVE_HEART_PARTICLES, animal.getBbWidth() * 0.6, 0.3, animal.getBbWidth() * 0.6, 0.02);
+            level.playSound(null, animal, InstinctSounds.REVIVE, animal.getSoundSource(), 1.0F, 1.0F);
         }
     }
 
@@ -299,17 +333,17 @@ public final class DownedHandler {
         if (POST_REVIVE_INVULN.isEmpty()) {
             return;
         }
-        Iterator<Map.Entry<TamableAnimal, Long>> it = POST_REVIVE_INVULN.entrySet().iterator();
+        Iterator<Map.Entry<Animal, Long>> it = POST_REVIVE_INVULN.entrySet().iterator();
         while (it.hasNext()) {
-            Map.Entry<TamableAnimal, Long> entry = it.next();
-            TamableAnimal pet = entry.getKey();
-            if (pet.isRemoved()) {
+            Map.Entry<Animal, Long> entry = it.next();
+            Animal animal = entry.getKey();
+            if (animal.isRemoved()) {
                 it.remove();
                 continue;
             }
-            if (pet.level().getGameTime() >= entry.getValue()) {
-                if (!InstinctAPI.isDowned(pet)) {
-                    pet.setInvulnerable(false);
+            if (animal.level().getGameTime() >= entry.getValue()) {
+                if (!InstinctAPI.isDowned(animal)) {
+                    animal.setInvulnerable(false);
                 }
                 it.remove();
             }
@@ -320,50 +354,50 @@ public final class DownedHandler {
         if (DOWNED.isEmpty()) {
             return;
         }
-        DOWNED.removeIf(pet -> pet.isRemoved() || !InstinctAPI.isDowned(pet));
-        for (TamableAnimal pet : DOWNED) {
+        DOWNED.removeIf(animal -> animal.isRemoved() || !InstinctAPI.isDowned(animal));
+        for (Animal animal : DOWNED) {
             try {
-                if (isWhineTick(pet)) {
-                    whine(pet);
+                if (isWhineTick(animal)) {
+                    whine(animal);
                 }
             } catch (Exception e) {
-                Instinct.LOGGER.error("Downed whine failed for {}", pet.getType(), e);
+                Instinct.LOGGER.error("Downed whine failed for {}", animal.getType(), e);
             }
         }
     }
 
     /**
-     * Whether this tick is a whine beat for the pet — every {@code WHINE_INTERVAL_TICKS} ticks on
-     * the pet's own clock, anchored to when it went down, so a pack of downed pets whimper out of
-     * sync rather than in unison.
+     * Whether this tick is a whine beat for the animal — every {@code WHINE_INTERVAL_TICKS} ticks
+     * on the animal's own clock, anchored to when it went down, so a group of downed animals
+     * whimper out of sync rather than in unison.
      */
-    private static boolean isWhineTick(TamableAnimal pet) {
-        DownedData data = pet.getAttached(InstinctAttachments.DOWNED);
+    private static boolean isWhineTick(Animal animal) {
+        DownedData data = animal.getAttached(InstinctAttachments.DOWNED);
         if (data == null) {
             return false;
         }
-        long elapsed = pet.level().getGameTime() - data.downedAtGameTime();
+        long elapsed = animal.level().getGameTime() - data.downedAtGameTime();
         return elapsed > 0 && elapsed % WHINE_INTERVAL_TICKS == 0;
     }
 
     /** The species' own hurt sound at half volume plus one smoke wisp — the whole downed read. */
-    private static void whine(TamableAnimal pet) {
-        if (!(pet.level() instanceof ServerLevel level)) {
+    private static void whine(Animal animal) {
+        if (!(animal.level() instanceof ServerLevel level)) {
             return;
         }
-        SoundEvent hurt = ((LivingEntitySoundInvoker) pet)
-                .instinct$getHurtSound(pet.level().damageSources().generic());
+        SoundEvent hurt = ((LivingEntitySoundInvoker) animal)
+                .instinct$getHurtSound(animal.level().damageSources().generic());
         if (hurt != null) {
-            level.playSound(null, pet, hurt, pet.getSoundSource(), 0.5F, pet.getVoicePitch());
+            level.playSound(null, animal, hurt, animal.getSoundSource(), 0.5F, animal.getVoicePitch());
         }
         level.sendParticles(ParticleTypes.SMOKE,
-                pet.getX(), pet.getY() + pet.getBbHeight() + 0.2, pet.getZ(), 1, 0.0, 0.0, 0.0, 0.0);
+                animal.getX(), animal.getY() + animal.getBbHeight() + 0.2, animal.getZ(), 1, 0.0, 0.0, 0.0, 0.0);
     }
 
-    private static void clearPostReviveInvuln(TamableAnimal pet) {
-        if (POST_REVIVE_INVULN.remove(pet) != null && !InstinctAPI.isDowned(pet)) {
+    private static void clearPostReviveInvuln(Animal animal) {
+        if (POST_REVIVE_INVULN.remove(animal) != null && !InstinctAPI.isDowned(animal)) {
             // Clear before an unload persists a permanent-invulnerability flag to disk.
-            pet.setInvulnerable(false);
+            animal.setInvulnerable(false);
         }
     }
 

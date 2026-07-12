@@ -44,6 +44,8 @@ public class InstinctConfig {
     public List<String> petsExclude = new ArrayList<>();
     public List<String> livestockInclude = new ArrayList<>();
     public List<String> livestockExclude = new ArrayList<>();
+    public List<String> mountsInclude = new ArrayList<>();
+    public List<String> mountsExclude = new ArrayList<>();
 
     // §1 Pet Self-Preservation
     public boolean enableSelfPreservation = true;
@@ -103,6 +105,8 @@ public class InstinctConfig {
     public transient Set<String> petsExcludeSet = Set.of();
     public transient Set<String> livestockIncludeSet = Set.of();
     public transient Set<String> livestockExcludeSet = Set.of();
+    public transient Set<String> mountsIncludeSet = Set.of();
+    public transient Set<String> mountsExcludeSet = Set.of();
 
     private static List<Integer> defaultVeterancyThresholds() {
         return new ArrayList<>(List.of(10, 30, 60));
@@ -259,6 +263,8 @@ public class InstinctConfig {
         if (petsExclude == null) petsExclude = new ArrayList<>();
         if (livestockInclude == null) livestockInclude = new ArrayList<>();
         if (livestockExclude == null) livestockExclude = new ArrayList<>();
+        if (mountsInclude == null) mountsInclude = new ArrayList<>();
+        if (mountsExclude == null) mountsExclude = new ArrayList<>();
         if (veterancyThresholdDays == null || veterancyThresholdDays.isEmpty()) {
             veterancyThresholdDays = defaultVeterancyThresholds();
         }
@@ -299,10 +305,14 @@ public class InstinctConfig {
         petsExclude = sanitizeEntityIds("petsExclude", petsExclude);
         livestockInclude = sanitizeEntityIds("livestockInclude", livestockInclude);
         livestockExclude = sanitizeEntityIds("livestockExclude", livestockExclude);
+        mountsInclude = sanitizeEntityIds("mountsInclude", mountsInclude);
+        mountsExclude = sanitizeEntityIds("mountsExclude", mountsExclude);
         petsIncludeSet = Set.copyOf(petsInclude);
         petsExcludeSet = Set.copyOf(petsExclude);
         livestockIncludeSet = Set.copyOf(livestockInclude);
         livestockExcludeSet = Set.copyOf(livestockExclude);
+        mountsIncludeSet = Set.copyOf(mountsInclude);
+        mountsExcludeSet = Set.copyOf(mountsExclude);
     }
 
     /**
