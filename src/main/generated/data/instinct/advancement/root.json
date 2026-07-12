@@ -1,5 +1,11 @@
 {
   "criteria": {
+    "crafted_command_whistle": {
+      "conditions": {
+        "recipe_id": "instinct:command_whistle"
+      },
+      "trigger": "minecraft:recipe_crafted"
+    },
     "crafted_pedigree_treat": {
       "conditions": {
         "recipe_id": "instinct:pedigree_treat"
@@ -24,7 +30,7 @@
     },
     "icon": {
       "count": 1,
-      "id": "minecraft:lead"
+      "id": "instinct:command_whistle"
     },
     "title": {
       "translate": "advancements.instinct.root.title"
@@ -34,7 +40,8 @@
     [
       "tamed_an_animal",
       "crafted_pedigree_treat",
-      "crafted_vet_kit"
+      "crafted_vet_kit",
+      "crafted_command_whistle"
     ]
   ],
   "sends_telemetry_event": true

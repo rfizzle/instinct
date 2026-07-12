@@ -32,7 +32,8 @@
             "com.rfizzle.instinct.gametest.BestInShowGameTest",
             "com.rfizzle.instinct.gametest.HerdingGameTest",
             "com.rfizzle.instinct.gametest.DownedGameTest",
-            "com.rfizzle.instinct.gametest.FeedingTroughGameTest"
+            "com.rfizzle.instinct.gametest.FeedingTroughGameTest",
+            "com.rfizzle.instinct.gametest.WhistleGameTest"
         ]
     },
     "mixins": [

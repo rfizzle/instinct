@@ -1,0 +1,30 @@
+{
+  "parent": "instinct:root",
+  "criteria": {
+    "commanded_ten_pets": {
+      "conditions": {
+        "min_pets": 10
+      },
+      "trigger": "instinct:whistle_pack"
+    }
+  },
+  "display": {
+    "description": {
+      "translate": "advancements.instinct.pack_leader.description"
+    },
+    "frame": "goal",
+    "icon": {
+      "count": 1,
+      "id": "instinct:command_whistle"
+    },
+    "title": {
+      "translate": "advancements.instinct.pack_leader.title"
+    }
+  },
+  "requirements": [
+    [
+      "commanded_ten_pets"
+    ]
+  ],
+  "sends_telemetry_event": true
+}

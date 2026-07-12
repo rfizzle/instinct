@@ -1,0 +1,27 @@
+{
+  "name": "whistle_attack",
+  "sample_rate": 44100,
+  "peak_dbfs": -1.0,
+  "subtitle": "subtitles.instinct.whistle_attack",
+  "seed": 63,
+  "layers": [
+    {
+      "waveform": "sine",
+      "from": 900.0, "to": 1900.0, "glide": "exp",
+      "start": 0.0, "duration": 0.18, "gain": 0.85,
+      "env": {"attack": 0.003, "decay": 0.06, "sustain": 0.4, "release": 0.06}
+    },
+    {
+      "waveform": "square",
+      "freq": 1900.0,
+      "start": 0.0, "duration": 0.1, "gain": 0.1,
+      "env": {"attack": 0.002, "decay": 0.05, "sustain": 0.1, "release": 0.05}
+    },
+    {
+      "waveform": "triangle",
+      "freq": 3800.0,
+      "start": 0.0, "duration": 0.14, "gain": 0.1,
+      "env": {"attack": 0.002, "decay": 0.06, "sustain": 0.12, "release": 0.06}
+    }
+  ]
+}

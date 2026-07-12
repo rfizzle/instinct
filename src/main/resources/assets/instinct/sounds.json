@@ -10,5 +10,29 @@
       "instinct:revive"
     ],
     "subtitle": "subtitles.instinct.revive"
+  },
+  "whistle_follow": {
+    "sounds": [
+      "instinct:whistle_follow"
+    ],
+    "subtitle": "subtitles.instinct.whistle_follow"
+  },
+  "whistle_stay": {
+    "sounds": [
+      "instinct:whistle_stay"
+    ],
+    "subtitle": "subtitles.instinct.whistle_stay"
+  },
+  "whistle_attack": {
+    "sounds": [
+      "instinct:whistle_attack"
+    ],
+    "subtitle": "subtitles.instinct.whistle_attack"
+  },
+  "whistle_herd": {
+    "sounds": [
+      "instinct:whistle_herd"
+    ],
+    "subtitle": "subtitles.instinct.whistle_herd"
   }
 }

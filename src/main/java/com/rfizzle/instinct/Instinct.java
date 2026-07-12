@@ -16,6 +16,7 @@ import com.rfizzle.instinct.registry.InstinctSounds;
 import com.rfizzle.instinct.selfpreservation.SelfPreservation;
 import com.rfizzle.instinct.trough.Trough;
 import com.rfizzle.instinct.veterancy.VeterancyHandler;
+import com.rfizzle.instinct.whistle.Whistle;
 import net.fabricmc.api.ModInitializer;
 import net.minecraft.resources.ResourceLocation;
 import org.slf4j.Logger;
@@ -45,6 +46,7 @@ public class Instinct implements ModInitializer {
         Herding.register();
         DownedHandler.register();
         Trough.register();
+        Whistle.register();
         Inspection.register();
         InstinctCommand.init();
         LOGGER.info("Instinct initialized");

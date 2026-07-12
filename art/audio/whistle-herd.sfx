@@ -1,0 +1,39 @@
+{
+  "name": "whistle_herd",
+  "sample_rate": 44100,
+  "peak_dbfs": -1.0,
+  "subtitle": "subtitles.instinct.whistle_herd",
+  "seed": 64,
+  "layers": [
+    {
+      "waveform": "sine",
+      "freq": 1318.5,
+      "start": 0.0, "duration": 0.09, "gain": 0.75,
+      "env": {"attack": 0.005, "decay": 0.04, "sustain": 0.25, "release": 0.03}
+    },
+    {
+      "waveform": "sine",
+      "freq": 1568.0,
+      "start": 0.09, "duration": 0.09, "gain": 0.75,
+      "env": {"attack": 0.005, "decay": 0.04, "sustain": 0.25, "release": 0.03}
+    },
+    {
+      "waveform": "sine",
+      "freq": 1318.5,
+      "start": 0.18, "duration": 0.09, "gain": 0.75,
+      "env": {"attack": 0.005, "decay": 0.04, "sustain": 0.25, "release": 0.03}
+    },
+    {
+      "waveform": "sine",
+      "freq": 1568.0,
+      "start": 0.27, "duration": 0.16, "gain": 0.8,
+      "env": {"attack": 0.005, "decay": 0.08, "sustain": 0.3, "release": 0.1}
+    },
+    {
+      "waveform": "triangle",
+      "freq": 3136.0,
+      "start": 0.0, "duration": 0.43, "gain": 0.08,
+      "env": {"attack": 0.01, "decay": 0.2, "sustain": 0.2, "release": 0.15}
+    }
+  ]
+}

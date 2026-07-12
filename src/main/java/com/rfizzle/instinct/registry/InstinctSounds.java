@@ -19,6 +19,22 @@ public final class InstinctSounds {
     public static final SoundEvent REVIVE =
             SoundEvent.createVariableRangeEvent(Instinct.id("revive"));
 
+    /** The whistle Follow cue — a rising two-note call (SPEC §6). */
+    public static final SoundEvent WHISTLE_FOLLOW =
+            SoundEvent.createVariableRangeEvent(Instinct.id("whistle_follow"));
+
+    /** The whistle Stay cue — a falling two-note call (SPEC §6). */
+    public static final SoundEvent WHISTLE_STAY =
+            SoundEvent.createVariableRangeEvent(Instinct.id("whistle_stay"));
+
+    /** The whistle Attack cue — a sharp rising blast (SPEC §6). */
+    public static final SoundEvent WHISTLE_ATTACK =
+            SoundEvent.createVariableRangeEvent(Instinct.id("whistle_attack"));
+
+    /** The whistle round-up cue — a rolling trill (SPEC §6). */
+    public static final SoundEvent WHISTLE_HERD =
+            SoundEvent.createVariableRangeEvent(Instinct.id("whistle_herd"));
+
     private static boolean registered = false;
 
     private InstinctSounds() {
@@ -32,5 +48,9 @@ public final class InstinctSounds {
         registered = true;
         Registry.register(BuiltInRegistries.SOUND_EVENT, Instinct.id("rank_up"), RANK_UP);
         Registry.register(BuiltInRegistries.SOUND_EVENT, Instinct.id("revive"), REVIVE);
+        Registry.register(BuiltInRegistries.SOUND_EVENT, Instinct.id("whistle_follow"), WHISTLE_FOLLOW);
+        Registry.register(BuiltInRegistries.SOUND_EVENT, Instinct.id("whistle_stay"), WHISTLE_STAY);
+        Registry.register(BuiltInRegistries.SOUND_EVENT, Instinct.id("whistle_attack"), WHISTLE_ATTACK);
+        Registry.register(BuiltInRegistries.SOUND_EVENT, Instinct.id("whistle_herd"), WHISTLE_HERD);
     }
 }

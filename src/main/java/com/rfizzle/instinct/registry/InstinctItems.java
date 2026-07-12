@@ -1,6 +1,7 @@
 package com.rfizzle.instinct.registry;
 
 import com.rfizzle.instinct.Instinct;
+import com.rfizzle.instinct.item.CommandWhistleItem;
 import com.rfizzle.instinct.item.PedigreeTreatItem;
 import net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroup;
 import net.minecraft.core.Registry;
@@ -29,6 +30,9 @@ public final class InstinctItems {
     /** The vet kit — a plain revival remedy in {@code #instinct:revive_items}, stacks to 16 (§7). */
     public static final Item VET_KIT = new Item(new Item.Properties().stacksTo(16));
 
+    /** The command whistle — moves the whole pack; stack 1, no durability (never breaks) (§6). */
+    public static final Item COMMAND_WHISTLE = new CommandWhistleItem(new Item.Properties().stacksTo(1));
+
     private static boolean registered = false;
 
     private InstinctItems() {
@@ -42,6 +46,7 @@ public final class InstinctItems {
         registered = true;
         registerItem("pedigree_treat", PEDIGREE_TREAT);
         registerItem("vet_kit", VET_KIT);
+        registerItem("command_whistle", COMMAND_WHISTLE);
         registerCreativeTab();
     }
 
