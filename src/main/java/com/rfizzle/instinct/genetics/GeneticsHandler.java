@@ -408,17 +408,32 @@ public final class GeneticsHandler {
      * shift to zero would silently restore the vanilla interval for the fastest rolls.
      */
     public static int scaledEggRandom(Animal chicken, int raw) {
-        InstinctConfig config = InstinctConfig.get();
-        if (!config.enableGenetics || !AnimalCoverage.membershipOf(chicken).livestock()) {
-            return raw;
-        }
-        double factor = Genetics.renewableIntervalFactor(InstinctAPI.getGrade(chicken).level(),
-                InstinctAPI.getPerk(chicken), config.fertileRenewableReduction);
+        double factor = renewableFactor(chicken, InstinctConfig.get());
         if (factor >= 1.0) {
             return raw;
         }
         int interval = (int) Math.round((raw + EGG_INTERVAL_BASE) * factor);
         return interval - EGG_INTERVAL_BASE;
+    }
+
+    /**
+     * The renewable-cadence factor a covered animal applies to its egg interval or graze roll
+     * ({@link Genetics#renewableIntervalFactor}), or {@code 1.0} (no change) for a
+     * genetics-disabled world, an ordinary animal, or one outside the livestock set. The cheap grade
+     * attachment is read before the {@link AnimalCoverage#membershipOf} resolve so an ordinary animal
+     * — the common case on a per-tick graze poll — short-circuits without paying for membership's
+     * allocations; a graded animal is still membership-gated exactly as before.
+     */
+    private static double renewableFactor(Animal animal, InstinctConfig config) {
+        if (!config.enableGenetics) {
+            return 1.0;
+        }
+        int grade = InstinctAPI.getGrade(animal).level();
+        if (grade <= 0 || !AnimalCoverage.membershipOf(animal).livestock()) {
+            return 1.0;
+        }
+        return Genetics.renewableIntervalFactor(grade, InstinctAPI.getPerk(animal),
+                config.fertileRenewableReduction);
     }
 
     /**
@@ -431,13 +446,10 @@ public final class GeneticsHandler {
      * sheep, or a genetics-disabled world.
      */
     public static int scaledGrazeInterval(Mob mob, int bound) {
-        InstinctConfig config = InstinctConfig.get();
-        if (!config.enableGenetics || !(mob instanceof Sheep sheep)
-                || !AnimalCoverage.membershipOf(sheep).livestock()) {
+        if (!(mob instanceof Sheep sheep)) {
             return bound;
         }
-        double factor = Genetics.renewableIntervalFactor(InstinctAPI.getGrade(sheep).level(),
-                InstinctAPI.getPerk(sheep), config.fertileRenewableReduction);
+        double factor = renewableFactor(sheep, InstinctConfig.get());
         if (factor >= 1.0) {
             return bound;
         }
