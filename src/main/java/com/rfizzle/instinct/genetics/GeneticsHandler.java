@@ -18,6 +18,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -25,6 +26,7 @@ import net.minecraft.world.entity.ai.goal.GoalSelector;
 import net.minecraft.world.entity.ai.goal.PanicGoal;
 import net.minecraft.world.entity.ai.goal.WrappedGoal;
 import net.minecraft.world.entity.animal.Animal;
+import net.minecraft.world.entity.animal.Sheep;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -397,25 +399,49 @@ public final class GeneticsHandler {
     }
 
     /**
-     * The chicken egg-timer's next random draw, shifted so the whole interval scales by grade
-     * (sturdy −10%, prime −20%). Vanilla forms the interval as {@code raw + 6000}; returning
-     * {@code raw'} such that {@code raw' + 6000 = factor × (raw + 6000)} keeps the mixin a single
-     * expression edit while scaling the full interval. The returned shift is intentionally allowed
-     * to go negative — for {@code raw ∈ [0, 5999]} and {@code grade ∈ {1, 2}} the scaled interval is
-     * always at least 4800 ticks, so the egg timer vanilla forms from it stays well positive.
-     * Clamping the shift to zero would silently restore the vanilla interval for the fastest rolls.
+     * The chicken egg-timer's next random draw, shifted so the whole interval scales by the animal's
+     * renewable-cadence factor (grade, plus the fertile perk — {@link Genetics#renewableIntervalFactor}).
+     * Vanilla forms the interval as {@code raw + 6000}; returning {@code raw'} such that
+     * {@code raw' + 6000 = factor × (raw + 6000)} keeps the mixin a single expression edit while
+     * scaling the full interval. The returned shift is intentionally allowed to go negative — the
+     * factor floors at 0.01, so the egg timer vanilla forms from it stays well positive. Clamping the
+     * shift to zero would silently restore the vanilla interval for the fastest rolls.
      */
     public static int scaledEggRandom(Animal chicken, int raw) {
-        if (!InstinctConfig.get().enableGenetics || !AnimalCoverage.membershipOf(chicken).livestock()) {
+        InstinctConfig config = InstinctConfig.get();
+        if (!config.enableGenetics || !AnimalCoverage.membershipOf(chicken).livestock()) {
             return raw;
         }
-        int grade = InstinctAPI.getGrade(chicken).level();
-        if (grade <= 0) {
+        double factor = Genetics.renewableIntervalFactor(InstinctAPI.getGrade(chicken).level(),
+                InstinctAPI.getPerk(chicken), config.fertileRenewableReduction);
+        if (factor >= 1.0) {
             return raw;
         }
-        double factor = 1.0 - 0.10 * grade; // sturdy 0.90, prime 0.80
         int interval = (int) Math.round((raw + EGG_INTERVAL_BASE) * factor);
         return interval - EGG_INTERVAL_BASE;
+    }
+
+    /**
+     * The graze-roll modulus a sheep uses in {@code EatBlockGoal.canUse()}, shortened so a graded or
+     * fertile sheep seeks grass — and so regrows shorn wool — faster ({@code design/SPEC.md} §3
+     * renewables). Vanilla rolls {@code nextInt(bound) == 0}; scaling {@code bound} down by the
+     * renewable-cadence factor raises the per-poll graze chance. Gated to covered sheep specifically
+     * ({@code EatBlockGoal} is shared with other grazers), and floored at 1 so {@code nextInt} never
+     * sees a zero bound. Returns {@code bound} unchanged for any other mob, an ordinary/non-fertile
+     * sheep, or a genetics-disabled world.
+     */
+    public static int scaledGrazeInterval(Mob mob, int bound) {
+        InstinctConfig config = InstinctConfig.get();
+        if (!config.enableGenetics || !(mob instanceof Sheep sheep)
+                || !AnimalCoverage.membershipOf(sheep).livestock()) {
+            return bound;
+        }
+        double factor = Genetics.renewableIntervalFactor(InstinctAPI.getGrade(sheep).level(),
+                InstinctAPI.getPerk(sheep), config.fertileRenewableReduction);
+        if (factor >= 1.0) {
+            return bound;
+        }
+        return Math.max(1, (int) Math.round(bound * factor));
     }
 
     /**

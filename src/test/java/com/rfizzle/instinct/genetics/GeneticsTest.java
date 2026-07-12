@@ -157,4 +157,36 @@ class GeneticsTest {
         assertEquals(0, Genetics.secondaryBonus(1, rolls(0.50)), "sturdy nothing on a 0.5+ roll");
         assertEquals(0, Genetics.secondaryBonus(0, rolls(0.0)), "ordinary never");
     }
+
+    // ---- renewable cadence ----
+
+    @Test
+    void renewableFactorIsGradeOnlyForNonFertile() {
+        // A non-fertile animal ignores the fertile reduction entirely: grade drives it alone, exactly
+        // as the shipped egg scaling did (sturdy 0.90, prime 0.80).
+        assertEquals(1.00, Genetics.renewableIntervalFactor(0, Perk.HARDY, 0.15), 1e-9, "grade 0 = no change");
+        assertEquals(0.90, Genetics.renewableIntervalFactor(1, Perk.HARDY, 0.15), 1e-9, "sturdy = −10%");
+        assertEquals(0.80, Genetics.renewableIntervalFactor(2, Perk.NONE, 0.15), 1e-9, "prime = −20%");
+    }
+
+    @Test
+    void renewableFactorFoldsFertileMultiplicatively() {
+        // Fertile stacks on grade multiplicatively at the default −15%×grade register.
+        assertEquals(1.00, Genetics.renewableIntervalFactor(0, Perk.FERTILE, 0.15), 1e-9, "grade 0 fertile = no change");
+        assertEquals(0.765, Genetics.renewableIntervalFactor(1, Perk.FERTILE, 0.15), 1e-9, "sturdy fertile = 0.90×0.85");
+        assertEquals(0.56, Genetics.renewableIntervalFactor(2, Perk.FERTILE, 0.15), 1e-9, "prime fertile = 0.80×0.70");
+    }
+
+    @Test
+    void renewableFactorZeroReductionLeavesFertileAsGradeOnly() {
+        // The knob at 0 confines fertile back to breeding: a fertile animal matches a non-fertile one.
+        assertEquals(0.80, Genetics.renewableIntervalFactor(2, Perk.FERTILE, 0.0), 1e-9, "prime fertile == prime");
+        assertEquals(0.90, Genetics.renewableIntervalFactor(1, Perk.FERTILE, 0.0), 1e-9, "sturdy fertile == sturdy");
+    }
+
+    @Test
+    void renewableFactorFloorsSoAMaxedKnobNeverZerosACadence() {
+        // prime fertile at the 0.5 ceiling: 0.80 × (1 − 1.0) = 0, clamped up to the 0.01 floor.
+        assertEquals(0.01, Genetics.renewableIntervalFactor(2, Perk.FERTILE, 0.5), 1e-9, "clamped to the floor, never 0");
+    }
 }

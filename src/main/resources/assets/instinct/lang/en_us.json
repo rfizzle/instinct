@@ -98,6 +98,8 @@
   "config.instinct.gradeUpgradeChance.tooltip": "Base chance a well-bred offspring's grade improves. Range 0–1.",
   "config.instinct.gradeDowngradeChance": "Grade downgrade chance",
   "config.instinct.gradeDowngradeChance.tooltip": "Base chance a crowded offspring's grade drops. Range 0–1.",
+  "config.instinct.fertileRenewableReduction": "Fertile renewable bonus",
+  "config.instinct.fertileRenewableReduction.tooltip": "How much the fertile perk shortens egg-laying and wool regrowth, per grade (0.15 = −15% each grade). Set 0 to keep fertile to breeding only. Range 0–0.5.",
   "config.instinct.enableFlocking": "Enable flocking",
   "config.instinct.enableFlocking.tooltip": "Herd animals hold formation and spacing as they move together.",
   "config.instinct.flockSpeedMultiplier": "Flock speed multiplier",
