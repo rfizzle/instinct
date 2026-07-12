@@ -1,6 +1,7 @@
 package com.rfizzle.instinct;
 
 import com.rfizzle.instinct.command.InstinctCommand;
+import com.rfizzle.instinct.compat.tribulation.TribulationCompat;
 import com.rfizzle.instinct.config.InstinctConfig;
 import com.rfizzle.instinct.coverage.AnimalCoverage;
 import com.rfizzle.instinct.data.InstinctAttachments;
@@ -18,6 +19,7 @@ import com.rfizzle.instinct.trough.Trough;
 import com.rfizzle.instinct.veterancy.VeterancyHandler;
 import com.rfizzle.instinct.whistle.Whistle;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.resources.ResourceLocation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,6 +51,10 @@ public class Instinct implements ModInitializer {
         Whistle.register();
         Inspection.register();
         InstinctCommand.init();
+        // Sibling integrations — soft, guarded, class-loaded only when the target is present.
+        if (FabricLoader.getInstance().isModLoaded("tribulation")) {
+            TribulationCompat.register();
+        }
         LOGGER.info("Instinct initialized");
     }
 }
