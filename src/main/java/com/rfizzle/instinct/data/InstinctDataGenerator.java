@@ -8,7 +8,9 @@ public class InstinctDataGenerator implements DataGeneratorEntrypoint {
     public void onInitializeDataGenerator(FabricDataGenerator generator) {
         FabricDataGenerator.Pack pack = generator.createPack();
         pack.addProvider(InstinctModelProvider::new);
+        pack.addProvider(InstinctBlockLootTableProvider::new);
         pack.addProvider(InstinctRecipeProvider::new);
+        pack.addProvider(InstinctBlockTagProvider::new);
         pack.addProvider(InstinctEntityTypeTagProvider::new);
         pack.addProvider(InstinctItemTagProvider::new);
         pack.addProvider(InstinctAdvancementProvider::new);

@@ -1,0 +1,27 @@
+# Instinct 16x16 feeding trough — bottom face: worn oak planks, seen from below.
+# Same oak ramp as the side, boards running the other way so the underside reads distinct.
+size: 16
+
+legend:
+  a #b8955c
+  b #a37d47
+  c #895f34
+  g #5f4526
+
+frame:
+  agbbagbbagbbagbb
+  abaaabaaabaaabaa
+  abaaabaaabaaabaa
+  acaaacaaacaaacaa
+  agbbagbbagbbagbb
+  abaaabaaabaaabaa
+  abaacbaaabaacbaa
+  abaaabaaabaaabaa
+  agbbagbbagbbagbb
+  abaaabaaabaaabaa
+  acaaacaaacaaacaa
+  abaaabaaabaaabaa
+  agbbagbbagbbagbb
+  abaaabaaabaaabaa
+  abaacbaaabaacbaa
+  abaaabaaabaaabaa

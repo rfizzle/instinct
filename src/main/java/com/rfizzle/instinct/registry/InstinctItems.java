@@ -45,6 +45,15 @@ public final class InstinctItems {
         registerCreativeTab();
     }
 
+    /**
+     * Enrolls a block's companion item into the shared creative tab. {@link InstinctBlocks}
+     * registers before this class builds the tab, so its trough block item is present when the tab
+     * enumerates {@link #ITEMS}.
+     */
+    static void enroll(Item item) {
+        ITEMS.add(item);
+    }
+
     private static void registerItem(String name, Item item) {
         Registry.register(BuiltInRegistries.ITEM, Instinct.id(name), item);
         ITEMS.add(item);

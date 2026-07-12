@@ -1,0 +1,27 @@
+# Instinct 16x16 feeding trough — inner face: the hay-lined interior.
+# Golden hay ramp with criss-crossed strands; tiles as a floor and up the inner walls.
+size: 16
+
+legend:
+  h #d8ba54
+  i #c2a23e
+  j #9c7f2c
+  k #806722
+
+frame:
+  hihjhiihhjihhiih
+  ihhiijhihiijhihi
+  jihhihijjhihihij
+  hhjihhiihhjihhii
+  ihiijhihihiijhih
+  hjihhihijhjihhih
+  iihhjiihhiihhjii
+  hihiijhihihiijhi
+  hhjihhiihhjihhii
+  ihhiijhihiijhihi
+  jihhihijjhihihij
+  hiihhjiihhiihhji
+  ihiijhihihiijhih
+  hjihhihijhjihhih
+  iihhjihhiihhjihh
+  hihjhiihhjihhiih

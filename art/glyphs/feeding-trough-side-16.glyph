@@ -1,0 +1,28 @@
+# Instinct 16x16 feeding trough — side face: worn oak planks, horizontal boards.
+# Warm oak ramp (light highlight → mid → grain) with dark grooves between boards.
+# Tiles left-right and top-bottom.
+size: 16
+
+legend:
+  a #b8955c
+  b #a37d47
+  c #895f34
+  g #5f4526
+
+frame:
+  abaabaabbaabaaba
+  aabaabaabaabaaba
+  abaacaabaabaacab
+  gggggggggggggggg
+  baabaabbaabaabba
+  abaabaabaabaabab
+  baacaabbaacaabba
+  gggggggggggggggg
+  aabaabbaabaabbaa
+  abaacaabaabaacab
+  aabaabbaabaabbaa
+  gggggggggggggggg
+  baabaabbaabaabba
+  abaabaabaabaabab
+  baabaacbaabaacba
+  gggggggggggggggg

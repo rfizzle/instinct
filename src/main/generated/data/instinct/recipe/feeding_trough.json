@@ -1,0 +1,20 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "F": {
+      "tag": "c:fences/wooden"
+    },
+    "P": {
+      "tag": "minecraft:planks"
+    }
+  },
+  "pattern": [
+    "P P",
+    "PFP"
+  ],
+  "result": {
+    "count": 1,
+    "id": "instinct:feeding_trough"
+  }
+}
