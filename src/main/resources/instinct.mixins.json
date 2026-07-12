@@ -12,7 +12,8 @@
         "ParrotSoundInvoker",
         "PlayerMixin",
         "SheepMixin",
-        "TamableAnimalMixin"
+        "TamableAnimalMixin",
+        "TemptGoalAccessor"
     ],
     "client": [],
     "injectors": {

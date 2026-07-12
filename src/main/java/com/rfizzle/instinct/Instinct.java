@@ -5,6 +5,7 @@ import com.rfizzle.instinct.config.InstinctConfig;
 import com.rfizzle.instinct.coverage.AnimalCoverage;
 import com.rfizzle.instinct.data.InstinctAttachments;
 import com.rfizzle.instinct.genetics.GeneticsHandler;
+import com.rfizzle.instinct.herding.Herding;
 import com.rfizzle.instinct.inspection.Inspection;
 import com.rfizzle.instinct.registry.InstinctCriteria;
 import com.rfizzle.instinct.registry.InstinctItems;
@@ -35,6 +36,7 @@ public class Instinct implements ModInitializer {
         SelfPreservation.register();
         VeterancyHandler.register();
         GeneticsHandler.register();
+        Herding.register();
         Inspection.register();
         InstinctCommand.init();
         LOGGER.info("Instinct initialized");
