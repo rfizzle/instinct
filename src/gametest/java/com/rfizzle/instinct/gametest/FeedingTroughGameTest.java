@@ -1,6 +1,5 @@
 package com.rfizzle.instinct.gametest;
 
-import com.rfizzle.instinct.api.InstinctAPI;
 import com.rfizzle.instinct.block.FeedingTroughBlockEntity;
 import com.rfizzle.instinct.config.InstinctConfig;
 import com.rfizzle.instinct.registry.InstinctBlocks;

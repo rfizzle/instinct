@@ -2,6 +2,7 @@ package com.rfizzle.instinct.block;
 
 import com.mojang.serialization.MapCodec;
 import com.rfizzle.instinct.registry.InstinctBlockEntities;
+import com.rfizzle.instinct.trough.Trough;
 import net.minecraft.core.BlockPos;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -10,7 +11,6 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.BlockGetter;
@@ -135,7 +135,10 @@ public class FeedingTroughBlock extends BaseEntityBlock {
 
     @Override
     protected int getAnalogOutputSignal(BlockState state, Level level, BlockPos pos) {
-        return AbstractContainerMenu.getRedstoneSignalFromBlockEntity(level.getBlockEntity(pos));
+        if (level.getBlockEntity(pos) instanceof FeedingTroughBlockEntity trough) {
+            return Trough.comparatorLevel(trough.getStored().getCount(), Trough.CAPACITY);
+        }
+        return 0;
     }
 
     @Override
