@@ -5,7 +5,12 @@ import com.rfizzle.instinct.coverage.AnimalCoverage;
 import com.rfizzle.instinct.mixin.TemptGoalAccessor;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.PathfinderMob;
 import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.entity.ai.goal.GoalSelector;
 import net.minecraft.world.entity.ai.goal.TemptGoal;
@@ -54,7 +59,24 @@ public final class Herding {
     /** straggler UUID → its claim. Server-thread confined; see the class javadoc. */
     private static final Map<UUID, Claim> CLAIMS = new ConcurrentHashMap<>();
 
+    /** An animal within 5 blocks of its orderer has arrived and drops out of the round-up (§6). */
+    static final double ROUND_UP_ARRIVAL_DISTANCE = 5.0;
+
+    /**
+     * Live whistle round-up orders (§6): each ordered animal → the player it is being driven toward
+     * and the tick the order expires. Server-thread confined like {@link #CLAIMS} — keyed by the
+     * animal instance so the sweep and {@link FlockingTemptGoal} both look it up directly. Entries
+     * drop on arrival, at the deadline, on animal removal, on {@code SERVER_STOPPED}, and per-orderer
+     * on disconnect, so nothing leaks. The order is a second tempt source: an ordered animal reads as
+     * tempted toward its orderer, so §4's press machinery (claims, behind-points, the {@code
+     * herdingMaxPets} cap) presses it with no whistle-specific goal.
+     */
+    private static final Map<Animal, RoundUp> ROUND_UPS = new ConcurrentHashMap<>();
+
     private record Claim(UUID pressingPet, UUID owner, long expiryTick, boolean pressing) {
+    }
+
+    private record RoundUp(UUID orderer, long deadlineTick) {
     }
 
     private Herding() {
@@ -73,9 +95,20 @@ public final class Herding {
                 Instinct.LOGGER.error("Failed to install herding on {}", entity.getType(), e);
             }
         });
-        ServerLifecycleEvents.SERVER_STOPPED.register(server -> CLAIMS.clear());
-        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) ->
-                releaseOwner(handler.player.getUUID()));
+        ServerTickEvents.END_SERVER_TICK.register(Herding::sweepRoundUps);
+        ServerEntityEvents.ENTITY_UNLOAD.register((entity, level) -> {
+            if (entity instanceof Animal animal) {
+                ROUND_UPS.remove(animal);
+            }
+        });
+        ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
+            CLAIMS.clear();
+            ROUND_UPS.clear();
+        });
+        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
+            releaseOwner(handler.player.getUUID());
+            clearRoundUp(handler.player.getUUID());
+        });
     }
 
     // ── Goal installation ───────────────────────────────────────────────────────────────────────
@@ -231,6 +264,64 @@ public final class Herding {
 
     private static void releaseOwner(UUID owner) {
         CLAIMS.entrySet().removeIf(entry -> entry.getValue().owner().equals(owner));
+    }
+
+    // ── Whistle round-up orders ───────────────────────────────────────────────────────────────────
+
+    /**
+     * Starts a whistle round-up: every animal in the drive group is ordered toward {@code orderer}
+     * until {@code deadlineTicks} elapse. Replaces any round-up the same player already has running
+     * (§6). The group animals then read as tempted toward the orderer, so §4's press machinery drives
+     * them with no new goal.
+     */
+    public static void startRoundUp(List<? extends Animal> group, ServerPlayer orderer, long now, int deadlineTicks) {
+        clearRoundUp(orderer.getUUID());
+        RoundUp order = new RoundUp(orderer.getUUID(), now + deadlineTicks);
+        for (Animal animal : group) {
+            ROUND_UPS.put(animal, order);
+        }
+    }
+
+    /** Drops every round-up order issued by the given player (a new order replaces a running one). */
+    public static void clearRoundUp(UUID orderer) {
+        ROUND_UPS.entrySet().removeIf(entry -> entry.getValue().orderer().equals(orderer));
+    }
+
+    /**
+     * The player an animal is being rounded up toward, or {@code null} when it holds no live order.
+     * The order alone doesn't guarantee the orderer is reachable — the sweep prunes expired and
+     * unreachable orders each tick — but this read stays cheap for the tempt goal that calls it.
+     */
+    public static Player roundUpOrderer(PathfinderMob mob) {
+        RoundUp order = ROUND_UPS.get(mob);
+        if (order == null || mob.level().getGameTime() > order.deadlineTick()
+                || !(mob.level() instanceof ServerLevel level)) {
+            return null;
+        }
+        Player orderer = level.getServer().getPlayerList().getPlayer(order.orderer());
+        return orderer != null && orderer.level() == mob.level() ? orderer : null;
+    }
+
+    /** Prunes round-up orders each tick: arrived (within 5 blocks), expired, gone, or orphaned. */
+    private static void sweepRoundUps(MinecraftServer server) {
+        if (ROUND_UPS.isEmpty()) {
+            return;
+        }
+        Iterator<Map.Entry<Animal, RoundUp>> it = ROUND_UPS.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<Animal, RoundUp> entry = it.next();
+            Animal animal = entry.getKey();
+            RoundUp order = entry.getValue();
+            if (animal.isRemoved() || !animal.isAlive() || animal.level().getGameTime() > order.deadlineTick()) {
+                it.remove();
+                continue;
+            }
+            Player orderer = server.getPlayerList().getPlayer(order.orderer());
+            if (orderer == null || orderer.level() != animal.level()
+                    || animal.distanceToSqr(orderer) <= ROUND_UP_ARRIVAL_DISTANCE * ROUND_UP_ARRIVAL_DISTANCE) {
+                it.remove();
+            }
+        }
     }
 
     /** Test hook: drops every claim. Mirrors the {@code SERVER_STOPPED} clear. */

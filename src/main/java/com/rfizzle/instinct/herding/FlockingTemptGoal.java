@@ -61,12 +61,34 @@ public class FlockingTemptGoal extends TemptGoal {
         if (!InstinctConfig.get().enableFlocking) {
             return super.canUse();
         }
+        // A whistle round-up order is a second tempt source: it moves the animal toward its orderer
+        // without food and bypasses the post-tempt calm-down, since a command shouldn't have to wait.
+        Player ordered = Herding.roundUpOrderer(this.mob);
+        if (ordered != null) {
+            this.player = ordered;
+            return true;
+        }
         if (this.flockCalmDown > 0) {
             this.flockCalmDown--;
             return false;
         }
         this.player = this.mob.level().getNearestPlayer(flockTargeting(), this.mob);
         return this.player != null;
+    }
+
+    @Override
+    public boolean canContinueToUse() {
+        if (!InstinctConfig.get().enableFlocking) {
+            return super.canContinueToUse();
+        }
+        // Keep pulling the animal in while its round-up order stands; the sweep clears the order once
+        // it arrives (within 5 blocks) or the deadline passes, and then the food check resumes.
+        Player ordered = Herding.roundUpOrderer(this.mob);
+        if (ordered != null) {
+            this.player = ordered;
+            return true;
+        }
+        return super.canContinueToUse();
     }
 
     @Override
