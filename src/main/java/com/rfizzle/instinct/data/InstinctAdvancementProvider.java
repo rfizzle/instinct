@@ -6,6 +6,7 @@ import com.rfizzle.instinct.advancement.PetRankTrigger;
 import com.rfizzle.instinct.advancement.PetRevivedTrigger;
 import com.rfizzle.instinct.advancement.WhistlePackTrigger;
 import com.rfizzle.instinct.api.Grade;
+import com.rfizzle.instinct.registry.InstinctBlocks;
 import com.rfizzle.instinct.registry.InstinctCriteria;
 import com.rfizzle.instinct.registry.InstinctItems;
 import net.fabricmc.fabric.api.datagen.v1.FabricDataOutput;
@@ -26,12 +27,13 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 /**
- * Instinct's advancement tab ({@code design/SPEC.md} §Advancements). The root grants on taming any
- * animal or crafting one of the mod's items — the pedigree treat and the vet kit are the first; as
- * the whistle and trough ship, their crafting criteria join the same OR-list and the root icon
- * becomes the command whistle. {@code old_friend} hangs off it on the {@code instinct:pet_rank}
- * criterion at rank 3, {@code best_in_show} on the {@code instinct:bred_grade} criterion at prime,
- * and {@code back_from_the_brink} on the {@code instinct:pet_revived} criterion.
+ * Instinct's advancement tab ({@code design/SPEC.md} §Advancements). The root (icon: command
+ * whistle) grants on taming any animal or crafting any of the mod's items — the pedigree treat, vet
+ * kit, command whistle, or feeding trough. {@code old_friend} hangs off it on the
+ * {@code instinct:pet_rank} criterion at rank 3, {@code best_in_show} on the
+ * {@code instinct:bred_grade} criterion at prime, {@code back_from_the_brink} on the
+ * {@code instinct:pet_revived} criterion, and {@code pack_leader} on the
+ * {@code instinct:whistle_pack} criterion at ten pets.
  */
 public class InstinctAdvancementProvider extends FabricAdvancementProvider {
 
@@ -47,11 +49,13 @@ public class InstinctAdvancementProvider extends FabricAdvancementProvider {
     public void generateAdvancement(HolderLookup.Provider registryLookup,
                                     Consumer<AdvancementHolder> consumer) {
         InstinctCriteria.register();
+        InstinctBlocks.register();
         InstinctItems.register();
 
         ResourceLocation treatRecipe = BuiltInRegistries.ITEM.getKey(InstinctItems.PEDIGREE_TREAT);
         ResourceLocation vetKitRecipe = BuiltInRegistries.ITEM.getKey(InstinctItems.VET_KIT);
         ResourceLocation whistleRecipe = BuiltInRegistries.ITEM.getKey(InstinctItems.COMMAND_WHISTLE);
+        ResourceLocation troughRecipe = BuiltInRegistries.ITEM.getKey(InstinctBlocks.FEEDING_TROUGH.asItem());
         AdvancementHolder root = Advancement.Builder.advancement()
                 .display(new ItemStack(InstinctItems.COMMAND_WHISTLE),
                         Component.translatable("advancements.instinct.root.title"),
@@ -64,6 +68,8 @@ public class InstinctAdvancementProvider extends FabricAdvancementProvider {
                         RecipeCraftedTrigger.TriggerInstance.craftedItem(vetKitRecipe))
                 .addCriterion("crafted_command_whistle",
                         RecipeCraftedTrigger.TriggerInstance.craftedItem(whistleRecipe))
+                .addCriterion("crafted_feeding_trough",
+                        RecipeCraftedTrigger.TriggerInstance.craftedItem(troughRecipe))
                 .requirements(net.minecraft.advancements.AdvancementRequirements.Strategy.OR)
                 .save(consumer, Instinct.id("root").toString());
 

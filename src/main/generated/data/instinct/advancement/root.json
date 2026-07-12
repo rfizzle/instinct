@@ -6,6 +6,12 @@
       },
       "trigger": "minecraft:recipe_crafted"
     },
+    "crafted_feeding_trough": {
+      "conditions": {
+        "recipe_id": "instinct:feeding_trough"
+      },
+      "trigger": "minecraft:recipe_crafted"
+    },
     "crafted_pedigree_treat": {
       "conditions": {
         "recipe_id": "instinct:pedigree_treat"
@@ -41,7 +47,8 @@
       "tamed_an_animal",
       "crafted_pedigree_treat",
       "crafted_vet_kit",
-      "crafted_command_whistle"
+      "crafted_command_whistle",
+      "crafted_feeding_trough"
     ]
   ],
   "sends_telemetry_event": true

@@ -756,7 +756,7 @@ Small set, husbandry tab rooted under the vanilla Husbandry tab's visual neighbo
 
 | Id | Title | Trigger |
 |---|---|---|
-| `instinct:root` | Instinct | craft a command whistle, vet kit, pedigree treat, or feeding trough |
+| `instinct:root` | Instinct | tame an animal, or craft a command whistle, vet kit, pedigree treat, or feeding trough |
 | `instinct:old_friend` | Old Friend | a pet you own reaches rank 3 (Venerable) |
 | `instinct:best_in_show` | Best in Show | an animal you bred is born prime |
 | `instinct:back_from_the_brink` | Back from the Brink | revive a downed pet |
