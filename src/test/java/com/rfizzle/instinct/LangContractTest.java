@@ -59,6 +59,7 @@ class LangContractTest {
             "command.instinct.reload_failed",
             "item.instinct.pedigree_treat",
             "item.instinct.vet_kit",
+            "block.instinct.feeding_trough",
             "itemGroup.instinct",
             "notification.instinct.rank_up",
             "notification.instinct.inspect_pet",
