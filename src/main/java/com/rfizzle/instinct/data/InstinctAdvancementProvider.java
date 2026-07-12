@@ -4,6 +4,7 @@ import com.rfizzle.instinct.Instinct;
 import com.rfizzle.instinct.advancement.BredGradeTrigger;
 import com.rfizzle.instinct.advancement.PetRankTrigger;
 import com.rfizzle.instinct.advancement.PetRevivedTrigger;
+import com.rfizzle.instinct.advancement.WhistlePackTrigger;
 import com.rfizzle.instinct.api.Grade;
 import com.rfizzle.instinct.registry.InstinctCriteria;
 import com.rfizzle.instinct.registry.InstinctItems;
@@ -50,8 +51,9 @@ public class InstinctAdvancementProvider extends FabricAdvancementProvider {
 
         ResourceLocation treatRecipe = BuiltInRegistries.ITEM.getKey(InstinctItems.PEDIGREE_TREAT);
         ResourceLocation vetKitRecipe = BuiltInRegistries.ITEM.getKey(InstinctItems.VET_KIT);
+        ResourceLocation whistleRecipe = BuiltInRegistries.ITEM.getKey(InstinctItems.COMMAND_WHISTLE);
         AdvancementHolder root = Advancement.Builder.advancement()
-                .display(new ItemStack(Items.LEAD),
+                .display(new ItemStack(InstinctItems.COMMAND_WHISTLE),
                         Component.translatable("advancements.instinct.root.title"),
                         Component.translatable("advancements.instinct.root.description"),
                         HUSBANDRY_BACKGROUND, AdvancementType.TASK, true, false, false)
@@ -60,6 +62,8 @@ public class InstinctAdvancementProvider extends FabricAdvancementProvider {
                         RecipeCraftedTrigger.TriggerInstance.craftedItem(treatRecipe))
                 .addCriterion("crafted_vet_kit",
                         RecipeCraftedTrigger.TriggerInstance.craftedItem(vetKitRecipe))
+                .addCriterion("crafted_command_whistle",
+                        RecipeCraftedTrigger.TriggerInstance.craftedItem(whistleRecipe))
                 .requirements(net.minecraft.advancements.AdvancementRequirements.Strategy.OR)
                 .save(consumer, Instinct.id("root").toString());
 
@@ -92,5 +96,15 @@ public class InstinctAdvancementProvider extends FabricAdvancementProvider {
                 .addCriterion("revived_a_pet", InstinctCriteria.PET_REVIVED.createCriterion(
                         PetRevivedTrigger.TriggerInstance.instance()))
                 .save(consumer, Instinct.id("back_from_the_brink").toString());
+
+        Advancement.Builder.advancement()
+                .parent(root)
+                .display(new ItemStack(InstinctItems.COMMAND_WHISTLE),
+                        Component.translatable("advancements.instinct.pack_leader.title"),
+                        Component.translatable("advancements.instinct.pack_leader.description"),
+                        null, AdvancementType.GOAL, true, true, false)
+                .addCriterion("commanded_ten_pets", InstinctCriteria.WHISTLE_PACK.createCriterion(
+                        WhistlePackTrigger.TriggerInstance.forCount(10)))
+                .save(consumer, Instinct.id("pack_leader").toString());
     }
 }
