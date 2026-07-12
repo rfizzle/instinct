@@ -440,13 +440,17 @@ public final class GeneticsHandler {
      * The graze-roll modulus a sheep uses in {@code EatBlockGoal.canUse()}, shortened so a graded or
      * fertile sheep seeks grass — and so regrows shorn wool — faster ({@code design/SPEC.md} §3
      * renewables). Vanilla rolls {@code nextInt(bound) == 0}; scaling {@code bound} down by the
-     * renewable-cadence factor raises the per-poll graze chance. Gated to covered sheep specifically
-     * ({@code EatBlockGoal} is shared with other grazers), and floored at 1 so {@code nextInt} never
-     * sees a zero bound. Returns {@code bound} unchanged for any other mob, an ordinary/non-fertile
-     * sheep, or a genetics-disabled world.
+     * renewable-cadence factor raises the per-poll graze chance. Gated to covered adult sheep
+     * specifically ({@code EatBlockGoal} is shared with other grazers, and a baby's graze ages it up
+     * rather than regrowing wool), and floored at 1 so {@code nextInt} never sees a zero bound.
+     * Returns {@code bound} unchanged for any other mob, a lamb, an ordinary/non-fertile sheep, or a
+     * genetics-disabled world.
      */
     public static int scaledGrazeInterval(Mob mob, int bound) {
-        if (!(mob instanceof Sheep sheep)) {
+        // A lamb has no wool to regrow, and EatBlockGoal routes a baby's graze into ageUp(60) rather
+        // than setSheared — so scaling its graze rate would speed lamb growth, which §3 fertile scope
+        // excludes ("never touches baby growth"). Leave babies on the vanilla graze cadence.
+        if (!(mob instanceof Sheep sheep) || sheep.isBaby()) {
             return bound;
         }
         double factor = renewableFactor(sheep, InstinctConfig.get());

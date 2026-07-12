@@ -99,6 +99,10 @@ public class YieldGameTest implements FabricGameTest {
         Sheep primeFertile = helper.spawn(EntityType.SHEEP, new BlockPos(6, 2, 6));
         primeFertile.setAttached(InstinctAttachments.GENETICS,
                 new GeneticsData(Grade.PRIME.level(), Perk.FERTILE, false, 0L));
+        Sheep primeFertileLamb = helper.spawn(EntityType.SHEEP, new BlockPos(8, 2, 2));
+        primeFertileLamb.setBaby(true);
+        primeFertileLamb.setAttached(InstinctAttachments.GENETICS,
+                new GeneticsData(Grade.PRIME.level(), Perk.FERTILE, false, 0L));
 
         // The graze modulus shrinks, raising the per-poll grass-eating chance that re-wools a sheep.
         helper.assertValueEqual(GeneticsHandler.scaledGrazeInterval(ordinary, 1000), 1000,
@@ -106,6 +110,10 @@ public class YieldGameTest implements FabricGameTest {
         helper.assertValueEqual(GeneticsHandler.scaledGrazeInterval(prime, 1000), 800, "prime: 1000 → 800 (−20%)");
         helper.assertValueEqual(GeneticsHandler.scaledGrazeInterval(primeFertile, 1000), 560,
                 "prime fertile: 1000 → 560 (0.56)");
+        // A lamb is left on the vanilla cadence even prime + fertile: its graze ages it up, not
+        // re-wools, so scaling would speed growth — which §3 fertile scope excludes.
+        helper.assertValueEqual(GeneticsHandler.scaledGrazeInterval(primeFertileLamb, 1000), 1000,
+                "a graded/fertile lamb grazes at the vanilla rate — no growth speed-up");
         helper.succeed();
     }
 
