@@ -1,11 +1,13 @@
 package com.rfizzle.instinct.gametest;
 
+import com.rfizzle.instinct.Instinct;
 import com.rfizzle.instinct.config.InstinctConfig;
 import com.rfizzle.instinct.data.DownedData;
 import com.rfizzle.instinct.data.InstinctAttachments;
 import com.rfizzle.instinct.gametest.util.MockPlayers;
 import com.rfizzle.instinct.whistle.WhistleActions;
 import net.fabricmc.fabric.api.gametest.v1.FabricGameTest;
+import net.minecraft.advancements.AdvancementHolder;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
@@ -108,7 +110,10 @@ public class WhistleGameTest implements FabricGameTest {
         helper.succeed();
     }
 
-    @GameTest(template = EMPTY_STRUCTURE, timeoutTicks = 600, batch = "instinctRoundUp")
+    // A generous tick budget: driving the whole herd to the player is real pathfinding
+    // convergence, which needs headroom to finish on a loaded/variable CI runner even though it
+    // usually settles in a fraction of it. The assertion (every cow reaches) is unchanged.
+    @GameTest(template = EMPTY_STRUCTURE, timeoutTicks = 1200, batch = "instinctRoundUp")
     public void roundUpBringsTheHerdToThePlayer(GameTestHelper helper) {
         // The round-up drives livestock through the §4 tempt machinery, so it needs flocking on;
         // pin both flags rather than trust config another batch may have left flipped (restored on
@@ -151,7 +156,8 @@ public class WhistleGameTest implements FabricGameTest {
         }
     }
 
-    @GameTest(template = EMPTY_STRUCTURE, timeoutTicks = 600, batch = "instinctRoundUpNoFlock")
+    // Same convergence headroom as the flocking-on round-up above.
+    @GameTest(template = EMPTY_STRUCTURE, timeoutTicks = 1200, batch = "instinctRoundUpNoFlock")
     public void roundUpWorksWithFlockingOff(GameTestHelper helper) {
         // SPEC §4: with flocking off but herding on, the drive assist never activates, but the whistle
         // round-up still works — the order is a tempt source the flocking toggle must not silence.
@@ -212,11 +218,41 @@ public class WhistleGameTest implements FabricGameTest {
 
     // ── helpers ─────────────────────────────────────────────────────────────────────────────────
 
+    @GameTest(template = EMPTY_STRUCTURE)
+    public void togglingTenPetsGrantsPackLeader(GameTestHelper helper) {
+        buildFloor(helper, 12, 12);
+        ServerPlayer owner = listeningPlayer(helper, new BlockPos(5, 2, 5));
+        ServerPlayer bystander = listeningPlayer(helper, new BlockPos(6, 2, 5));
+        for (int i = 0; i < 10; i++) {
+            spawnTamedWolf(helper, new BlockPos(3 + (i % 5), 2, 3 + (i / 5)), owner.getUUID());
+        }
+
+        WhistleActions.performToggle(owner);
+        helper.assertTrue(isGranted(helper, owner), "one whistle press over 10 owned pets grants pack_leader");
+        helper.assertFalse(isGranted(helper, bystander), "a bystander who pressed nothing is not granted");
+        owner.discard();
+        bystander.discard();
+        helper.succeed();
+    }
+
     private static ServerPlayer mockPlayer(GameTestHelper helper, BlockPos rel) {
         ServerPlayer player = MockPlayers.serverPlayerInLevel(helper);
         BlockPos abs = helper.absolutePos(rel);
         player.teleportTo(abs.getX() + 0.5, abs.getY(), abs.getZ() + 0.5);
         return player;
+    }
+
+    /** A mock player whose advancement tracker is reloaded so a fresh trigger has a listener. */
+    private static ServerPlayer listeningPlayer(GameTestHelper helper, BlockPos rel) {
+        ServerPlayer player = mockPlayer(helper, rel);
+        player.getAdvancements().reload(helper.getLevel().getServer().getAdvancements());
+        return player;
+    }
+
+    private static boolean isGranted(GameTestHelper helper, ServerPlayer player) {
+        AdvancementHolder holder = helper.getLevel().getServer().getAdvancements().get(Instinct.id("pack_leader"));
+        helper.assertTrue(holder != null, "pack_leader advancement is loaded (datagen output present)");
+        return player.getAdvancements().getOrStartProgress(holder).isDone();
     }
 
     /**

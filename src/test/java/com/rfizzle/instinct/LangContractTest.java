@@ -2,10 +2,13 @@ package com.rfizzle.instinct;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.rfizzle.instinct.config.InstinctConfig;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -62,6 +65,24 @@ class LangContractTest {
             "item.instinct.command_whistle",
             "block.instinct.feeding_trough",
             "itemGroup.instinct",
+            "config.instinct.title",
+            "config.instinct.category.coverage",
+            "config.instinct.category.self_preservation",
+            "config.instinct.category.veterancy",
+            "config.instinct.category.genetics",
+            "config.instinct.category.herding",
+            "config.instinct.category.trough",
+            "config.instinct.category.whistle",
+            "config.instinct.category.downed",
+            "config.instinct.category.inspection",
+            "tooltip.instinct.animal.grade",
+            "tooltip.instinct.animal.grade_perk",
+            "tooltip.instinct.animal.veterancy",
+            "tooltip.instinct.animal.veterancy_ranked",
+            "tooltip.instinct.animal.downed",
+            "tooltip.instinct.trough.stored",
+            "tooltip.instinct.trough.empty",
+            "tooltip.instinct.trough.population",
             "notification.instinct.rank_up",
             "notification.instinct.inspect_pet",
             "notification.instinct.inspect_pet.ranked",
@@ -150,5 +171,48 @@ class LangContractTest {
             }
         }
         assertTrue(unknown.isEmpty(), "lang keys outside the SPEC §Localization surfaces: " + unknown);
+    }
+
+    /**
+     * Every {@code config/instinct.json} field the Cloth screen exposes has a
+     * {@code config.instinct.<field>} label and a {@code .tooltip}, so no config entry ever renders
+     * as a raw key. Reflection over the POJO keeps this in step as fields are added.
+     */
+    @Test
+    void everyConfigFieldHasLabelAndTooltip() {
+        JsonObject lang = lang();
+        List<String> missing = new ArrayList<>();
+        for (Field field : InstinctConfig.class.getDeclaredFields()) {
+            int mods = field.getModifiers();
+            if (!Modifier.isPublic(mods) || Modifier.isStatic(mods) || Modifier.isTransient(mods)
+                    || field.getName().equals("configVersion")) {
+                continue;
+            }
+            for (String key : List.of("config.instinct." + field.getName(),
+                    "config.instinct." + field.getName() + ".tooltip")) {
+                if (!lang.has(key) || lang.get(key).getAsString().isBlank()) {
+                    missing.add(key);
+                }
+            }
+        }
+        assertTrue(missing.isEmpty(), "config lang keys missing or blank: " + missing);
+    }
+
+    /** No orphan {@code config.instinct.*} label without a matching non-blank {@code .tooltip}. */
+    @Test
+    void everyConfigLabelHasATooltip() {
+        JsonObject lang = lang();
+        List<String> missing = new ArrayList<>();
+        for (String key : lang.keySet()) {
+            if (!key.startsWith("config.instinct.") || key.endsWith(".tooltip")
+                    || key.equals("config.instinct.title") || key.startsWith("config.instinct.category.")) {
+                continue;
+            }
+            String tooltip = key + ".tooltip";
+            if (!lang.has(tooltip) || lang.get(tooltip).getAsString().isBlank()) {
+                missing.add(tooltip);
+            }
+        }
+        assertTrue(missing.isEmpty(), "config entries missing a .tooltip lang key: " + missing);
     }
 }

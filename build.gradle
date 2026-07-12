@@ -209,6 +209,11 @@ dependencies {
     modLocalRuntime "dev.architectury:architectury-fabric:${project.architectury_version}"
 
 
+    // Tribulation — sibling Concord mod, soft dependency: compile-only against its api package
+    // behind an isModLoaded guard (compat/tribulation), never bundled, never in fabric.mod.json
+    // depends. Server-side only (veterancy accrual), so no modLocalRuntime.
+    modCompileOnly "rfizzle:tribulation:${project.tribulation_version}"
+
     modCompileOnly "mezz.jei:jei-1.21.1-fabric-api:${project.jei_version}"
     "modClientCompileOnly"("mezz.jei:jei-1.21.1-fabric-api:${project.jei_version}")
     modLocalRuntime "mezz.jei:jei-1.21.1-fabric:${project.jei_version}"

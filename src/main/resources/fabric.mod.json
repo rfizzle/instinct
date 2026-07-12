@@ -33,7 +33,15 @@
             "com.rfizzle.instinct.gametest.HerdingGameTest",
             "com.rfizzle.instinct.gametest.DownedGameTest",
             "com.rfizzle.instinct.gametest.FeedingTroughGameTest",
-            "com.rfizzle.instinct.gametest.WhistleGameTest"
+            "com.rfizzle.instinct.gametest.WhistleGameTest",
+            "com.rfizzle.instinct.gametest.ProbeTooltipGameTest",
+            "com.rfizzle.instinct.gametest.TribulationCompatGameTest"
+        ],
+        "modmenu": [
+            "com.rfizzle.instinct.compat.modmenu.ModMenuIntegration"
+        ],
+        "jade": [
+            "com.rfizzle.instinct.compat.jade.InstinctJadePlugin"
         ]
     },
     "mixins": [
@@ -42,8 +50,10 @@
     "accessWidener": "instinct.accesswidener",
     "suggests": {
         "modmenu": "*",
+        "cloth-config": "*",
         "jade": "*",
-        "wthit": "*"
+        "wthit": "*",
+        "tribulation": "*"
     },
     "depends": {
         "fabricloader": ">=0.16.10",

@@ -190,11 +190,13 @@ public class FeedingTroughBlockEntity extends BlockEntity implements WorldlyCont
         }
     }
 
-    /** Scans the radius for one eligible animal (adult preferred, else baby) and claims it. */
-    private void scanAndClaim(ServerLevel level, BlockPos pos, long now) {
-        InstinctConfig config = InstinctConfig.get();
-        ItemStack stored = items.get(0);
-        double radius = config.troughRadiusBlocks;
+    /**
+     * The livestock-set animals alive within the trough's configured feeding radius of {@code pos}.
+     * The passive feeding scan and the Jade/WTHIT population line share this one filter so the
+     * "population vs. cap" a player reads is exactly the count the breeding cap is measured against.
+     */
+    public static List<Animal> livestockInRange(ServerLevel level, BlockPos pos) {
+        double radius = InstinctConfig.get().troughRadiusBlocks;
         double cx = pos.getX() + 0.5;
         double cy = pos.getY() + 0.5;
         double cz = pos.getZ() + 0.5;
@@ -205,6 +207,14 @@ public class FeedingTroughBlockEntity extends BlockEntity implements WorldlyCont
                 inRange.add(animal);
             }
         }
+        return inRange;
+    }
+
+    /** Scans the radius for one eligible animal (adult preferred, else baby) and claims it. */
+    private void scanAndClaim(ServerLevel level, BlockPos pos, long now) {
+        InstinctConfig config = InstinctConfig.get();
+        ItemStack stored = items.get(0);
+        List<Animal> inRange = livestockInRange(level, pos);
         boolean capAllows = Trough.capAllows(inRange.size(), config.troughPopulationCap);
 
         Animal baby = null;

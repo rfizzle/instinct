@@ -1,0 +1,12 @@
+{
+    "instinct:wthit": {
+        "entrypoints": {
+            "common": "com.rfizzle.instinct.compat.wthit.InstinctWthitCommonPlugin",
+            "client": "com.rfizzle.instinct.compat.wthit.InstinctWthitClientPlugin"
+        },
+        "side": "*",
+        "required": {
+            "wthit": "*"
+        }
+    }
+}
