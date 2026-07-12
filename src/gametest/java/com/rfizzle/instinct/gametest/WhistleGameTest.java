@@ -1,0 +1,219 @@
+package com.rfizzle.instinct.gametest;
+
+import com.rfizzle.instinct.config.InstinctConfig;
+import com.rfizzle.instinct.data.DownedData;
+import com.rfizzle.instinct.data.InstinctAttachments;
+import com.rfizzle.instinct.gametest.util.MockPlayers;
+import com.rfizzle.instinct.whistle.WhistleActions;
+import net.fabricmc.fabric.api.gametest.v1.FabricGameTest;
+import net.minecraft.core.BlockPos;
+import net.minecraft.gametest.framework.GameTest;
+import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.animal.Animal;
+import net.minecraft.world.entity.animal.Cow;
+import net.minecraft.world.entity.animal.Wolf;
+import net.minecraft.world.entity.monster.Zombie;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.phys.Vec3;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+
+/**
+ * SPEC §6 command whistle. The core commands assert outcome and state directly (deterministic, no
+ * raycast); the raycast dispatch (a cow orders a round-up, herding-off rounds up nothing) is aimed
+ * and driven through {@link WhistleActions#command}. The round-up convergence asserts the outcome —
+ * every cow reaches the player, none takes an attack target — never the choreography, and its
+ * config-mutating sibling restores the flag in {@code finally}, mirroring {@link HerdingGameTest}.
+ */
+public class WhistleGameTest implements FabricGameTest {
+
+    @GameTest(template = EMPTY_STRUCTURE)
+    public void toggleSitsThenStandsMixedPack(GameTestHelper helper) {
+        buildFloor(helper, 8, 8);
+        ServerPlayer owner = mockPlayer(helper, new BlockPos(4, 2, 4));
+        List<Wolf> wolves = new ArrayList<>();
+        wolves.add(spawnTamedWolf(helper, new BlockPos(3, 2, 3), owner.getUUID()));
+        wolves.add(spawnTamedWolf(helper, new BlockPos(5, 2, 3), owner.getUUID()));
+        wolves.add(spawnTamedWolf(helper, new BlockPos(4, 2, 5), owner.getUUID()));
+        // Mixed states: two standing, one sitting — the any-standing rule sits the whole pack.
+        wolves.get(1).setOrderedToSit(true);
+
+        WhistleActions.WhistleResult first = WhistleActions.toggle(owner);
+        helper.assertValueEqual(first.outcome(), WhistleActions.WhistleResult.Outcome.STAY, "any standing → Stay");
+        helper.assertValueEqual(first.count(), 3, "all three pets counted");
+        for (Wolf wolf : wolves) {
+            helper.assertTrue(wolf.isOrderedToSit(), "every pet sits after the first toggle");
+        }
+
+        WhistleActions.WhistleResult second = WhistleActions.toggle(owner);
+        helper.assertValueEqual(second.outcome(), WhistleActions.WhistleResult.Outcome.FOLLOW, "all sitting → Follow");
+        for (Wolf wolf : wolves) {
+            helper.assertFalse(wolf.isOrderedToSit(), "every pet stands after the second toggle");
+        }
+
+        wolves.forEach(Animal::discard);
+        owner.discard();
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY_STRUCTURE)
+    public void attackOrderTargetsCombatPetsAndSkipsTheDowned(GameTestHelper helper) {
+        buildFloor(helper, 10, 10);
+        ServerPlayer owner = mockPlayer(helper, new BlockPos(5, 2, 5));
+        Wolf a = spawnTamedWolf(helper, new BlockPos(3, 2, 3), owner.getUUID());
+        Wolf b = spawnTamedWolf(helper, new BlockPos(7, 2, 3), owner.getUUID());
+        Wolf downed = spawnTamedWolf(helper, new BlockPos(3, 2, 7), owner.getUUID());
+        downed.setAttached(InstinctAttachments.DOWNED, new DownedData(helper.getLevel().getGameTime()));
+        Zombie zombie = helper.spawn(EntityType.ZOMBIE, new BlockPos(6, 2, 6));
+
+        WhistleActions.WhistleResult result = WhistleActions.attackOrder(owner, zombie);
+        helper.assertValueEqual(result.outcome(), WhistleActions.WhistleResult.Outcome.ATTACK, "attack order issued");
+        helper.assertValueEqual(result.count(), 2, "only the two live combat pets are counted");
+        helper.assertTrue(a.getTarget() == zombie, "the first live wolf targets the zombie");
+        helper.assertTrue(b.getTarget() == zombie, "the second live wolf targets the zombie");
+        helper.assertFalse(a.isOrderedToSit(), "an attack order stands a pet up");
+        helper.assertTrue(downed.getTarget() == null, "the downed wolf never acquires a target");
+
+        a.discard();
+        b.discard();
+        downed.discard();
+        zombie.discard();
+        owner.discard();
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY_STRUCTURE)
+    public void downedPetDoesNotRespondOrCount(GameTestHelper helper) {
+        buildFloor(helper, 8, 8);
+        ServerPlayer owner = mockPlayer(helper, new BlockPos(4, 2, 4));
+        Wolf standing = spawnTamedWolf(helper, new BlockPos(3, 2, 3), owner.getUUID());
+        Wolf downed = spawnTamedWolf(helper, new BlockPos(5, 2, 3), owner.getUUID());
+        downed.setOrderedToSit(false);
+        downed.setAttached(InstinctAttachments.DOWNED, new DownedData(helper.getLevel().getGameTime()));
+
+        WhistleActions.WhistleResult result = WhistleActions.toggle(owner);
+        helper.assertValueEqual(result.count(), 1, "the downed pet is not counted");
+        helper.assertTrue(standing.isOrderedToSit(), "the live pet answered the whistle");
+        helper.assertFalse(downed.isOrderedToSit(), "the downed pet's state is untouched");
+
+        standing.discard();
+        downed.discard();
+        owner.discard();
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY_STRUCTURE, timeoutTicks = 600, batch = "instinctRoundUp")
+    public void roundUpBringsTheHerdToThePlayer(GameTestHelper helper) {
+        // The round-up drives livestock through the §4 tempt machinery, so it needs flocking on;
+        // pin both flags rather than trust config another batch may have left flipped (restored on
+        // success). Its own batch keeps a concurrent test from flipping them back mid-run.
+        boolean savedFlock = InstinctConfig.get().enableFlocking;
+        boolean savedHerd = InstinctConfig.get().enableHerding;
+        InstinctConfig.get().enableFlocking = true;
+        InstinctConfig.get().enableHerding = true;
+        try {
+            buildFloor(helper, 16, 8);
+            ServerPlayer owner = mockPlayer(helper, new BlockPos(2, 2, 4));
+            List<Cow> cows = new ArrayList<>();
+            Cow target = helper.spawn(EntityType.COW, new BlockPos(11, 2, 4));
+            cows.add(target);
+            cows.add(helper.spawn(EntityType.COW, new BlockPos(12, 2, 4)));
+            cows.add(helper.spawn(EntityType.COW, new BlockPos(11, 2, 5)));
+
+            WhistleActions.WhistleResult result = WhistleActions.roundUp(owner, target);
+            helper.assertValueEqual(result.outcome(), WhistleActions.WhistleResult.Outcome.ROUND_UP, "a cow orders a round-up");
+            // Each animal's order clears once it is within 5 blocks (§6), after which it resumes normal
+            // AI and may drift, so success is "every cow reached at some point", not "all within 5 at once".
+            Set<Cow> reached = new HashSet<>();
+            helper.succeedWhen(() -> {
+                for (Cow cow : cows) {
+                    helper.assertTrue(cow.getTarget() == null, "a rounded-up cow never acquires an attack target");
+                    if (cow.position().distanceTo(owner.position()) <= 5.0) {
+                        reached.add(cow);
+                    }
+                }
+                helper.assertTrue(reached.containsAll(cows), "every rounded-up cow reaches within 5 blocks of the player");
+                cows.forEach(Animal::discard);
+                owner.discard();
+                InstinctConfig.get().enableFlocking = savedFlock;
+                InstinctConfig.get().enableHerding = savedHerd;
+            });
+        } catch (RuntimeException e) {
+            InstinctConfig.get().enableFlocking = savedFlock;
+            InstinctConfig.get().enableHerding = savedHerd;
+            throw e;
+        }
+    }
+
+    @GameTest(template = EMPTY_STRUCTURE, timeoutTicks = 40, batch = "instinctRoundUpOff")
+    public void herdingOffRoundsUpNothing(GameTestHelper helper) {
+        boolean saved = InstinctConfig.get().enableHerding;
+        InstinctConfig.get().enableHerding = false;
+        try {
+            buildFloor(helper, 10, 8);
+            ServerPlayer owner = mockPlayer(helper, new BlockPos(2, 2, 4));
+            Cow cow = helper.spawn(EntityType.COW, new BlockPos(5, 2, 4));
+            aimAt(owner, cow);
+
+            WhistleActions.WhistleResult result = WhistleActions.command(owner);
+            helper.assertValueEqual(result.outcome(),
+                    WhistleActions.WhistleResult.Outcome.NOTHING_TO_ROUND_UP,
+                    "with herding off, a cow rounds up nothing");
+            helper.assertTrue(cow.getTarget() == null, "the cow never becomes an attack target");
+            cow.discard();
+            owner.discard();
+        } finally {
+            InstinctConfig.get().enableHerding = saved;
+        }
+        helper.succeed();
+    }
+
+    // ── helpers ─────────────────────────────────────────────────────────────────────────────────
+
+    private static ServerPlayer mockPlayer(GameTestHelper helper, BlockPos rel) {
+        ServerPlayer player = MockPlayers.serverPlayerInLevel(helper);
+        BlockPos abs = helper.absolutePos(rel);
+        player.teleportTo(abs.getX() + 0.5, abs.getY(), abs.getZ() + 0.5);
+        return player;
+    }
+
+    private static Wolf spawnTamedWolf(GameTestHelper helper, BlockPos rel, UUID owner) {
+        Wolf wolf = EntityType.WOLF.create(helper.getLevel());
+        if (wolf == null) {
+            throw new IllegalStateException("could not create a wolf");
+        }
+        BlockPos abs = helper.absolutePos(rel);
+        wolf.moveTo(abs.getX() + 0.5, abs.getY(), abs.getZ() + 0.5, 0.0f, 0.0f);
+        wolf.setTame(true, false);
+        wolf.setOwnerUUID(owner);
+        helper.getLevel().addFreshEntity(wolf);
+        return wolf;
+    }
+
+    /** Points the player's view at the target's centre, so the whistle raycast clips it. */
+    private static void aimAt(ServerPlayer player, Animal target) {
+        Vec3 eye = player.getEyePosition(1.0f);
+        Vec3 to = target.position().add(0.0, target.getBbHeight() * 0.5, 0.0).subtract(eye);
+        double horizontal = Math.sqrt(to.x * to.x + to.z * to.z);
+        float yaw = (float) Math.toDegrees(Math.atan2(-to.x, to.z));
+        float pitch = (float) -Math.toDegrees(Math.atan2(to.y, horizontal));
+        player.setYRot(yaw);
+        player.setXRot(pitch);
+        player.setYHeadRot(yaw);
+    }
+
+    private static void buildFloor(GameTestHelper helper, int width, int depth) {
+        for (int x = 0; x < width; x++) {
+            for (int z = 0; z < depth; z++) {
+                helper.setBlock(new BlockPos(x, 0, z), Blocks.SMOOTH_STONE.defaultBlockState());
+                helper.setBlock(new BlockPos(x, 1, z), Blocks.SMOOTH_STONE.defaultBlockState());
+            }
+        }
+    }
+}
