@@ -9,6 +9,7 @@ import com.rfizzle.instinct.downed.DownedHandler;
 import com.rfizzle.instinct.genetics.GeneticsHandler;
 import com.rfizzle.instinct.herding.Herding;
 import com.rfizzle.instinct.inspection.Inspection;
+import com.rfizzle.instinct.predatorwatch.PredatorWatch;
 import com.rfizzle.instinct.registry.InstinctBlockEntities;
 import com.rfizzle.instinct.registry.InstinctBlocks;
 import com.rfizzle.instinct.registry.InstinctCriteria;
@@ -46,6 +47,7 @@ public class Instinct implements ModInitializer {
         VeterancyHandler.register();
         GeneticsHandler.register();
         Herding.register();
+        PredatorWatch.register();
         DownedHandler.register();
         Trough.register();
         Whistle.register();
