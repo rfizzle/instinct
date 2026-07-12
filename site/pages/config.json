@@ -19,6 +19,8 @@
             ["<code>petsExclude</code>", "list", "<code>[]</code>", "entity ids", "Animal coverage"],
             ["<code>livestockInclude</code>", "list", "<code>[]</code>", "entity ids", "Animal coverage"],
             ["<code>livestockExclude</code>", "list", "<code>[]</code>", "entity ids", "Animal coverage"],
+            ["<code>mountsInclude</code>", "list", "<code>[]</code>", "entity ids", "Animal coverage"],
+            ["<code>mountsExclude</code>", "list", "<code>[]</code>", "entity ids", "Animal coverage"],
             ["<code>enableSelfPreservation</code>", "bool", "<code>true</code>", "—", "Self-preservation"],
             ["<code>creeperBerthBlocks</code>", "int", "<code>4</code>", "2–8", "Self-preservation"],
             ["<code>teleportSuppressFallDistance</code>", "double", "<code>3.0</code>", "0.5–10.0", "Self-preservation"],

@@ -16,7 +16,8 @@
           "type": "prose",
           "html": [
             "Tamed wolves, cats, and parrots treat lava, fire, and cactus as walls when they pathfind — they walk around, or stay put if there is no safe route. When a creeper's fuse lights within reach, pets immediately move to a 4-block berth at 1.4× speed; a sitting pet stands, steps clear, and sits back down at its new spot. Stay means stay — minus the blast radius.",
-            "The follow-owner teleport is suppressed while you are falling more than 3 blocks, swimming in lava, or gliding on elytra — your wolf keeps walking toward you on safe ground and teleports again the moment you land."
+            "The follow-owner teleport is suppressed while you are falling more than 3 blocks, swimming in lava, or gliding on elytra — your wolf keeps walking toward you on safe ground and teleports again the moment you land.",
+            "The horse family — horses, donkeys, mules, camels, and llamas — gets the same hazard-aware pathing and creeper berth while riderless, so a tamed mount stops walking into lava or standing next to a hissing creeper. A mount you are riding follows your lead, not its instinct."
           ]
         }
       ]
@@ -103,6 +104,7 @@
           "type": "prose",
           "html": [
             "When lethal damage would kill a pet, it collapses instead: helpless, whimpering, ignored by monsters, invulnerable, and it waits — indefinitely, across saves and logouts — until someone brings it back. Revive it with a golden apple or a <strong>Vet Kit</strong> (paper + string + honey bottle); it stands at half health with regeneration, and the rescue costs one veterancy rank. Bringing a downed pet back earns the <em>Back from the Brink</em> advancement.",
+            "A tamed mount from the horse family goes down the same way instead of dying — it lies where it fell (ejecting its rider) and revives from the same golden apple or Vet Kit, with no rank to lose. Losing a maxed horse to one creeper stops being permanent.",
             "Fire, lava, and the void are beyond saving — which is exactly what their survival instinct is for."
           ]
         }

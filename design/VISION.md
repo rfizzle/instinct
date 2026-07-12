@@ -13,7 +13,7 @@ In the first hours you notice what *doesn't* happen: your new wolf walks around 
 ## The features, as you'll play them
 
 ### Pets that look before they leap
-- **What it is** — tamed pets — wolves, cats, parrots — gain a survival instinct. They path around lava and cacti, keep a 4-block berth from an ignited creeper, and refuse to teleport to your side while you are falling more than 3 blocks or swimming in lava.
+- **What it is** — tamed pets — wolves, cats, parrots — gain a survival instinct. They path around lava and cacti, keep a 4-block berth from an ignited creeper, and refuse to teleport to your side while you are falling more than 3 blocks or swimming in lava. The horse family — horses, donkeys, mules, camels, llamas — gets the same hazard sense and creeper berth whenever you are not in the saddle; ride it and it follows your lead instead.
 - **How you use it** — you don't. Tame the animal; the instinct is already there.
 - **What changes for you** — you stop losing pets to your own terrain, and bring them places you never dared. The pet you tame in your first week can still be alive in your hundredth day — which is exactly when veterancy starts to matter.
 
@@ -43,8 +43,8 @@ In the first hours you notice what *doesn't* happen: your new wolf walks around 
 - **What changes for you** — commanding fifteen wolves stops meaning fifteen crouch-clicks. Your pack moves like a pack.
 
 ### Downed, not dead
-- **What it is** — a pet that runs out of health collapses instead of dying. It lies where it fell — helpless, whimpering, ignored by monsters — until you bring it back.
-- **How you use it** — feed the downed pet a golden apple, or use a Vet Kit, a cheaper new item stitched from paper, string, and a honey bottle. Fire, lava, and the void are beyond saving — which is exactly what their survival instinct is for.
+- **What it is** — a pet that runs out of health collapses instead of dying. It lies where it fell — helpless, whimpering, ignored by monsters — until you bring it back. A tamed mount from the horse family goes down the same way, throwing you clear as it falls, so losing a maxed horse to one creeper stops being permanent.
+- **How you use it** — feed the downed pet or mount a golden apple, or use a Vet Kit, a cheaper new item stitched from paper, string, and a honey bottle. Fire, lava, and the void are beyond saving — which is exactly what their survival instinct is for.
 - **What changes for you** — a bad fight costs a rescue and one veterancy rank instead of everything. The stakes stay real; the heartbreak stops being permanent.
 
 ## Staying in control
