@@ -40,6 +40,20 @@ public final class Veterancy {
     }
 
     /**
+     * The accrued-day count that lands a pet exactly one rank below {@code currentRank} — the
+     * revival penalty ({@code design/SPEC.md} §7): rank <i>n</i> drops to the threshold of rank
+     * <i>n−1</i> (rank 1, and any rank ≤ 0, drop to 0 days). Sitting on a threshold means a
+     * further live day re-crosses it, which is the intended "just demoted" state.
+     */
+    public static double daysForRankBelow(int currentRank, List<Integer> thresholds) {
+        int newRank = currentRank - 1;
+        if (newRank <= 0 || thresholds.isEmpty()) {
+            return 0.0;
+        }
+        return thresholds.get(Math.min(newRank, thresholds.size()) - 1);
+    }
+
+    /**
      * Advances an accrual window: adds {@code (now − lastAccrualGameTime) / 24000 × rate} days and
      * stamps {@code now}. A zero-or-negative {@code lastAccrualGameTime} is the "never accrued"
      * sentinel — the window opens at {@code now} with no days credited (a fresh tame starts at 0,
