@@ -117,7 +117,9 @@ public final class KennelHandler {
         }
         BlockPos pos = hitResult.getBlockPos();
         if (!level.getBlockState(pos).is(InstinctBlocks.KENNEL_POST)
+                || !InstinctConfig.get().enableKennelPost
                 || player.getCooldowns().isOnCooldown(InstinctItems.COMMAND_WHISTLE)) {
+            // Feature off, wrong block, or on cooldown: leave the click to vanilla (the post is inert).
             return InteractionResult.PASS;
         }
         if (level.isClientSide) {

@@ -710,7 +710,7 @@ Per-pet server state; the post itself holds none. Recovery keys on proximity to 
 ### Implementation Notes
 
 - The block is a plain `Block` (`KennelPostBlock`) — no block entity — with a post `VoxelShape` outline, empty collision, and `isPathfindable` returning true, so a recalled pet paths onto it. Registered beside the trough in `InstinctBlocks`, axe-mineable, dropping itself.
-- The home is a codec-backed `HomeData { BlockPos post; ResourceKey<Level> dimension }` attachment (the first Instinct attachment to persist a dimension). Assignment writes it from the whistle; the recall itself is a transient in-memory order (`KennelHandler`), not persisted — a reload sits the pet where it is.
+- The home is a codec-backed `HomeData { BlockPos post; ResourceKey<Level> dimension }` attachment (the first Instinct attachment to persist a dimension). Assignment writes it from the whistle; the recall itself is a transient in-memory order (`KennelHandler`), not persisted — a reload ends the recall, leaving the pet where it stands.
 - `HomeGoal` (priority 1, the §6 guard / §8 watch install pattern via `ServerEntityEvents.ENTITY_LOAD`) is inert until the pet is recalled; it repaths to the post on a scan interval, settles on arrival or at a deadline, and degrades a mined or cross-dimension post to sitting in place. It is mutually exclusive with the guard order — each whistle order clears the other's state.
 - Recovery is a sibling pass in the §7 downed engine's per-tick sweep, reusing the bounded loaded-downed set: config-gated, staggered per pet, a hard-clamped-radius block scan for a nearby post, accruing `recoveryTicks` on the downed attachment until the threshold, then a shared rank-free state restore extracted from the item-revival path.
 

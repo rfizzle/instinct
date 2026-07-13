@@ -61,6 +61,16 @@ class AttachmentCodecTest {
     }
 
     @Test
+    void downedDataHealsAHostileRecoveryValue() {
+        // A tampered save with a negative recovery value heals to 0 rather than stalling recovery.
+        JsonObject tampered = JsonParser.parseString("""
+                { "downedAtGameTime": 5, "recoveryTicks": -100 }
+                """).getAsJsonObject();
+        DownedData decoded = DownedData.CODEC.parse(JsonOps.INSTANCE, tampered).getOrThrow();
+        assertEquals(0, decoded.recoveryTicks(), "a negative recovery value heals to zero");
+    }
+
+    @Test
     void homeDataRoundTrips() {
         HomeData data = new HomeData(new BlockPos(12, 64, -30), Level.NETHER);
         JsonObject encoded = HomeData.CODEC.encodeStart(JsonOps.INSTANCE, data)
