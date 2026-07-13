@@ -10,10 +10,12 @@ import com.rfizzle.instinct.downed.DownedHandler;
 import com.rfizzle.instinct.genetics.GeneticsHandler;
 import com.rfizzle.instinct.herding.Herding;
 import com.rfizzle.instinct.inspection.Inspection;
+import com.rfizzle.instinct.keepsake.KeepsakeHandler;
 import com.rfizzle.instinct.predatorwatch.PredatorWatch;
 import com.rfizzle.instinct.registry.InstinctBlockEntities;
 import com.rfizzle.instinct.registry.InstinctBlocks;
 import com.rfizzle.instinct.registry.InstinctCriteria;
+import com.rfizzle.instinct.registry.InstinctDataComponents;
 import com.rfizzle.instinct.registry.InstinctItems;
 import com.rfizzle.instinct.registry.InstinctSounds;
 import com.rfizzle.instinct.selfpreservation.SelfPreservation;
@@ -40,6 +42,7 @@ public class Instinct implements ModInitializer {
         InstinctAttachments.init();
         InstinctBlocks.register();
         InstinctBlockEntities.register();
+        InstinctDataComponents.register();
         InstinctItems.register();
         InstinctSounds.register();
         InstinctCriteria.register();
@@ -51,6 +54,7 @@ public class Instinct implements ModInitializer {
         PredatorWatch.register();
         CarryHandler.register();
         DownedHandler.register();
+        KeepsakeHandler.register();
         Trough.register();
         Whistle.register();
         Inspection.register();

@@ -26,5 +26,6 @@ public class InstinctModelProvider extends FabricModelProvider {
         generators.generateFlatItem(InstinctItems.PEDIGREE_TREAT, ModelTemplates.FLAT_ITEM);
         generators.generateFlatItem(InstinctItems.VET_KIT, ModelTemplates.FLAT_ITEM);
         generators.generateFlatItem(InstinctItems.COMMAND_WHISTLE, ModelTemplates.FLAT_ITEM);
+        generators.generateFlatItem(InstinctItems.KEEPSAKE_COLLAR, ModelTemplates.FLAT_ITEM);
     }
 }

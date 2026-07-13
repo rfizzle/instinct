@@ -308,6 +308,11 @@ final class ClothConfigScreenBuilder {
                 .setTooltip(tooltip("carrySlowdownFraction"))
                 .setSaveConsumer(v -> working.carrySlowdownFraction = v)
                 .build());
+        downed.addEntry(entry.startBooleanToggle(label("enableKeepsakeCollar"), config.enableKeepsakeCollar)
+                .setDefaultValue(defaults.enableKeepsakeCollar)
+                .setTooltip(tooltip("enableKeepsakeCollar"))
+                .setSaveConsumer(v -> working.enableKeepsakeCollar = v)
+                .build());
 
         // --- Predator Watch (§8) ---
         ConfigCategory predatorWatch = builder.getOrCreateCategory(Component.translatable("config.instinct.category.predator_watch"));

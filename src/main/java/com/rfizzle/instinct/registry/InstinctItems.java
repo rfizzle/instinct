@@ -2,6 +2,7 @@ package com.rfizzle.instinct.registry;
 
 import com.rfizzle.instinct.Instinct;
 import com.rfizzle.instinct.item.CommandWhistleItem;
+import com.rfizzle.instinct.item.KeepsakeCollarItem;
 import com.rfizzle.instinct.item.PedigreeTreatItem;
 import net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroup;
 import net.minecraft.core.Registry;
@@ -33,6 +34,13 @@ public final class InstinctItems {
     /** The command whistle — moves the whole pack; stack 1, no durability (never breaks) (§6). */
     public static final Item COMMAND_WHISTLE = new CommandWhistleItem(new Item.Properties().stacksTo(1));
 
+    /**
+     * The keepsake collar — a pet's memento on a beyond-saving loss; fire-resistant so the drop
+     * survives the lava that took it, singular (a keepsake stacks to 1), zero gameplay power (§7).
+     */
+    public static final Item KEEPSAKE_COLLAR =
+            new KeepsakeCollarItem(new Item.Properties().stacksTo(1).fireResistant());
+
     private static boolean registered = false;
 
     private InstinctItems() {
@@ -47,6 +55,7 @@ public final class InstinctItems {
         registerItem("pedigree_treat", PEDIGREE_TREAT);
         registerItem("vet_kit", VET_KIT);
         registerItem("command_whistle", COMMAND_WHISTLE);
+        registerItem("keepsake_collar", KEEPSAKE_COLLAR);
         registerCreativeTab();
     }
 

@@ -98,6 +98,7 @@ public class InstinctConfig {
     public boolean downedRankPenalty = true;
     public boolean enableCarryDowned = true;
     public double carrySlowdownFraction = 0.30;
+    public boolean enableKeepsakeCollar = true;
 
     // §8 Predator Watch
     public boolean enablePredatorWatch = true;
