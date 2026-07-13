@@ -20,6 +20,7 @@ import net.minecraft.world.entity.animal.Wolf;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.pathfinder.PathType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -220,6 +221,96 @@ public class HerdingGameTest implements FabricGameTest {
         }
     }
 
+    @GameTest(template = EMPTY_STRUCTURE, timeoutTicks = 120)
+    public void flockingLowersWaterMalusWhileTempted(GameTestHelper helper) {
+        buildFloor(helper, 8, 8);
+        Cow cow = helper.spawn(EntityType.COW, new BlockPos(4, 2, 3));
+        float defaultMalus = cow.getPathfindingMalus(PathType.WATER);
+        ServerPlayer driver = wheatHolder(helper, new BlockPos(3, 2, 3));
+        // While the flock goal runs the water cost is zeroed so the cow commits to a river line
+        // instead of a shoreline detour; the moment the food is gone the goal stops and restores it,
+        // so the swim enablement never leaks past the drive.
+        helper.startSequence()
+                .thenWaitUntil(() -> helper.assertTrue(cow.getPathfindingMalus(PathType.WATER) == 0.0F,
+                        "a flock-tempted cow's water cost is zeroed"))
+                .thenExecute(() -> driver.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY))
+                .thenWaitUntil(() -> helper.assertTrue(cow.getPathfindingMalus(PathType.WATER) == defaultMalus,
+                        "the water cost is restored once the flock goal stops"))
+                .thenExecute(() -> {
+                    cow.discard();
+                    driver.discard();
+                })
+                .thenSucceed();
+    }
+
+    @GameTest(template = EMPTY_STRUCTURE, timeoutTicks = 80, batch = "instinctNoFlockMalus")
+    public void flockingOffLeavesWaterMalusUntouched(GameTestHelper helper) {
+        boolean saved = InstinctConfig.get().enableFlocking;
+        InstinctConfig.get().enableFlocking = false;
+        try {
+            buildFloor(helper, 8, 8);
+            Cow cow = helper.spawn(EntityType.COW, new BlockPos(4, 2, 3));
+            float defaultMalus = cow.getPathfindingMalus(PathType.WATER);
+            wheatHolder(helper, new BlockPos(3, 2, 3)); // the vanilla tempt goal still runs on held food
+            helper.runAfterDelay(40, () -> {
+                try {
+                    helper.assertTrue(cow.getPathfindingMalus(PathType.WATER) == defaultMalus,
+                            "with flocking off the vanilla tempt goal never lowers the water cost");
+                } finally {
+                    InstinctConfig.get().enableFlocking = saved;
+                }
+                cow.discard();
+                helper.succeed();
+            });
+        } catch (RuntimeException e) {
+            InstinctConfig.get().enableFlocking = saved;
+            throw e;
+        }
+    }
+
+    @GameTest(template = LANE, timeoutTicks = 600, batch = "instinctDrive")
+    public void driveCrossesWaterToConverge(GameTestHelper helper) {
+        buildWaterCrossing(helper);
+        ServerPlayer driver = wheatHolder(helper, new BlockPos(13, 2, 3));
+        List<Cow> cows = new ArrayList<>();
+        for (int[] spot : new int[][]{{2, 2}, {2, 3}, {3, 3}}) {
+            cows.add(helper.spawn(EntityType.COW, new BlockPos(spot[0], 2, spot[1])));
+        }
+        helper.succeedWhen(() -> {
+            for (Cow cow : cows) {
+                helper.assertTrue(cow.position().distanceTo(driver.position()) <= 5.0,
+                        "every driven cow crosses the water channel and reaches the driver");
+                helper.assertTrue(cow.getHealth() == cow.getMaxHealth(),
+                        "no cow drowns making the crossing");
+            }
+            cows.forEach(Animal::discard);
+            driver.discard();
+        });
+    }
+
+    @GameTest(template = EMPTY_STRUCTURE, timeoutTicks = 160, batch = "instinctFlockToggle")
+    public void disablingFlockingMidDriveRestoresWaterMalus(GameTestHelper helper) {
+        buildFloor(helper, 8, 8);
+        Cow cow = helper.spawn(EntityType.COW, new BlockPos(4, 2, 3));
+        float defaultMalus = cow.getPathfindingMalus(PathType.WATER);
+        ServerPlayer driver = wheatHolder(helper, new BlockPos(3, 2, 3));
+        // Toggling the feature off mid-drive must restore the water cost promptly — the goal re-reads
+        // the flag live rather than holding a lowered cost until the tempt naturally ends. Isolated in
+        // its own batch so the config mutation never bleeds into another test.
+        helper.startSequence()
+                .thenWaitUntil(() -> helper.assertTrue(cow.getPathfindingMalus(PathType.WATER) == 0.0F,
+                        "the flock goal lowers the water cost while flocking is on"))
+                .thenExecute(() -> InstinctConfig.get().enableFlocking = false)
+                .thenWaitUntil(() -> helper.assertTrue(cow.getPathfindingMalus(PathType.WATER) == defaultMalus,
+                        "disabling flocking mid-drive restores the water cost promptly"))
+                .thenExecute(() -> {
+                    InstinctConfig.get().enableFlocking = true;
+                    cow.discard();
+                    driver.discard();
+                })
+                .thenSucceed();
+    }
+
     // ── helpers ─────────────────────────────────────────────────────────────────────────────────
 
     private static long countFlocking(Animal animal) {
@@ -289,6 +380,32 @@ public class HerdingGameTest implements FabricGameTest {
             for (int z = 0; z < depth; z++) {
                 helper.setBlock(new BlockPos(x, 0, z), Blocks.SMOOTH_STONE.defaultBlockState());
                 helper.setBlock(new BlockPos(x, 1, z), Blocks.SMOOTH_STONE.defaultBlockState());
+            }
+        }
+    }
+
+    /**
+     * A 16×6 sealed pen split by a water channel: solid banks at x[1..5] (cows spawn) and x[10..14]
+     * (the driver waits), a 4-wide water strip between them spanning the full depth, and a two-block
+     * stone wall on the whole perimeter. The wall contains the water source blocks (so nothing spills
+     * out of the test bounds) and leaves no dry detour, so a cow can only reach the driver by
+     * committing to the crossing.
+     */
+    private static void buildWaterCrossing(GameTestHelper helper) {
+        int width = 16;
+        int depth = 6;
+        for (int x = 0; x < width; x++) {
+            for (int z = 0; z < depth; z++) {
+                helper.setBlock(new BlockPos(x, 0, z), Blocks.SMOOTH_STONE.defaultBlockState());
+                boolean wall = x == 0 || x == width - 1 || z == 0 || z == depth - 1;
+                boolean channel = x >= 6 && x <= 9;
+                if (wall) {
+                    helper.setBlock(new BlockPos(x, 1, z), Blocks.SMOOTH_STONE.defaultBlockState());
+                    helper.setBlock(new BlockPos(x, 2, z), Blocks.SMOOTH_STONE.defaultBlockState());
+                } else {
+                    helper.setBlock(new BlockPos(x, 1, z),
+                            channel ? Blocks.WATER.defaultBlockState() : Blocks.SMOOTH_STONE.defaultBlockState());
+                }
             }
         }
     }
