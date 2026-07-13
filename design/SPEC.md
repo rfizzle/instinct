@@ -455,7 +455,7 @@ C B C
 
 `C` = copper ingot, `B` = bone.
 
-**Left-click (swing), any target or air:** toggles every **owned, tamed, non-downed** pets-set animal (Animal Coverage) within `whistleRadiusBlocks` (default 20) of the player:
+**Left-click (swing), any target or air, without sneaking:** toggles every **owned, tamed, non-downed** pets-set animal (Animal Coverage) within `whistleRadiusBlocks` (default 20) of the player:
 - If at least one such pet is currently standing (following) → **Stay**: all of them sit. Feedback: `✦ <n> pets will stay.` + the falling stay cue.
 - Otherwise (all sitting) → **Follow**: all of them stand. Feedback: `✦ <n> pets will follow.` + the rising follow cue.
 - No pets in radius: `✦ No pets in range.`, no cue.
@@ -476,6 +476,10 @@ C B C
 - Every owned, tamed, non-downed pet that **can fight** — one carrying a vanilla melee-attack goal (wolves and modded fighters; not cats or parrots, which have no such goal) — within `whistleRadiusBlocks` stands and takes a persistent guard order anchored at that spot. Feedback: `✦ <n> pets will hold here.` + the steady guard cue.
 - A guarding pet patrols within `guardRadiusBlocks` (default 8) of its post and engages **hostile monsters only** that enter it — never players, never any animal, so a guard never turns on your livestock or another player's pets. It hands the fight to its vanilla melee once a target is set and returns to post when the threat is down. The order holds through chunk unload and server restart until countermanded.
 
+**Locate (sneak + left-click).** Sneak and left-click — on air, a block, or an entity — to answer for every **owned, tamed** pet (downed included) beyond the whistle's `whistleRadiusBlocks` voice, wherever it stands. Not a command but a search aid: one dry chat line each, nearest first, capped at ten with an "…and N more." tail. It never moves or commands a pet.
+- A pet in the player's own dimension reads its distance, eight-point compass bearing, and posture: `Rex — 240m northwest, sitting.` A pet in another dimension reads only that dimension (a bearing is meaningless across worlds): `Rex — in the Nether.`, with a downed one flagged: `Bolt — in the End, downed.`
+- The census finds only pets in **loaded** chunks — a pet in an unloaded chunk is not in memory to be found. Empty census: `✦ No pets beyond earshot.`, no cue. It shares the whistle's item cooldown.
+
 **Cooldown:** `whistleCooldownTicks` (default 20) item cooldown after any whistle action (vanilla item-cooldown overlay on the slot).
 
 ### Interplay
@@ -493,7 +497,7 @@ C B C
 - **Mixed pack states** resolve by the standing-check rule above (any-standing → everyone sits) — one press always produces one coherent pack state. A guarding pet counts as standing, so a Stay/Follow toggle clears its post and sits the pack with the rest.
 - **Pets in vehicles/leashed:** they receive the sit/stand state change; movement follows vanilla rules for their restraint.
 - **Target dies mid-flight:** vanilla target invalidation applies; pets disengage normally.
-- `enableWhistle = false`: both clicks do nothing and show `✦ The whistle is silent here.` (crafting stays available; the item is inert, not removed).
+- `enableWhistle = false`: every whistle gesture — toggle, attack, round-up, guard, and locate — does nothing and shows `✦ The whistle is silent here.` (crafting stays available; the item is inert, not removed).
 
 ### Multiplayer
 
@@ -518,6 +522,7 @@ Server-authoritative: the left-click gesture is reported by the client, but pet 
 - Attack order: `pet.setOrderedToSit(false)` then `pet.setTarget(target)`; combat-capability = `getAttribute(ATTACK_DAMAGE) != null`.
 - Round-up: builds the drive group by AABB + same-type filter, then hands the group and the ordering player to §4's press machinery (claims, behind-points, expiries) with a 600-tick order deadline. No new goals — the whistle is a second trigger on the same `HerdWorkGoal`.
 - Guard: sneak + right-click routes `Item#use` to `performGuard`, which resolves the anchor with a block raycast (`Entity#pick`) and writes a `GuardData` attachment (anchor `BlockPos`) on each posted pet that can fight — a pet carrying a vanilla melee-attack goal, a truer capability check than the attack-damage attribute (cats and parrots carry the attribute in 1.21.1 but have no melee goal to act on a target). A `GuardGoal`, added to every tamable on load and inert without the attachment (like predator watch), scans on an interval for the nearest hostile within `guardRadiusBlocks` of the anchor and `setTarget`s it — vanilla melee does the fighting — then pins the pet to its post. It yields the move slot the instant a target is set and stands down for the creeper berth (same priority). Every other whistle order clears the attachment.
+- Locate: sneak + left-click routes to `performLocate` — the client swing hook branches on sneak to send `instinct:whistle_locate` (empty body) on air, and `onLeftClick`'s `AttackBlockCallback`/`AttackEntityCallback` path branches on `isShiftKeyDown()` for a block or entity, so all three gesture handlers agree. It scans every loaded `ServerLevel` (`getAllLevels`) for the player's owned tamed pets, drops the same-dimension pets within `whistleRadiusBlocks`, sorts nearest-first, caps at `WhistleLocator.MAX_LINES`, and sends the census to chat (`sendSystemMessage`, one line per pet — not the action bar), sharing the whistle item cooldown. The compass bearing, distance rounding, and same-vs-cross-dimension line-key choice are the pure `WhistleLocator` (Tier-1 unit-tested); downed pets are included, unlike every command.
 
 ---
 

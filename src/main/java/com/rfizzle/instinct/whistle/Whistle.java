@@ -26,6 +26,7 @@ public final class Whistle {
 
     public static void register() {
         PayloadTypeRegistry.playC2S().register(WhistleTogglePayload.TYPE, WhistleTogglePayload.CODEC);
+        PayloadTypeRegistry.playC2S().register(WhistleLocatePayload.TYPE, WhistleLocatePayload.CODEC);
         ServerPlayNetworking.registerGlobalReceiver(WhistleTogglePayload.TYPE, (payload, context) -> {
             ServerPlayer player = context.player();
             player.server.execute(() -> {
@@ -36,17 +37,36 @@ public final class Whistle {
                 }
             });
         });
+        ServerPlayNetworking.registerGlobalReceiver(WhistleLocatePayload.TYPE, (payload, context) -> {
+            ServerPlayer player = context.player();
+            player.server.execute(() -> {
+                try {
+                    handleLocate(player);
+                } catch (Exception e) {
+                    Instinct.LOGGER.error("Whistle locate failed for {}", player.getGameProfile().getName(), e);
+                }
+            });
+        });
         AttackBlockCallback.EVENT.register((player, level, hand, pos, direction) -> onLeftClick(player, hand, level));
         AttackEntityCallback.EVENT.register((player, level, hand, entity, hitResult) -> onLeftClick(player, hand, level));
     }
 
-    /** Cancels a whistle left-click (so it never punches) and runs the toggle server-side. */
+    /**
+     * Cancels a whistle left-click (so it never punches) and runs the server-side gesture: a plain
+     * left-click toggles Stay/Follow, a sneak + left-click reports the lost-pet locator — matching the
+     * air-click gestures the client swing hook sends, so a block or entity under the crosshair answers
+     * the same way.
+     */
     private static InteractionResult onLeftClick(Player player, InteractionHand hand, Level level) {
         if (hand != InteractionHand.MAIN_HAND || !player.getMainHandItem().is(InstinctItems.COMMAND_WHISTLE)) {
             return InteractionResult.PASS;
         }
         if (!level.isClientSide && player instanceof ServerPlayer serverPlayer) {
-            handleToggle(serverPlayer);
+            if (serverPlayer.isShiftKeyDown()) {
+                handleLocate(serverPlayer);
+            } else {
+                handleToggle(serverPlayer);
+            }
         }
         // Cancel on both sides (swing the arm, break nothing).
         return InteractionResult.SUCCESS;
@@ -54,10 +74,21 @@ public final class Whistle {
 
     /** The single server gate for a toggle: main-hand whistle, off cooldown, then the action. */
     private static void handleToggle(ServerPlayer player) {
-        if (!player.getMainHandItem().is(InstinctItems.COMMAND_WHISTLE)
-                || player.getCooldowns().isOnCooldown(InstinctItems.COMMAND_WHISTLE)) {
-            return;
+        if (isReady(player)) {
+            WhistleActions.performToggle(player);
         }
-        WhistleActions.performToggle(player);
+    }
+
+    /** The single server gate for a locate: main-hand whistle, off cooldown, then the census. */
+    private static void handleLocate(ServerPlayer player) {
+        if (isReady(player)) {
+            WhistleActions.performLocate(player);
+        }
+    }
+
+    /** Whether a whistle gesture may fire: the main hand holds the whistle and it is off cooldown. */
+    private static boolean isReady(ServerPlayer player) {
+        return player.getMainHandItem().is(InstinctItems.COMMAND_WHISTLE)
+                && !player.getCooldowns().isOnCooldown(InstinctItems.COMMAND_WHISTLE);
     }
 }

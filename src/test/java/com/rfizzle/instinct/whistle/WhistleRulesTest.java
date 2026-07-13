@@ -37,6 +37,26 @@ class WhistleRulesTest {
     }
 
     @Test
+    void locatablePetIsTamedOwnedAndCovered() {
+        assertTrue(WhistleRules.isLocatablePet(true, true, true),
+                "a tamed, owned, pet-covered animal appears in the locator");
+    }
+
+    @Test
+    void untamedOrUnownedOrUncoveredIsNotLocatable() {
+        assertFalse(WhistleRules.isLocatablePet(false, true, true), "untamed is excluded");
+        assertFalse(WhistleRules.isLocatablePet(true, false, true), "another player's pet is excluded");
+        assertFalse(WhistleRules.isLocatablePet(true, true, false), "a non-pet-covered animal is excluded");
+    }
+
+    @Test
+    void aDownedPetIsLocatableButNotCommandable() {
+        // The locator has no downed gate (it's how you find the patient), unlike the command filter.
+        assertTrue(WhistleRules.isLocatablePet(true, true, true), "a downed pet is still found by the locator");
+        assertFalse(WhistleRules.isCommandablePet(true, true, true, true), "the same downed pet is not commandable");
+    }
+
+    @Test
     void combatCapabilityTracksTheAttackAttribute() {
         assertTrue(WhistleRules.isCombatCapable(true), "a pet with an attack-damage attribute can attack");
         assertFalse(WhistleRules.isCombatCapable(false), "a pet without one (cat, parrot) cannot");
