@@ -267,6 +267,34 @@ public class WhistleGameTest implements FabricGameTest {
         });
     }
 
+    // The guard must resume after a kill: vanilla melee leaves a dead hostile set as the target, so the
+    // goal has to clear it and re-engage rather than stay pinned to a corpse. Two-phase: engage the
+    // first hostile, remove it, then assert the guard picks up a second one that enters the post.
+    @GameTest(template = EMPTY_STRUCTURE, timeoutTicks = 400)
+    public void guardResumesAfterItsHostileDies(GameTestHelper helper) {
+        buildFloor(helper, 12, 12);
+        ServerPlayer owner = mockPlayer(helper, new BlockPos(2, 2, 2));
+        Wolf wolf = spawnTamedWolf(helper, new BlockPos(6, 2, 6), owner.getUUID());
+        wolf.setAttached(InstinctAttachments.GUARD, new GuardData(helper.absolutePos(new BlockPos(6, 2, 6))));
+        Zombie first = helper.spawn(EntityType.ZOMBIE, new BlockPos(8, 2, 6));
+        Zombie[] second = new Zombie[1];
+
+        helper.startSequence()
+                .thenWaitUntil(() -> helper.assertTrue(wolf.getTarget() == first, "the guard engages the first hostile"))
+                .thenExecute(first::discard)
+                .thenExecute(() -> second[0] = helper.spawn(EntityType.ZOMBIE, new BlockPos(8, 2, 6)))
+                .thenWaitUntil(() -> helper.assertTrue(wolf.getTarget() == second[0],
+                        "once its first target is gone the guard clears it and engages the next hostile"))
+                .thenExecute(() -> {
+                    if (second[0] != null) {
+                        second[0].discard();
+                    }
+                    wolf.discard();
+                    owner.discard();
+                })
+                .thenSucceed();
+    }
+
     @GameTest(template = EMPTY_STRUCTURE)
     public void aNewOrderClearsTheGuardPost(GameTestHelper helper) {
         buildFloor(helper, 8, 8);
