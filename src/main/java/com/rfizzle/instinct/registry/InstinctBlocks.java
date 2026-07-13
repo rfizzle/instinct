@@ -2,6 +2,7 @@ package com.rfizzle.instinct.registry;
 
 import com.rfizzle.instinct.Instinct;
 import com.rfizzle.instinct.block.FeedingTroughBlock;
+import com.rfizzle.instinct.block.KennelPostBlock;
 import net.fabricmc.fabric.api.registry.FlammableBlockRegistry;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -27,6 +28,13 @@ public final class InstinctBlocks {
             .strength(2.0F)
             .noOcclusion());
 
+    /** The kennel post — a wooden home marker for the pack, axe-mineable, flammable like planks (§9). */
+    public static final Block KENNEL_POST = new KennelPostBlock(BlockBehaviour.Properties.of()
+            .mapColor(MapColor.WOOD)
+            .sound(SoundType.WOOD)
+            .strength(2.0F)
+            .noOcclusion());
+
     private static boolean registered = false;
 
     private InstinctBlocks() {
@@ -39,8 +47,10 @@ public final class InstinctBlocks {
         }
         registered = true;
         registerBlock("feeding_trough", FEEDING_TROUGH);
-        // Flammable like the planks it is built from (vanilla planks are 5 / 20).
+        registerBlock("kennel_post", KENNEL_POST);
+        // Flammable like the planks they are built from (vanilla planks are 5 / 20).
         FlammableBlockRegistry.getDefaultInstance().add(FEEDING_TROUGH, 5, 20);
+        FlammableBlockRegistry.getDefaultInstance().add(KENNEL_POST, 5, 20);
     }
 
     private static void registerBlock(String name, Block block) {

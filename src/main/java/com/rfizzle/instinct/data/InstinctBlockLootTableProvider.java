@@ -21,5 +21,6 @@ public class InstinctBlockLootTableProvider extends FabricBlockLootTableProvider
     @Override
     public void generate() {
         dropSelf(InstinctBlocks.FEEDING_TROUGH);
+        dropSelf(InstinctBlocks.KENNEL_POST);
     }
 }
