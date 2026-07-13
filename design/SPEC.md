@@ -345,17 +345,23 @@ Baby animals keep their vanilla follow-parent behavior underneath; leads overrid
 
 The pet presses; it never attacks, and being pressed is not damage — pressed animals never panic from it. Any pets-set species herds: herding is follow-work, not combat, so a cat drives cows as well as a wolf does. §6's round-up order reuses this exact press mechanic with a whistle trigger.
 
+**Water crossings.** While `enableFlocking` is on, a flock crosses water together instead of scattering at the shoreline. For the span it is actively tempted, a flock member — and a pet working the drive behind it — has its water pathfinding malus zeroed, the same treatment vanilla already gives a pet following its owner across a river, so the herd commits to the direct line across instead of pacing the bank for a way around. The animals already float (their vanilla `FloatGoal`); left alone they simply would not *choose* the water. Movement in water is slower than on land at vanilla's own rate — no separate speed rule — and the 2-block spacing holds at the surface. Drowning stays vanilla: a flock led into open ocean is the drover's mistake, and drowning is not a panic trigger, so a crossing never scatters from the water itself.
+
+**Boarding.** While `enablePetBoating` is on, a following pet takes the spare seat in its owner's boat. A vanilla boat seats two: the owner fills one seat and the single nearest following pet claims the other — at most one pet per boat — swimming to the boat and boarding on its own, then hopping back out the moment the owner leaves it. A pet on Stay, downed, or already riding never boards, and a full boat (a chest boat, or a second player aboard) has no seat to give — the pack simply swims the crossing behind the boat. Boarding rides on vanilla's own passenger handling (position, sync, and auto-eject on logout or death come free), so it adds no persistent state.
+
 ### Edge cases
 
 - **Multiple luring players:** vanilla target selection (nearest qualifying player) is unchanged; the flock splits by target, and spacing applies within each flock. Drive assist follows the split — each player's own pets work each player's own drive.
 - **Doorways and chokepoints:** spacing is a steering preference, not a collision rule — animals still funnel through 1-wide gaps single-file.
 - **The trough (§5)** never tempts; flocking applies only to player-held food.
 - **Straggler behind a wall:** if the working pet cannot path to the behind-point within its claim window, the claim expires and the straggler becomes claimable again (or is simply left — the drive never stalls waiting on one animal).
-- **`enableFlocking = false`, `enableHerding = true`:** drive assist requires a tempt flock, so it never activates; the whistle round-up (§6) still works.
+- **`enableFlocking = false`, `enableHerding = true`:** drive assist requires a tempt flock, so it never activates; the whistle round-up (§6) still works. Water crossing folds into `enableFlocking` as well — with flocking off, a flock (or a round-up) moves as vanilla and does not cross water.
+- **No spare seat:** a chest boat seats one and a boat carrying a second player is full; no pet boards either, and the pack swims the crossing behind the boat instead.
+- **Seat priority:** when several pets follow, only the nearest eligible one walks up to the seat; the vanilla two-seat cap arbitrates any tie, so a boat is never overfilled.
 
 ### Multiplayer
 
-Server-side movement adjustment; every player experiences the same herd shape. Drive assist uses only the driving player's own pets; two players driving herds side by side each get their own pets' help and never each other's.
+Server-side movement adjustment; every player experiences the same herd shape. Drive assist uses only the driving player's own pets; two players driving herds side by side each get their own pets' help and never each other's. Boarding is per-pet against its own owner's boat — a pet only ever takes a seat in the boat its owner is riding.
 
 ### Config
 
@@ -366,6 +372,7 @@ Server-side movement adjustment; every player experiences the same herd shape. D
 | `flockSpacingBlocks` | double | `2.0` | 1.0–4.0 |
 | `enableHerding` | bool | `true` | drive assist + round-up (§6) |
 | `herdingMaxPets` | int | `2` | 1–4 |
+| `enablePetBoating` | bool | `true` | pets take a boat's spare seat |
 
 ### Implementation Notes
 
@@ -373,6 +380,8 @@ Server-side movement adjustment; every player experiences the same herd shape. D
 - Goal replacement is the only pattern where Instinct swaps rather than adds — always a vanilla goal for a *subclass* of itself (tempt here; panic for §3's placid perk), preserving all vanilla semantics when the feature toggles off mid-world (disabled ⇒ the subclass behaves exactly as the vanilla goal).
 - Drive assist is two injected goals plus math: a `HerdWorkGoal` on pets (idle unless its owner is driving; computes the behind-point, holds the claim) and a press response on the claimed straggler via a transient high-priority move impulse (no persistent state — the claim map lives server-side, cleared on `SERVER_STOPPED`). The behind-point and straggler selection are pure helpers (`Herding.pressPoint(straggler, player)`, `Herding.stragglersOf(flock, player)`) for unit testing.
 - **Feel over choreography:** gametests assert outcomes (the herd converges within the time budget), never appearance; the looks-right bar — arcs, pacing, no jitter — lives in manual testing. If pet positioning proves janky, the pressure valve is staging: the pet holds a fixed rear point and only the straggler's hustle carries the read. Drive assist is the core promise; round-up (§6) is the detachable extension.
+- Water crossing is a save-zero-restore of the `PathType.WATER` pathfinding malus around the active lifetime of `FlockingTemptGoal` and `HerdWorkGoal` (gated on `enableFlocking`, so a disabled flock behaves exactly as the vanilla tempt goal it replaced), the same trick vanilla `FollowOwnerGoal` uses — no new navigation class, mixin, or move-control impulse. Drowning needs no rule: `minecraft:drown` is not in the `panic_causes` tag, so a crossing never scatters from the water.
+- Boarding is one injected goal, `BoardBoatGoal` on every tamed pet (inert unless its owner is boating), plus the pure `Boating.chooseBoarder`/`eligibleToBoard` helpers for unit testing. It boards with an *unforced* `startRiding`, so the vanilla two-seat cap — not mod bookkeeping — guarantees one pet per boat; there is no claim map. `CreeperBerthGoal` and `HerdWorkGoal` stand down while the pet is a passenger, so nothing fights `Boat.positionRider`.
 
 ---
 

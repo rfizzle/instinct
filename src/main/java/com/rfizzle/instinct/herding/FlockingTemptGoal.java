@@ -7,6 +7,7 @@ import net.minecraft.world.entity.ai.targeting.TargetingConditions;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.pathfinder.PathType;
 
 import java.util.List;
 import java.util.function.Predicate;
@@ -44,6 +45,8 @@ public class FlockingTemptGoal extends TemptGoal {
     private TargetingConditions flockTargeting;
     private int flockCalmDown;
     private int repathCooldown;
+    private float savedWaterMalus;
+    private boolean waterMalusLowered;
 
     public FlockingTemptGoal(PathfinderMob mob, double speedModifier, Predicate<ItemStack> items, boolean canScare) {
         super(mob, speedModifier, items, canScare);
@@ -88,12 +91,39 @@ public class FlockingTemptGoal extends TemptGoal {
             this.player = ordered;
             return true;
         }
+        // Flocking disabled mid-drive: stop now so stop() restores the water malus promptly, honoring
+        // the "disabled ⇒ behaves exactly as the vanilla goal" invariant instead of holding a lowered
+        // cost until the tempt naturally ends. Only fires when this goal did the lowering (flocking
+        // was on at start), so the round-up path — which never lowers the malus — is untouched.
+        if (this.waterMalusLowered && !InstinctConfig.get().enableFlocking) {
+            return false;
+        }
         return super.canContinueToUse();
+    }
+
+    @Override
+    public void start() {
+        super.start();
+        // Match vanilla FollowOwnerGoal: zero the water pathfinding malus for the goal's lifetime so a
+        // flock commits to the direct line across a river instead of A* preferring a land detour around
+        // the default 8.0 water cost — the animal already floats (FloatGoal), it just would not choose
+        // the water. Gated on the toggle so a disabled flock (which delegates to the vanilla tempt goal)
+        // never crosses water. The flag, not the live config, drives the restore in stop(), so a
+        // mid-drive toggle can never strand a lowered malus.
+        if (InstinctConfig.get().enableFlocking) {
+            this.savedWaterMalus = this.mob.getPathfindingMalus(PathType.WATER);
+            this.mob.setPathfindingMalus(PathType.WATER, 0.0F);
+            this.waterMalusLowered = true;
+        }
     }
 
     @Override
     public void stop() {
         super.stop();
+        if (this.waterMalusLowered) {
+            this.mob.setPathfindingMalus(PathType.WATER, this.savedWaterMalus);
+            this.waterMalusLowered = false;
+        }
         this.flockCalmDown = reducedTickDelay(100);
     }
 

@@ -48,7 +48,7 @@
         },
         {
           "type": "note",
-          "html": "Also in the design: herds that flock 15% faster behind held food with 2-block spacing, and automatic coverage for modded animals — a tameable otter is a pet, a breedable critter is livestock. <a href='/features.html' class='text-accent hover:text-accent2 underline'>Full feature list →</a>",
+          "html": "Also in the design: herds that flock 15% faster behind held food with 2-block spacing — swimming rivers in formation while a following pet rides your boat's spare seat — and automatic coverage for modded animals: a tameable otter is a pet, a breedable critter is livestock. <a href='/features.html' class='text-accent hover:text-accent2 underline'>Full feature list →</a>",
           "center": true
         }
       ]

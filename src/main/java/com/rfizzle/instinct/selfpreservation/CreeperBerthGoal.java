@@ -58,9 +58,11 @@ public class CreeperBerthGoal extends Goal {
         }
         scanCooldown = adjustedTickDelay(SCAN_INTERVAL_TICKS);
         InstinctConfig config = InstinctConfig.get();
-        // A ridden mount is steered by its rider (SPEC §1: flee only while riderless); a pet is
-        // never a vehicle, so this gate is a no-op for pets.
-        if (!config.enableSelfPreservation || !OwnedAnimals.isTamed(mob) || mob.isVehicle()) {
+        // A ridden mount is steered by its rider (SPEC §1: flee only while riderless). A pet seated in
+        // a boat is likewise not free to path away — its position is the boat's — so a boated pet holds
+        // its seat rather than spinning a moveAway the boat would override every tick.
+        if (!config.enableSelfPreservation || !OwnedAnimals.isTamed(mob)
+                || mob.isVehicle() || mob.isPassenger()) {
             return false;
         }
         // Deliberate side effect in an engagement check: the attack break-off must fire for any
@@ -78,6 +80,7 @@ public class CreeperBerthGoal extends Goal {
     public boolean canContinueToUse() {
         return InstinctConfig.get().enableSelfPreservation
                 && !mob.isVehicle()
+                && !mob.isPassenger()
                 && threat != null
                 && threat.isAlive()
                 && threat.getSwellDir() > 0

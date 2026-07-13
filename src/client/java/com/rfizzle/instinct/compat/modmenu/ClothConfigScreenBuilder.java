@@ -225,6 +225,11 @@ final class ClothConfigScreenBuilder {
                 .setTooltip(tooltip("herdingMaxPets"))
                 .setSaveConsumer(v -> working.herdingMaxPets = v)
                 .build());
+        herding.addEntry(entry.startBooleanToggle(label("enablePetBoating"), config.enablePetBoating)
+                .setDefaultValue(defaults.enablePetBoating)
+                .setTooltip(tooltip("enablePetBoating"))
+                .setSaveConsumer(v -> working.enablePetBoating = v)
+                .build());
 
         // --- Feeding Trough (§5) ---
         ConfigCategory trough = builder.getOrCreateCategory(Component.translatable("config.instinct.category.trough"));

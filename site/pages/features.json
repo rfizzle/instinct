@@ -62,7 +62,8 @@
           "type": "prose",
           "html": [
             "Hold wheat, carrots, or seeds and the matching animals form a flock behind you — 15% faster than vanilla, holding a loose 2-block spacing instead of shoving into your back, and stopping at arm's length while you stand still. Moving twelve cows across a river becomes a drive, not a scrum.",
-            "Your pets work the drive with you. Lead a flock of three or more and up to two of your following pets fall in behind it on their own, each getting behind a straggler — an animal lagging more than 8 blocks back — and pressing it toward you until it catches up. Pets press, never bite: a driven animal is never hurt and never panics, and any pet herds, so a cat drives cows as well as a dog does. A pet breaking off to keep its own berth from a creeper always wins over the drive."
+            "Your pets work the drive with you. Lead a flock of three or more and up to two of your following pets fall in behind it on their own, each getting behind a straggler — an animal lagging more than 8 blocks back — and pressing it toward you until it catches up. Pets press, never bite: a driven animal is never hurt and never panics, and any pet herds, so a cat drives cows as well as a dog does. A pet breaking off to keep its own berth from a creeper always wins over the drive.",
+            "Water is no longer where the drive dies. A flock swims a river behind you in formation instead of scattering at the bank — slower than on land, but together, with your flanking pets still working the rear — and a following pet takes your boat's spare seat once you're aboard, riding along and stepping back out when you land. Drowning stays vanilla, so leading a flock into open ocean is still on you."
           ]
         }
       ]

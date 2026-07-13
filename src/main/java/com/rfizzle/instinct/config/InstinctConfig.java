@@ -79,6 +79,7 @@ public class InstinctConfig {
     public double flockSpacingBlocks = 2.0;
     public boolean enableHerding = true;
     public int herdingMaxPets = 2;
+    public boolean enablePetBoating = true;
 
     // §5 Feeding Trough
     public boolean enableTrough = true;

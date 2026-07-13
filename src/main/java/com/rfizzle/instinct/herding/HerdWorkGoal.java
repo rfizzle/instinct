@@ -9,6 +9,7 @@ import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.ai.goal.WrappedGoal;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.pathfinder.PathType;
 import net.minecraft.world.phys.AABB;
 
 import java.util.ArrayList;
@@ -49,6 +50,7 @@ public class HerdWorkGoal extends Goal {
     private int repathCooldown;
     private double behindX;
     private double behindZ;
+    private float savedWaterMalus;
 
     public HerdWorkGoal(TamableAnimal pet) {
         this.pet = pet;
@@ -110,6 +112,12 @@ public class HerdWorkGoal extends Goal {
 
     @Override
     public void start() {
+        // Zero the water malus for the goal's lifetime so a working pet swims a straggler back across a
+        // river instead of stalling at the bank — the same trick vanilla FollowOwnerGoal uses, and the
+        // same one FlockingTemptGoal applies to the flock it presses. canUse() already gated on the
+        // flocking/herding toggles, so no re-check is needed here; stop() always restores.
+        savedWaterMalus = pet.getPathfindingMalus(PathType.WATER);
+        pet.setPathfindingMalus(PathType.WATER, 0.0F);
         recomputeBehindPoint();
         repathCooldown = 0;
     }
@@ -137,13 +145,16 @@ public class HerdWorkGoal extends Goal {
         }
         straggler = null;
         driver = null;
+        pet.setPathfindingMalus(PathType.WATER, savedWaterMalus);
         pet.getNavigation().stop();
     }
 
     /** True when this pet is a valid worker: tamed, following an online owner within reach in the
-     *  same level, not downed, not in combat, and not fleeing a creeper (§1 wins over the drive). */
+     *  same level, not seated in a boat, not downed, not in combat, and not fleeing a creeper (§1
+     *  wins over the drive). */
     private boolean eligible() {
-        if (!pet.isTame() || pet.isOrderedToSit() || InstinctAPI.isDowned(pet) || pet.getTarget() != null) {
+        if (!pet.isTame() || pet.isOrderedToSit() || pet.isPassenger()
+                || InstinctAPI.isDowned(pet) || pet.getTarget() != null) {
             return false;
         }
         if (!AnimalCoverage.membershipOf(pet).pet() || fleeingCreeper()) {
