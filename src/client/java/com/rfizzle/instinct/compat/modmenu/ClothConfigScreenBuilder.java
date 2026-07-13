@@ -91,6 +91,11 @@ final class ClothConfigScreenBuilder {
                 .setTooltip(tooltip("teleportSuppressFallDistance"))
                 .setSaveConsumer(v -> working.teleportSuppressFallDistance = v)
                 .build());
+        selfPreservation.addEntry(entry.startBooleanToggle(label("enableOwnerFriendlyFireProtection"), config.enableOwnerFriendlyFireProtection)
+                .setDefaultValue(defaults.enableOwnerFriendlyFireProtection)
+                .setTooltip(tooltip("enableOwnerFriendlyFireProtection"))
+                .setSaveConsumer(v -> working.enableOwnerFriendlyFireProtection = v)
+                .build());
 
         // --- Pet Veterancy (§2) ---
         ConfigCategory veterancy = builder.getOrCreateCategory(Component.translatable("config.instinct.category.veterancy"));

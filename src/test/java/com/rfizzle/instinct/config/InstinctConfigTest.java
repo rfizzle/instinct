@@ -21,6 +21,7 @@ class InstinctConfigTest {
             "autoDetectAnimals", "petsInclude", "petsExclude", "livestockInclude", "livestockExclude",
             "mountsInclude", "mountsExclude",
             "enableSelfPreservation", "creeperBerthBlocks", "teleportSuppressFallDistance",
+            "enableOwnerFriendlyFireProtection",
             "enableVeterancy", "veterancyThresholdDays", "healthPerRank", "damagePerRank",
             "enableRankBehaviors", "warningRadiusBlocks", "mentorRadiusBlocks", "mentorRateBonus",
             "enableGenetics", "enableGenericDropMirror", "hayRadiusBlocks", "crowdingThreshold",

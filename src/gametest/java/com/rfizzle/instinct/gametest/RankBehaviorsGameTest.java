@@ -94,7 +94,11 @@ public class RankBehaviorsGameTest implements FabricGameTest {
     @GameTest(template = EMPTY_STRUCTURE)
     public void ownersSweepSkipsRankTwoPetButHitsRankZero(GameTestHelper helper) {
         ServerPlayer owner = MockPlayers.serverPlayerInLevel(helper);
+        // Off so the sweep-dodge is the operative rule: blanket friendly-fire protection (§1) would
+        // otherwise spare the rank-0 pet too, hiding the rank-gated behavior this test pins.
+        boolean savedFriendlyFire = InstinctConfig.get().enableOwnerFriendlyFireProtection;
         try {
+            InstinctConfig.get().enableOwnerFriendlyFireProtection = false;
             BlockPos abs = helper.absolutePos(new BlockPos(2, 2, 2));
             owner.teleportTo(abs.getX() + 0.5, abs.getY(), abs.getZ() + 0.5);
             owner.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND,
@@ -127,6 +131,7 @@ public class RankBehaviorsGameTest implements FabricGameTest {
             fresh.discard();
             helper.succeed();
         } finally {
+            InstinctConfig.get().enableOwnerFriendlyFireProtection = savedFriendlyFire;
             owner.discard();
         }
     }
@@ -134,7 +139,11 @@ public class RankBehaviorsGameTest implements FabricGameTest {
     @GameTest(template = EMPTY_STRUCTURE)
     public void directHitsStillLandOnRankTwoPets(GameTestHelper helper) {
         ServerPlayer owner = MockPlayers.serverPlayerInLevel(helper);
+        // Off so a direct hit is observable: blanket friendly-fire protection (§1) blocks the owner's
+        // own hits at every rank. The sweep-dodge is the arc-only trick, never full owner immunity.
+        boolean savedFriendlyFire = InstinctConfig.get().enableOwnerFriendlyFireProtection;
         try {
+            InstinctConfig.get().enableOwnerFriendlyFireProtection = false;
             BlockPos abs = helper.absolutePos(new BlockPos(2, 2, 2));
             owner.teleportTo(abs.getX() + 0.5, abs.getY(), abs.getZ() + 0.5);
             owner.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND,
@@ -155,6 +164,7 @@ public class RankBehaviorsGameTest implements FabricGameTest {
             veteran.discard();
             helper.succeed();
         } finally {
+            InstinctConfig.get().enableOwnerFriendlyFireProtection = savedFriendlyFire;
             owner.discard();
         }
     }

@@ -51,6 +51,7 @@ public class InstinctConfig {
     public boolean enableSelfPreservation = true;
     public int creeperBerthBlocks = 4;
     public double teleportSuppressFallDistance = 3.0;
+    public boolean enableOwnerFriendlyFireProtection = true;
 
     // §2 Pet Veterancy
     public boolean enableVeterancy = true;
