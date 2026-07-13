@@ -271,6 +271,8 @@ public final class DownedHandler {
      * window, the Stay pose (pets only), and the cue land.
      */
     static void revive(Animal animal, Player reviver, ItemStack stack) {
+        // A carried pet dismounts first, so it revives on the ground and its carrier's slowdown clears.
+        CarryHandler.releaseIfCarried(animal);
         InstinctConfig config = InstinctConfig.get();
         if (config.downedRankPenalty && animal instanceof TamableAnimal pet) {
             applyRankPenalty(pet, config);
