@@ -120,7 +120,8 @@
             "When lethal damage would kill a pet, it collapses instead: helpless, whimpering, ignored by monsters, invulnerable, and it waits — indefinitely, across saves and logouts — until someone brings it back. Revive it with a golden apple or a <strong>Vet Kit</strong> (paper + string + honey bottle); it stands at half health with regeneration, and the rescue costs one veterancy rank. Bringing a downed pet back earns the <em>Back from the Brink</em> advancement.",
             "A tamed mount from the horse family goes down the same way instead of dying — it lies where it fell (ejecting its rider) and revives from the same golden apple or Vet Kit, with no rank to lose. Losing a maxed horse to one creeper stops being permanent.",
             "A downed small pet — a cat, parrot, or pup — can be scooped up and carried clear of the fire. Sneak-use it to lift it onto you, walk it out of danger, then sneak-use a block to set it down and revive it. Carrying occupies no inventory slot but slows you modestly, so a rescue under fire still costs something; full-size pets and mounts stay where they fall.",
-            "Fire, lava, and the void are beyond saving — which is exactly what their survival instinct is for."
+            "Fire, lava, and the void are beyond saving — which is exactly what their survival instinct is for.",
+            "A pet lost that way is not lost without a trace. It leaves a <strong>keepsake collar</strong> engraved with its name, and its rank if it earned one — a memento with no gameplay use, dropped clear of the fire or laid on safe ground above the void. A sixty-day companion deserves better than an empty lead."
           ]
         }
       ]

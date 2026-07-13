@@ -59,6 +59,7 @@
             ["<code>downedRankPenalty</code>", "bool", "<code>true</code>", "—", "Downed pets"],
             ["<code>enableCarryDowned</code>", "bool", "<code>true</code>", "—", "Downed pets"],
             ["<code>carrySlowdownFraction</code>", "double", "<code>0.30</code>", "0.0–0.9", "Downed pets"],
+            ["<code>enableKeepsakeCollar</code>", "bool", "<code>true</code>", "—", "Downed pets"],
             ["<code>enablePredatorWatch</code>", "bool", "<code>true</code>", "—", "Predator watch"],
             ["<code>predatorWatchRadiusBlocks</code>", "int", "<code>12</code>", "4–24", "Predator watch"],
             ["<code>predatorsInclude</code>", "list", "<code>[]</code>", "—", "Predator watch"],

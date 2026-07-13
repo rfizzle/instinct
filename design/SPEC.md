@@ -534,7 +534,7 @@ Applies to every tamed animal in the **pets set** and every tamed animal in the 
 
 The downed state is indefinite: it persists across saves, chunk unloads, dimension border, and owner logout. Downed pets never despawn.
 
-**Beyond saving.** The death is **not** cancelled — the pet dies exactly as vanilla — when the lethal damage is fire or lava damage, void damage, or a kill command. VISION.md names this edge: fire, lava, and the void are beyond saving (and §1 exists to keep pets out of them).
+**Beyond saving.** The death is **not** cancelled — the pet dies exactly as vanilla — when the lethal damage is fire or lava damage, void damage, or a kill command. VISION.md names this edge: fire, lava, and the void are beyond saving (and §1 exists to keep pets out of them). A tamed pets-set pet lost to fire, lava, or the void leaves a keepsake collar (below).
 
 **Revival.** Any player (not only the owner) uses an item in `#instinct:revive_items` on the downed pet. The tag ships with:
 - the **golden apple** (regular and enchanted), and
@@ -548,10 +548,13 @@ The item is consumed; the pet revives: health set to `reviveHealthFraction` (def
 
 **Carrying.** While `enableCarryDowned` is true (default), a downed pet small enough to lift can be scooped up and carried out of danger. A downed pets-set animal is **carryable** when it is a baby (a pup) or its type is in `#instinct:carryable` (ships cat and parrot; a mod extends it) — full-size pets and every mount stay where they fall. Sneak + empty-hand use on a carryable downed pet makes it a **passenger of the rescuer**: `✦ Carrying <name>.` The pet stays downed the whole time — invulnerable, no AI, still whimpering — so lifting only relocates it. Carrying occupies no inventory slot but slows the carrier: a transient `MOVEMENT_SPEED` modifier of `carrySlowdownFraction` (default 0.30 → ×0.70), removed the instant the carry ends and never persisted, so a logout can never strand a slowed player. A rescuer carries one pet at a time (`✦ Your hands are full.`). Sneak + empty-hand use on a block sets the pet down again, still downed: `✦ <name> set down.` Reviving a carried pet — a co-op partner can, with a `#instinct:revive_items` item — releases it from the carrier's arms and clears the slowdown; the carrier's own flow is to set the pet down, then revive it on the ground. However a carry ends — set down, revived, or the carrier logging out or dying — the pet is left downed wherever it comes to rest, no worse off than where it fell. Fire, lava, and the void remain beyond saving, carried or not: a pet taken into them dies as it would anywhere.
 
+**Keepsake collar.** While `enableKeepsakeCollar` is true (default), a tamed **pets-set** animal lost beyond saving to fire, lava, or the void leaves a **keepsake collar** (`instinct:keepsake_collar`) — a memento engraved with the pet's name and its veterancy standing at the moment of loss. Every tamed pet leaves one, ranked or not: the engraving reads the pet's name, then its rank and days (`Venerable — seen 63 days`) or the days alone for an unranked pet (`Seen 4 days`), snapshotted so a later threshold-config edit never rewrites a memento. The collar is a pure keepsake — zero gameplay power: fire-resistant so the drop survives the lava that took the pet, in no tag, revives nothing, crafts into nothing, stacks to 1. A fire or lava loss drops it in place; a void loss lays it on the ground at the pet's own column — the surface it walked off — rather than into the void. Mounts and livestock leave nothing (a collar is a pet's alone), and the `/kill` command, though beyond saving, leaves nothing — it is an admin act, not grief.
+
 ### Edge cases
 
 - **Explosion that downs the pet:** the triggering damage resolves first (pet goes down); subsequent blast/fire ticks hit invulnerability. A pet downed *in* fire that keeps burning: the next fire tick is lethal-class fire damage against a downed pet — downed pets are invulnerable to it like everything else; the "beyond saving" test applies only to the *lethal blow that would have killed a healthy pet*, not to damage after downing. (A pet downed at the lava edge is safe; a pet swimming in lava never goes down at all.)
 - **`/kill` and void:** bypass downed entirely (die normally), including while already downed — a downed pet that falls into the void dies.
+- **Keepsake over a bottomless column:** a pet lost down a column with no block above the world floor leaves no collar rather than drop one into the void it was lost to; every other beyond-saving loss over ground leaves one.
 - **Owner never returns:** the pet stays down forever; that is the design (no timeout, no auto-death).
 - **`enableDownedState = false`:** vanilla deaths, including for already-downed pets on next damage — existing downed pets remain downed until revived or killed; no new downs occur.
 - **Untamed animals** never enter downed; taming state is checked at the lethal blow.
@@ -569,11 +572,13 @@ Per-pet server state. Any player can revive (co-op rescue is a feature); only th
 | `downedRankPenalty` | bool | `true` | |
 | `enableCarryDowned` | bool | `true` | |
 | `carrySlowdownFraction` | double | `0.30` | 0.0–0.9 |
+| `enableKeepsakeCollar` | bool | `true` | |
 
 ### Implementation Notes
 
 - Death interception: `ServerLivingEntityEvents.ALLOW_DEATH` returning false for qualifying pets, then applying the downed attachment + synced entity flag (tracked data) for client pose rendering.
 - Downed attachment `DownedData { long downedAtGameTime; }`; the synced flag drives pose (`setInSittingPose`-equivalent + suppressed AI via goal gate), whine cadence, and interaction suppression. The pose is best-effort for modded species without a sitting animation — AI suppression, the whine, and the particle carry the downed read regardless.
+- Keepsake drop: `ServerLivingEntityEvents.AFTER_DEATH` (not the `ALLOW_DEATH` cancel hook — the death has resolved by then), re-checking tame, pets-set membership, and the fire/lava/void source on its own; it shares no state with the downed engine. The engraving rides the stack as the `instinct:keepsake_engraving` data component (`{ Component petName; int rank; int daysSeen; }`). The collar item is `fireResistant()`, so fire and lava losses drop in place and survive; a void loss resolves the drop to the `MOTION_BLOCKING_NO_LEAVES` heightmap surface at the pet's column, skipping the drop only when that column is bottomless.
 - "Beyond saving" test: `source.is(DamageTypeTags.IS_FIRE) || source.is(DamageTypes.LAVA) || source.is(DamageTypes.FELL_OUT_OF_WORLD) || source.is(DamageTypes.GENERIC_KILL)`.
 - Target immunity: a `Mob#canAttack`-site guard (or targeting-conditions predicate injection) plus a sweep clearing `getTarget() == downed` on down.
 - Revival: `UseEntityCallback` intercepting item-on-downed before vanilla interactions.
