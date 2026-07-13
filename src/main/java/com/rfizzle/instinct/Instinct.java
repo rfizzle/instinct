@@ -14,6 +14,7 @@ import com.rfizzle.instinct.guard.Guard;
 import com.rfizzle.instinct.herding.Herding;
 import com.rfizzle.instinct.inspection.Inspection;
 import com.rfizzle.instinct.keepsake.KeepsakeHandler;
+import com.rfizzle.instinct.kennel.KennelHandler;
 import com.rfizzle.instinct.predatorwatch.PredatorWatch;
 import com.rfizzle.instinct.registry.InstinctBlockEntities;
 import com.rfizzle.instinct.registry.InstinctBlocks;
@@ -58,6 +59,7 @@ public class Instinct implements ModInitializer {
         Boating.register();
         PredatorWatch.register();
         Guard.register();
+        KennelHandler.register();
         CarryHandler.register();
         DownedHandler.register();
         KeepsakeHandler.register();

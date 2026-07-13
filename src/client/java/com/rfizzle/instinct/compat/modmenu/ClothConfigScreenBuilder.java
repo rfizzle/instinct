@@ -354,6 +354,26 @@ final class ClothConfigScreenBuilder {
                 .setSaveConsumer(v -> working.predatorsExclude = new ArrayList<>(v))
                 .build());
 
+        // --- Kennel Post (§9) ---
+        ConfigCategory kennel = builder.getOrCreateCategory(Component.translatable("config.instinct.category.kennel"));
+        kennel.addEntry(entry.startBooleanToggle(label("enableKennelPost"), config.enableKennelPost)
+                .setDefaultValue(defaults.enableKennelPost)
+                .setTooltip(tooltip("enableKennelPost"))
+                .setSaveConsumer(v -> working.enableKennelPost = v)
+                .build());
+        kennel.addEntry(entry.startIntField(label("kennelRecoveryRadiusBlocks"), config.kennelRecoveryRadiusBlocks)
+                .setDefaultValue(defaults.kennelRecoveryRadiusBlocks)
+                .setMin(2).setMax(8)
+                .setTooltip(tooltip("kennelRecoveryRadiusBlocks"))
+                .setSaveConsumer(v -> working.kennelRecoveryRadiusBlocks = v)
+                .build());
+        kennel.addEntry(entry.startIntField(label("kennelRecoverySeconds"), config.kennelRecoverySeconds)
+                .setDefaultValue(defaults.kennelRecoverySeconds)
+                .setMin(30).setMax(3600)
+                .setTooltip(tooltip("kennelRecoverySeconds"))
+                .setSaveConsumer(v -> working.kennelRecoverySeconds = v)
+                .build());
+
         // --- Inspection (§2/§3 shared) ---
         ConfigCategory inspection = builder.getOrCreateCategory(Component.translatable("config.instinct.category.inspection"));
         inspection.addEntry(entry.startBooleanToggle(label("enableInspection"), config.enableInspection)

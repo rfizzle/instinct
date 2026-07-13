@@ -103,6 +103,11 @@ public class InstinctConfig {
     public double carrySlowdownFraction = 0.30;
     public boolean enableKeepsakeCollar = true;
 
+    // §9 Kennel Post
+    public boolean enableKennelPost = true;
+    public int kennelRecoveryRadiusBlocks = 4;
+    public int kennelRecoverySeconds = 300;
+
     // §8 Predator Watch
     public boolean enablePredatorWatch = true;
     public int predatorWatchRadiusBlocks = 12;
@@ -321,6 +326,10 @@ public class InstinctConfig {
         reviveHealthFraction = clampDouble("reviveHealthFraction", reviveHealthFraction, 0.1, 1.0);
         carrySlowdownFraction = clampDouble("carrySlowdownFraction", carrySlowdownFraction, 0.0, 0.9);
         predatorWatchRadiusBlocks = clampInt("predatorWatchRadiusBlocks", predatorWatchRadiusBlocks, 4, 24);
+        // The recovery radius is clamped tight so the downed sweep's per-post block scan stays bounded
+        // regardless of the value an admin sets (SPEC §9).
+        kennelRecoveryRadiusBlocks = clampInt("kennelRecoveryRadiusBlocks", kennelRecoveryRadiusBlocks, 2, 8);
+        kennelRecoverySeconds = clampInt("kennelRecoverySeconds", kennelRecoverySeconds, 30, 3600);
 
         petsInclude = sanitizeEntityIds("petsInclude", petsInclude);
         petsExclude = sanitizeEntityIds("petsExclude", petsExclude);

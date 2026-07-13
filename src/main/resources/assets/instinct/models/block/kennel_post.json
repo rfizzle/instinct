@@ -1,0 +1,47 @@
+{
+  "parent": "block/block",
+  "textures": {
+    "post": "instinct:block/kennel_post",
+    "top": "instinct:block/kennel_post_top",
+    "particle": "instinct:block/kennel_post"
+  },
+  "elements": [
+    {
+      "__comment": "foot",
+      "from": [4, 0, 4],
+      "to": [12, 3, 12],
+      "faces": {
+        "down":  { "uv": [4, 4, 12, 12], "texture": "#post", "cullface": "down" },
+        "up":    { "uv": [4, 4, 12, 12], "texture": "#post" },
+        "north": { "uv": [4, 13, 12, 16], "texture": "#post" },
+        "south": { "uv": [4, 13, 12, 16], "texture": "#post" },
+        "west":  { "uv": [4, 13, 12, 16], "texture": "#post" },
+        "east":  { "uv": [4, 13, 12, 16], "texture": "#post" }
+      }
+    },
+    {
+      "__comment": "post column",
+      "from": [6, 3, 6],
+      "to": [10, 14, 10],
+      "faces": {
+        "north": { "uv": [6, 2, 10, 13], "texture": "#post" },
+        "south": { "uv": [6, 2, 10, 13], "texture": "#post" },
+        "west":  { "uv": [6, 2, 10, 13], "texture": "#post" },
+        "east":  { "uv": [6, 2, 10, 13], "texture": "#post" }
+      }
+    },
+    {
+      "__comment": "top board bearing the paw mark",
+      "from": [3, 14, 3],
+      "to": [13, 16, 13],
+      "faces": {
+        "down":  { "uv": [3, 3, 13, 13], "texture": "#post" },
+        "up":    { "uv": [3, 3, 13, 13], "texture": "#top" },
+        "north": { "uv": [3, 0, 13, 2], "texture": "#post" },
+        "south": { "uv": [3, 0, 13, 2], "texture": "#post" },
+        "west":  { "uv": [3, 0, 13, 2], "texture": "#post" },
+        "east":  { "uv": [3, 0, 13, 2], "texture": "#post" }
+      }
+    }
+  ]
+}

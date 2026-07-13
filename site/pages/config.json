@@ -1,7 +1,7 @@
 {
   "nav": "Config",
   "metaTitle": "Config — Instinct",
-  "metaDescription": "Every Instinct config option: animal coverage, self-preservation, veterancy, genetics, flocking, trough, whistle, and downed-state keys with types, defaults, and ranges.",
+  "metaDescription": "Every Instinct config option: animal coverage, self-preservation, veterancy, genetics, flocking, trough, whistle, downed-state, and kennel-post keys with types, defaults, and ranges.",
   "title": "Config",
   "lede": "config/instinct.json — created with defaults on first launch, edited in-game via Mod Menu + Cloth Config, hot-reloaded with /instinct reload. Every feature toggles independently; values clamp to their ranges.",
   "width": "4xl",
@@ -67,6 +67,9 @@
             ["<code>predatorWatchRadiusBlocks</code>", "int", "<code>12</code>", "4–24", "Predator watch"],
             ["<code>predatorsInclude</code>", "list", "<code>[]</code>", "—", "Predator watch"],
             ["<code>predatorsExclude</code>", "list", "<code>[]</code>", "—", "Predator watch"],
+            ["<code>enableKennelPost</code>", "bool", "<code>true</code>", "—", "Kennel post"],
+            ["<code>kennelRecoveryRadiusBlocks</code>", "int", "<code>4</code>", "2–8", "Kennel post"],
+            ["<code>kennelRecoverySeconds</code>", "int", "<code>300</code>", "30–3600", "Kennel post"],
             ["<code>enableInspection</code>", "bool", "<code>true</code>", "—", "Crouch-look lines"]
           ]
         },

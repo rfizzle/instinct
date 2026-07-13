@@ -61,6 +61,17 @@ public class InstinctRecipeProvider extends FabricRecipeProvider {
                 .define('F', ConventionalItemTags.WOODEN_FENCES)
                 .unlockedBy("has_planks", has(ItemTags.PLANKS))
                 .save(output);
+
+        // The kennel post — a bone marker atop a fenced post on a plank foot (§9).
+        ShapedRecipeBuilder.shaped(RecipeCategory.DECORATIONS, InstinctBlocks.KENNEL_POST)
+                .pattern("B")
+                .pattern("F")
+                .pattern("P")
+                .define('B', Items.BONE)
+                .define('F', ConventionalItemTags.WOODEN_FENCES)
+                .define('P', ItemTags.PLANKS)
+                .unlockedBy("has_bone", has(Items.BONE))
+                .save(output);
     }
 
     @Override

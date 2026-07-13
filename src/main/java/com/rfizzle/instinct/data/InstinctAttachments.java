@@ -5,7 +5,7 @@ import net.fabricmc.fabric.api.attachment.v1.AttachmentRegistry;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentType;
 
 /**
- * The three persistent entity attachments every Instinct feature rides on ({@code design/SPEC.md}
+ * The persistent entity attachments every Instinct feature rides on ({@code design/SPEC.md}
  * intro). All are codec-backed and latent: an animal carries no attachment bytes until a feature
  * writes one, so readers gate on {@code getAttached(...) == null → vanilla default}, never attach
  * on read. Entities serialize attachments with their chunk — no dirtying call needed.
@@ -31,6 +31,11 @@ public final class InstinctAttachments {
             .persistent(GuardData.CODEC)
             .initializer(GuardData::new)
             .buildAndRegister(Instinct.id("guard"));
+
+    public static final AttachmentType<HomeData> HOME = AttachmentRegistry.<HomeData>builder()
+            .persistent(HomeData.CODEC)
+            .initializer(HomeData::new)
+            .buildAndRegister(Instinct.id("home"));
 
     private InstinctAttachments() {
     }
