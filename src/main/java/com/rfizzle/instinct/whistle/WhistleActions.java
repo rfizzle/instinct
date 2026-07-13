@@ -4,14 +4,17 @@ import com.rfizzle.instinct.api.InstinctAPI;
 import com.rfizzle.instinct.config.InstinctConfig;
 import com.rfizzle.instinct.coverage.AnimalCoverage;
 import com.rfizzle.instinct.data.GuardData;
+import com.rfizzle.instinct.data.HomeData;
 import com.rfizzle.instinct.data.InstinctAttachments;
 import com.rfizzle.instinct.guard.Guard;
 import com.rfizzle.instinct.herding.Herding;
+import com.rfizzle.instinct.kennel.KennelHandler;
 import com.rfizzle.instinct.registry.InstinctCriteria;
 import com.rfizzle.instinct.registry.InstinctItems;
 import com.rfizzle.instinct.registry.InstinctSounds;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -23,6 +26,7 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.ProjectileUtil;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.entity.EntityTypeTest;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
@@ -62,13 +66,14 @@ public final class WhistleActions {
     /** The outcome of one whistle action, with the pet count that fills the {@code <n>} feedback. */
     public record WhistleResult(Outcome outcome, int count) {
         public enum Outcome {
-            FOLLOW, STAY, NO_PETS, ATTACK, NO_TARGET, ROUND_UP, NOTHING_TO_ROUND_UP, GUARD, SILENT
+            FOLLOW, STAY, NO_PETS, ATTACK, NO_TARGET, ROUND_UP, NOTHING_TO_ROUND_UP, GUARD, ASSIGN_HOME, SILENT
         }
 
         /** Outcomes that actually command pets — the ones that can grant Pack Leader. */
         boolean commandsPets() {
             return count > 0 && (outcome == Outcome.FOLLOW || outcome == Outcome.STAY
-                    || outcome == Outcome.ATTACK || outcome == Outcome.ROUND_UP || outcome == Outcome.GUARD);
+                    || outcome == Outcome.ATTACK || outcome == Outcome.ROUND_UP || outcome == Outcome.GUARD
+                    || outcome == Outcome.ASSIGN_HOME);
         }
     }
 
@@ -110,6 +115,21 @@ public final class WhistleActions {
     }
 
     /**
+     * Right-click a kennel post: assign every commandable pet in range to that post as home and send
+     * them there now, with feedback, cue, cooldown, and advancement. A no-op when the kennel feature is
+     * off (the post is then inert); the whistle-disabled path still answers with the silent line.
+     */
+    public static void performAssignHome(ServerPlayer player, BlockPos post) {
+        if (silentIfDisabled(player)) {
+            return;
+        }
+        if (!InstinctConfig.get().enableKennelPost) {
+            return;
+        }
+        present(player, assignHome(player, post));
+    }
+
+    /**
      * Sneak + left-click: report every bonded pet beyond the whistle's voice as one dry chat line each
      * — name, distance, and compass bearing (or, across dimensions, the dimension it stands in). The
      * census goes to chat, not the action bar, so a multi-pet answer isn't overwritten line by line;
@@ -137,7 +157,12 @@ public final class WhistleActions {
 
     // ── Core commands (state changes only; unit/gametest seam) ───────────────────────────────────
 
-    /** Toggles every commandable pet in range into one coherent Stay/Follow state. */
+    /**
+     * Toggles every commandable pet in range into one coherent Stay/Follow state. A Stay order sends a
+     * homed pet to its kennel post to settle (§9) instead of sitting it where it stands; an un-homed
+     * pet, or one whose post is in another dimension, sits in place exactly as before. Follow clears any
+     * in-progress recall.
+     */
     public static WhistleResult toggle(ServerPlayer player) {
         List<TamableAnimal> pets = commandablePets(player);
         if (pets.isEmpty()) {
@@ -145,11 +170,42 @@ public final class WhistleActions {
         }
         boolean anyStanding = pets.stream().anyMatch(pet -> !pet.isOrderedToSit());
         boolean sit = WhistleRules.shouldSitAll(anyStanding);
+        long now = player.level().getGameTime();
         for (TamableAnimal pet : pets) {
             pet.removeAttached(InstinctAttachments.GUARD);
-            pet.setOrderedToSit(sit);
+            if (sit && canSendHome(pet, player)) {
+                KennelHandler.recall(pet, now);
+            } else {
+                KennelHandler.stopRecall(pet);
+                pet.setOrderedToSit(sit);
+            }
         }
         return new WhistleResult(sit ? WhistleResult.Outcome.STAY : WhistleResult.Outcome.FOLLOW, pets.size());
+    }
+
+    /** Assigns every commandable pet in range to a kennel post as home and sends them there now (§9). */
+    public static WhistleResult assignHome(ServerPlayer player, BlockPos post) {
+        List<TamableAnimal> pets = commandablePets(player);
+        if (pets.isEmpty()) {
+            return new WhistleResult(WhistleResult.Outcome.NO_PETS, 0);
+        }
+        ResourceKey<Level> dimension = player.level().dimension();
+        long now = player.level().getGameTime();
+        for (TamableAnimal pet : pets) {
+            pet.setAttached(InstinctAttachments.HOME, new HomeData(post, dimension));
+            KennelHandler.recall(pet, now);
+        }
+        return new WhistleResult(WhistleResult.Outcome.ASSIGN_HOME, pets.size());
+    }
+
+    /** Whether a Stay order should walk this pet home rather than sit it in place: the kennel feature is
+     *  on, the pet is homed, and its post shares the pet's current dimension (no cross-dimension pathing). */
+    private static boolean canSendHome(TamableAnimal pet, ServerPlayer player) {
+        if (!InstinctConfig.get().enableKennelPost) {
+            return false;
+        }
+        HomeData home = pet.getAttached(InstinctAttachments.HOME);
+        return home != null && player.level().dimension().equals(home.dimension());
     }
 
     /** Resolves the raycast target and dispatches to a round-up (covered livestock) or an attack. */
@@ -187,6 +243,7 @@ public final class WhistleActions {
         int commanded = 0;
         for (TamableAnimal pet : commandablePets(player)) {
             pet.removeAttached(InstinctAttachments.GUARD);
+            KennelHandler.stopRecall(pet);
             if (WhistleRules.isCombatCapable(pet.getAttribute(Attributes.ATTACK_DAMAGE) != null)) {
                 pet.setOrderedToSit(false);
                 pet.setTarget(target);
@@ -208,6 +265,7 @@ public final class WhistleActions {
         int commanded = 0;
         for (TamableAnimal pet : commandablePets(player)) {
             if (Guard.canFight(pet)) {
+                KennelHandler.stopRecall(pet);
                 pet.setOrderedToSit(false);
                 pet.setTarget(null);
                 pet.setAttached(InstinctAttachments.GUARD, new GuardData(anchor));
@@ -225,6 +283,7 @@ public final class WhistleActions {
     public static WhistleResult roundUp(ServerPlayer player, Animal target) {
         for (TamableAnimal pet : commandablePets(player)) {
             pet.removeAttached(InstinctAttachments.GUARD);
+            KennelHandler.stopRecall(pet);
         }
         ServerLevel level = player.serverLevel();
         double radius = InstinctConfig.get().roundUpGroupRadiusBlocks;
@@ -436,6 +495,7 @@ public final class WhistleActions {
             case ROUND_UP -> "notification.instinct.whistle.round_up";
             case NOTHING_TO_ROUND_UP -> "notification.instinct.whistle.nothing";
             case GUARD -> "notification.instinct.whistle.guard";
+            case ASSIGN_HOME -> "notification.instinct.whistle.assign_home";
             case SILENT -> "notification.instinct.whistle.silent";
         };
     }
@@ -447,6 +507,7 @@ public final class WhistleActions {
             case ATTACK -> InstinctSounds.WHISTLE_ATTACK;
             case ROUND_UP -> InstinctSounds.WHISTLE_HERD;
             case GUARD -> InstinctSounds.WHISTLE_GUARD;
+            case ASSIGN_HOME -> InstinctSounds.WHISTLE_STAY;
             default -> null;
         };
     }
