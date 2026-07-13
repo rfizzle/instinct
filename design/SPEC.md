@@ -472,6 +472,10 @@ C B C
 - Each group animal is done when within 5 blocks of the player; the order ends when every animal is done or after 600 ticks, and the pets return to their prior follow state. Whistling a new order (any kind) replaces a running round-up.
 - Feedback: `✦ <n> pets round up the herd.` + the herd cue. Empty drive group (all excluded, or herding disabled): `✦ Nothing to round up.`, no cue.
 
+**Guard (sneak + right-click).** Sneak and right-click to post the pack to a spot rather than order an attack. The post is the block the crosshair rests on within `whistleTargetRangeBlocks`, or the player's own feet when the ray hits nothing:
+- Every owned, tamed, non-downed pet that **can fight** — one carrying a vanilla melee-attack goal (wolves and modded fighters; not cats or parrots, which have no such goal) — within `whistleRadiusBlocks` stands and takes a persistent guard order anchored at that spot. Feedback: `✦ <n> pets will hold here.` + the steady guard cue.
+- A guarding pet patrols within `guardRadiusBlocks` (default 8) of its post and engages **hostile monsters only** that enter it — never players, never any animal, so a guard never turns on your livestock or another player's pets. It hands the fight to its vanilla melee once a target is set and returns to post when the threat is down. The order holds through chunk unload and server restart until countermanded.
+
 **Cooldown:** `whistleCooldownTicks` (default 20) item cooldown after any whistle action (vanilla item-cooldown overlay on the slot).
 
 ### Interplay
@@ -481,10 +485,12 @@ C B C
 - The whistle commands only the user's own pets; it never affects another player's animals, regardless of permissions.
 - A round-up presses any player's covered livestock (livestock have no owner), but only toward the whistling player — the same neutrality as luring them with wheat.
 - Pets on a round-up keep the §1 creeper berth and break off to flee; a pet that enters combat drops its herding claim (§4's eligibility re-applies).
+- A guard order rides a persistent per-pet attachment, so a stationed pet holds its post whether or not its owner is online — a dog left at the gate. Self-preservation still wins: a guarding pet breaks off for the §1 creeper berth and stands down while on fire or in lava.
+- Any new whistle order — Stay/Follow, attack, round-up, or a fresh guard — replaces a running guard order on the pets it commands.
 
 ### Edge cases
 
-- **Mixed pack states** resolve by the standing-check rule above (any-standing → everyone sits) — one press always produces one coherent pack state.
+- **Mixed pack states** resolve by the standing-check rule above (any-standing → everyone sits) — one press always produces one coherent pack state. A guarding pet counts as standing, so a Stay/Follow toggle clears its post and sits the pack with the rest.
 - **Pets in vehicles/leashed:** they receive the sit/stand state change; movement follows vanilla rules for their restraint.
 - **Target dies mid-flight:** vanilla target invalidation applies; pets disengage normally.
 - `enableWhistle = false`: both clicks do nothing and show `✦ The whistle is silent here.` (crafting stays available; the item is inert, not removed).
@@ -502,6 +508,7 @@ Server-authoritative: the left-click gesture is reported by the client, but pet 
 | `whistleTargetRangeBlocks` | int | `24` | 8–64 |
 | `whistleCooldownTicks` | int | `20` | 0–100 |
 | `roundUpGroupRadiusBlocks` | int | `8` | 4–16 |
+| `guardRadiusBlocks` | int | `8` | 4–16 |
 
 ### Implementation Notes
 
@@ -510,6 +517,7 @@ Server-authoritative: the left-click gesture is reported by the client, but pet 
 - Pet enumeration: server entity lookup by AABB, filtered on `TamableAnimal#isTame` + `isOwnedBy(player)` + not downed.
 - Attack order: `pet.setOrderedToSit(false)` then `pet.setTarget(target)`; combat-capability = `getAttribute(ATTACK_DAMAGE) != null`.
 - Round-up: builds the drive group by AABB + same-type filter, then hands the group and the ordering player to §4's press machinery (claims, behind-points, expiries) with a 600-tick order deadline. No new goals — the whistle is a second trigger on the same `HerdWorkGoal`.
+- Guard: sneak + right-click routes `Item#use` to `performGuard`, which resolves the anchor with a block raycast (`Entity#pick`) and writes a `GuardData` attachment (anchor `BlockPos`) on each posted pet that can fight — a pet carrying a vanilla melee-attack goal, a truer capability check than the attack-damage attribute (cats and parrots carry the attribute in 1.21.1 but have no melee goal to act on a target). A `GuardGoal`, added to every tamable on load and inert without the attachment (like predator watch), scans on an interval for the nearest hostile within `guardRadiusBlocks` of the anchor and `setTarget`s it — vanilla melee does the fighting — then pins the pet to its post. It yields the move slot the instant a target is set and stands down for the creeper berth (same priority). Every other whistle order clears the attachment.
 
 ---
 

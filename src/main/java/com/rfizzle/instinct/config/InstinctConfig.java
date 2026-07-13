@@ -91,6 +91,7 @@ public class InstinctConfig {
     public int whistleTargetRangeBlocks = 24;
     public int whistleCooldownTicks = 20;
     public int roundUpGroupRadiusBlocks = 8;
+    public int guardRadiusBlocks = 8;
 
     // §7 Downed Pets & Revival
     public boolean enableDownedState = true;
@@ -314,6 +315,7 @@ public class InstinctConfig {
         whistleTargetRangeBlocks = clampInt("whistleTargetRangeBlocks", whistleTargetRangeBlocks, 8, 64);
         whistleCooldownTicks = clampInt("whistleCooldownTicks", whistleCooldownTicks, 0, 100);
         roundUpGroupRadiusBlocks = clampInt("roundUpGroupRadiusBlocks", roundUpGroupRadiusBlocks, 4, 16);
+        guardRadiusBlocks = clampInt("guardRadiusBlocks", guardRadiusBlocks, 4, 16);
         reviveHealthFraction = clampDouble("reviveHealthFraction", reviveHealthFraction, 0.1, 1.0);
         carrySlowdownFraction = clampDouble("carrySlowdownFraction", carrySlowdownFraction, 0.0, 0.9);
         predatorWatchRadiusBlocks = clampInt("predatorWatchRadiusBlocks", predatorWatchRadiusBlocks, 4, 24);

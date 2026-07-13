@@ -27,6 +27,11 @@ public final class InstinctAttachments {
             .initializer(DownedData::new)
             .buildAndRegister(Instinct.id("downed"));
 
+    public static final AttachmentType<GuardData> GUARD = AttachmentRegistry.<GuardData>builder()
+            .persistent(GuardData.CODEC)
+            .initializer(GuardData::new)
+            .buildAndRegister(Instinct.id("guard"));
+
     private InstinctAttachments() {
     }
 

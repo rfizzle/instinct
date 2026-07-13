@@ -54,6 +54,7 @@
             ["<code>whistleTargetRangeBlocks</code>", "int", "<code>24</code>", "8–64", "Command whistle"],
             ["<code>whistleCooldownTicks</code>", "int", "<code>20</code>", "0–100", "Command whistle"],
             ["<code>roundUpGroupRadiusBlocks</code>", "int", "<code>8</code>", "4–16", "Command whistle"],
+            ["<code>guardRadiusBlocks</code>", "int", "<code>8</code>", "4–16", "Command whistle"],
             ["<code>enableDownedState</code>", "bool", "<code>true</code>", "—", "Downed pets"],
             ["<code>reviveHealthFraction</code>", "double", "<code>0.5</code>", "0.1–1.0", "Downed pets"],
             ["<code>downedRankPenalty</code>", "bool", "<code>true</code>", "—", "Downed pets"],

@@ -3,6 +3,7 @@ package com.rfizzle.instinct.gametest;
 import com.rfizzle.instinct.Instinct;
 import com.rfizzle.instinct.config.InstinctConfig;
 import com.rfizzle.instinct.data.DownedData;
+import com.rfizzle.instinct.data.GuardData;
 import com.rfizzle.instinct.data.InstinctAttachments;
 import com.rfizzle.instinct.gametest.util.MockPlayers;
 import com.rfizzle.instinct.whistle.WhistleActions;
@@ -15,6 +16,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.animal.Cow;
+import net.minecraft.world.entity.animal.Parrot;
 import net.minecraft.world.entity.animal.Wolf;
 import net.minecraft.world.entity.monster.Zombie;
 import net.minecraft.world.level.block.Blocks;
@@ -218,6 +220,72 @@ public class WhistleGameTest implements FabricGameTest {
         helper.succeed();
     }
 
+    @GameTest(template = EMPTY_STRUCTURE)
+    public void guardOrderPostsCombatPetsAndSkipsNonCombat(GameTestHelper helper) {
+        buildFloor(helper, 10, 10);
+        ServerPlayer owner = mockPlayer(helper, new BlockPos(5, 2, 5));
+        Wolf wolf = spawnTamedWolf(helper, new BlockPos(4, 2, 4), owner.getUUID());
+        Parrot parrot = spawnTamedParrot(helper, new BlockPos(6, 2, 4), owner.getUUID());
+        BlockPos anchor = helper.absolutePos(new BlockPos(5, 2, 5));
+
+        WhistleActions.WhistleResult result = WhistleActions.guardOrder(owner, anchor);
+        helper.assertValueEqual(result.outcome(), WhistleActions.WhistleResult.Outcome.GUARD, "a guard order is issued");
+        helper.assertValueEqual(result.count(), 1, "only the combat-capable wolf is posted");
+        GuardData posted = wolf.getAttached(InstinctAttachments.GUARD);
+        helper.assertTrue(posted != null, "the wolf takes a guard post");
+        helper.assertValueEqual(posted.anchor(), anchor, "the post is anchored at the looked-at spot");
+        helper.assertFalse(wolf.isOrderedToSit(), "a posted pet stands to hold its ground");
+        helper.assertTrue(parrot.getAttached(InstinctAttachments.GUARD) == null,
+                "the non-combat parrot (no attack-damage attribute) is never posted");
+
+        wolf.discard();
+        parrot.discard();
+        owner.discard();
+        helper.succeed();
+    }
+
+    // Engagement is a goal-driven scan (a few ticks), so this polls with succeedWhen rather than
+    // asserting instantly. The cow sits closer to the post than the zombie, so a guard that targeted
+    // the nearest body would pick it — proving the monsters-only filter, not mere proximity.
+    @GameTest(template = EMPTY_STRUCTURE, timeoutTicks = 200)
+    public void guardingWolfEngagesTheHostileAndIgnoresLivestock(GameTestHelper helper) {
+        buildFloor(helper, 12, 12);
+        ServerPlayer owner = mockPlayer(helper, new BlockPos(2, 2, 2));
+        Wolf wolf = spawnTamedWolf(helper, new BlockPos(6, 2, 6), owner.getUUID());
+        BlockPos anchor = helper.absolutePos(new BlockPos(6, 2, 6));
+        wolf.setAttached(InstinctAttachments.GUARD, new GuardData(anchor));
+        Cow cow = helper.spawn(EntityType.COW, new BlockPos(7, 2, 6));
+        Zombie zombie = helper.spawn(EntityType.ZOMBIE, new BlockPos(8, 2, 6));
+
+        helper.succeedWhen(() -> {
+            helper.assertFalse(wolf.getTarget() == cow, "the guard never turns on livestock");
+            helper.assertTrue(wolf.getTarget() == zombie, "the guard engages the hostile that entered its radius");
+            cow.discard();
+            zombie.discard();
+            wolf.discard();
+            owner.discard();
+        });
+    }
+
+    @GameTest(template = EMPTY_STRUCTURE)
+    public void aNewOrderClearsTheGuardPost(GameTestHelper helper) {
+        buildFloor(helper, 8, 8);
+        ServerPlayer owner = mockPlayer(helper, new BlockPos(4, 2, 4));
+        Wolf wolf = spawnTamedWolf(helper, new BlockPos(3, 2, 3), owner.getUUID());
+        BlockPos anchor = helper.absolutePos(new BlockPos(4, 2, 4));
+
+        WhistleActions.guardOrder(owner, anchor);
+        helper.assertTrue(wolf.getAttached(InstinctAttachments.GUARD) != null, "the wolf is posted after a guard order");
+
+        WhistleActions.toggle(owner);
+        helper.assertTrue(wolf.getAttached(InstinctAttachments.GUARD) == null,
+                "a Stay/Follow toggle replaces the guard post");
+
+        wolf.discard();
+        owner.discard();
+        helper.succeed();
+    }
+
     // ── helpers ─────────────────────────────────────────────────────────────────────────────────
 
     @GameTest(template = EMPTY_STRUCTURE)
@@ -282,6 +350,20 @@ public class WhistleGameTest implements FabricGameTest {
         wolf.setOwnerUUID(owner);
         helper.getLevel().addFreshEntity(wolf);
         return wolf;
+    }
+
+    /** A tamed parrot — a pets-set animal with no attack-damage attribute, so never combat-capable. */
+    private static Parrot spawnTamedParrot(GameTestHelper helper, BlockPos rel, UUID owner) {
+        Parrot parrot = EntityType.PARROT.create(helper.getLevel());
+        if (parrot == null) {
+            throw new IllegalStateException("could not create a parrot");
+        }
+        BlockPos abs = helper.absolutePos(rel);
+        parrot.moveTo(abs.getX() + 0.5, abs.getY(), abs.getZ() + 0.5, 0.0f, 0.0f);
+        parrot.setTame(true, false);
+        parrot.setOwnerUUID(owner);
+        helper.getLevel().addFreshEntity(parrot);
+        return parrot;
     }
 
     /** Points the player's view at the target's centre, so the whistle raycast clips it. */

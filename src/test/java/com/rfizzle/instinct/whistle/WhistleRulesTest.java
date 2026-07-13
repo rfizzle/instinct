@@ -70,4 +70,16 @@ class WhistleRulesTest {
                                   boolean spectator, boolean creativePlayer) {
         return WhistleRules.isValidAttackTarget(self, ownPet, livestock, downed, spectator, creativePlayer, false, true);
     }
+
+    @Test
+    void aLiveHostileIsAGuardTarget() {
+        assertTrue(WhistleRules.isGuardTarget(true, true), "a live hostile monster is engaged from the post");
+    }
+
+    @Test
+    void nonHostilesAndDeadHostilesAreNeverGuardTargets() {
+        assertFalse(WhistleRules.isGuardTarget(false, true),
+                "a non-hostile (a player, your livestock, another player's pet) is never engaged");
+        assertFalse(WhistleRules.isGuardTarget(true, false), "a dead hostile is not engaged");
+    }
 }

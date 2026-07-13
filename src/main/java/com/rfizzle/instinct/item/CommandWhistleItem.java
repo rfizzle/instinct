@@ -12,7 +12,8 @@ import net.minecraft.world.level.Level;
 /**
  * The command whistle ({@code design/SPEC.md} §6): a stack-1, never-breaking item that moves the
  * whole pack. Right-click ({@link #use}) raycasts for a target and orders an attack or a livestock
- * round-up; the Stay/Follow toggle rides the left-click path (payload + attack callbacks) in
+ * round-up; sneak + right-click posts the pack to guard the looked-at spot instead. The Stay/Follow
+ * toggle rides the left-click path (payload + attack callbacks) in
  * {@code com.rfizzle.instinct.whistle.Whistle}. Everything resolves server-authoritatively in
  * {@link WhistleActions}; the item only routes the right-click gesture there, once per off-cooldown
  * click from the main hand.
@@ -30,7 +31,11 @@ public class CommandWhistleItem extends Item {
             return InteractionResultHolder.pass(stack);
         }
         if (!level.isClientSide && player instanceof ServerPlayer serverPlayer) {
-            WhistleActions.performCommand(serverPlayer);
+            if (serverPlayer.isShiftKeyDown()) {
+                WhistleActions.performGuard(serverPlayer);
+            } else {
+                WhistleActions.performCommand(serverPlayer);
+            }
         }
         return InteractionResultHolder.sidedSuccess(stack, level.isClientSide);
     }

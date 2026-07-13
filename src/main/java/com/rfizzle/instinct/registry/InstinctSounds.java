@@ -35,6 +35,10 @@ public final class InstinctSounds {
     public static final SoundEvent WHISTLE_HERD =
             SoundEvent.createVariableRangeEvent(Instinct.id("whistle_herd"));
 
+    /** The whistle Guard cue — a firm, steady two-note "hold" (SPEC §6). */
+    public static final SoundEvent WHISTLE_GUARD =
+            SoundEvent.createVariableRangeEvent(Instinct.id("whistle_guard"));
+
     private static boolean registered = false;
 
     private InstinctSounds() {
@@ -52,5 +56,6 @@ public final class InstinctSounds {
         Registry.register(BuiltInRegistries.SOUND_EVENT, Instinct.id("whistle_stay"), WHISTLE_STAY);
         Registry.register(BuiltInRegistries.SOUND_EVENT, Instinct.id("whistle_attack"), WHISTLE_ATTACK);
         Registry.register(BuiltInRegistries.SOUND_EVENT, Instinct.id("whistle_herd"), WHISTLE_HERD);
+        Registry.register(BuiltInRegistries.SOUND_EVENT, Instinct.id("whistle_guard"), WHISTLE_GUARD);
     }
 }

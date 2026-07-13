@@ -47,4 +47,13 @@ public final class WhistleRules {
         }
         return !isPlayer || pvpAllowed;
     }
+
+    /**
+     * Whether a guarding pet engages an entity that entered its post: hostile monsters only, and only
+     * while alive. Players and animals — the user's own pets, another player's pets, and every head of
+     * livestock — are never guard targets, so a guard holds a pen without ever turning on its charges.
+     */
+    public static boolean isGuardTarget(boolean isEnemy, boolean isAlive) {
+        return isEnemy && isAlive;
+    }
 }
