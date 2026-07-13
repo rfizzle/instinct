@@ -463,7 +463,7 @@ C B C
 **Right-click (use):** raycasts from the player's eyes up to `whistleTargetRangeBlocks` (default 24) for a living entity. Two orders, resolved by what the ray hits:
 
 **Attack.** On a valid attack target — any living entity that is not the user, not a tamed animal owned by the user, not a covered livestock-set animal (those order a round-up, below), not downed, not a spectator/creative player, and (if a player) only when PvP is enabled:
-- Every owned, tamed, non-downed, **combat-capable** pet (a pet with an attack-damage attribute — wolves and most modded fighters; cats and parrots are not combat-capable) within `whistleRadiusBlocks` stands (an attack order overrides Stay) and sets its attack target to the raycast entity. Feedback: `✦ <n> pets attack.` + the sharp attack cue.
+- Every owned, tamed, non-downed pet with an **attack-damage attribute** (wolves and most modded fighters) within `whistleRadiusBlocks` stands (an attack order overrides Stay) and sets its attack target to the raycast entity. A pet without a melee goal to act on that target — a cat or parrot, which carries the attribute yet never melees — is set on the target harmlessly and simply doesn't pursue. Feedback: `✦ <n> pets attack.` + the sharp attack cue.
 - No valid target on the ray: `✦ No target in sight.`, no cue.
 
 **Round-up.** When the raycast entity is a covered livestock-set animal and `enableHerding` is true (§4), the whistle orders a round-up — covered livestock are never whistle attack targets:
