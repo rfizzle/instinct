@@ -1,7 +1,7 @@
 {
   "nav": "Features",
   "metaTitle": "Features — Instinct",
-  "metaDescription": "Every Instinct feature as designed: pet self-preservation, veterancy, quality genetics, flocking, the feeding trough, the command whistle, downed pets, and modded-animal coverage.",
+  "metaDescription": "Every Instinct feature as designed: pet self-preservation, veterancy, quality genetics, flocking, the feeding trough, the command whistle, downed pets, the kennel post, and modded-animal coverage.",
   "title": "Features",
   "lede": "Everything below is the committed design — the numbers are the spec's. Instinct is in development; features ship against these promises.",
   "width": "4xl",
@@ -126,6 +126,21 @@
             "A downed small pet — a cat, parrot, or pup — can be scooped up and carried clear of the fire. Sneak-use it to lift it onto you, walk it out of danger, then sneak-use a block to set it down and revive it. Carrying occupies no inventory slot but slows you modestly, so a rescue under fire still costs something; full-size pets and mounts stay where they fall.",
             "Fire, lava, and the void are beyond saving — which is exactly what their survival instinct is for.",
             "A pet lost that way is not lost without a trace. It leaves a <strong>keepsake collar</strong> engraved with its name, and its rank if it earned one — a memento with no gameplay use, dropped clear of the fire or laid on safe ground above the void. A sixty-day companion deserves better than an empty lead."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "kennel-post",
+      "title": "A Home for the Pack",
+      "intro": "One placed block your pets call home — and beside which a downed pet mends on its own.",
+      "blocks": [
+        {
+          "type": "prose",
+          "html": [
+            "Place a <strong>kennel post</strong> — a humble block of planks, a fence, and a bone — where your animals belong, then point the command whistle at it: every pet in earshot takes it as home (<code>✦ 3 pets will call this home.</code>). From then on a Stay order sends your homed pets walking back to their post to settle, instead of dropping them wherever you happened to stand — un-homed pets still sit on the spot.",
+            "A pet that goes down beside a post recovers on its own — slowly, over about five minutes, spending no item and losing no rank. The golden apple and the Vet Kit stay the instant path back in the field, at the cost of a rank; the post is the patient, no-cost path at home, so a small pet carried back to its post, or one downed near it, is on its feet by the time you return. Only your pets recover this way, and it never punishes an absent player — the post keeps no state of its own.",
+            "It is a place, not a system: no storage, no spawn point, no block entity. Turn <code>enableKennelPost</code> off and the post is plain decoration; <code>kennelRecoveryRadiusBlocks</code> and <code>kennelRecoverySeconds</code> tune how close and how slow the healing is."
           ]
         }
       ]

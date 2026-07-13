@@ -473,7 +473,7 @@ C B C
 `C` = copper ingot, `B` = bone.
 
 **Left-click (swing), any target or air, without sneaking:** toggles every **owned, tamed, non-downed** pets-set animal (Animal Coverage) within `whistleRadiusBlocks` (default 20) of the player:
-- If at least one such pet is currently standing (following) → **Stay**: all of them sit. Feedback: `✦ <n> pets will stay.` + the falling stay cue.
+- If at least one such pet is currently standing (following) → **Stay**: all of them sit — but a pet homed to a kennel post walks there to settle instead (§9). Feedback: `✦ <n> pets will stay.` + the falling stay cue.
 - Otherwise (all sitting) → **Follow**: all of them stand. Feedback: `✦ <n> pets will follow.` + the rising follow cue.
 - No pets in radius: `✦ No pets in range.`, no cue.
 
@@ -492,6 +492,8 @@ C B C
 **Guard (sneak + right-click).** Sneak and right-click to post the pack to a spot rather than order an attack. The post is the block the crosshair rests on within `whistleTargetRangeBlocks`, or the player's own feet when the ray hits nothing:
 - Every owned, tamed, non-downed pet that **can fight** — one carrying a vanilla melee-attack goal (wolves and modded fighters; not cats or parrots, which have no such goal) — within `whistleRadiusBlocks` stands and takes a persistent guard order anchored at that spot. Feedback: `✦ <n> pets will hold here.` + the steady guard cue.
 - A guarding pet patrols within `guardRadiusBlocks` (default 8) of its post and engages **hostile monsters only** that enter it — never players, never any animal, so a guard never turns on your livestock or another player's pets. It hands the fight to its vanilla melee once a target is set and returns to post when the threat is down. The order holds through chunk unload and server restart until countermanded.
+
+**Send home (right-click a kennel post).** Right-click a placed kennel post — a block, not an entity, so this never collides with the attack/round-up raycast — to assign the pack home to it and send them there. The full behavior lives in §9.
 
 **Locate (sneak + left-click).** Sneak and left-click — on air, a block, or an entity — to answer for every **owned, tamed** pet (downed included) beyond the whistle's `whistleRadiusBlocks` voice, wherever it stands. Not a command but a search aid: one dry chat line each, nearest first, capped at ten with an "…and N more." tail. It never moves or commands a pet.
 - A pet in the player's own dimension reads its distance, eight-point compass bearing, and posture: `Rex — 240m northwest, sitting.` A pet in another dimension reads only that dimension (a bearing is meaningless across worlds): `Rex — in the Nether.`, with a downed one flagged: `Bolt — in the End, downed.`
@@ -585,7 +587,7 @@ The item is consumed; the pet revives: health set to `reviveHealthFraction` (def
 - **Explosion that downs the pet:** the triggering damage resolves first (pet goes down); subsequent blast/fire ticks hit invulnerability. A pet downed *in* fire that keeps burning: the next fire tick is lethal-class fire damage against a downed pet — downed pets are invulnerable to it like everything else; the "beyond saving" test applies only to the *lethal blow that would have killed a healthy pet*, not to damage after downing. (A pet downed at the lava edge is safe; a pet swimming in lava never goes down at all.)
 - **`/kill` and void:** bypass downed entirely (die normally), including while already downed — a downed pet that falls into the void dies.
 - **Keepsake over a bottomless column:** a pet lost down a column with no block above the world floor leaves no collar rather than drop one into the void it was lost to; every other beyond-saving loss over ground leaves one.
-- **Owner never returns:** the pet stays down forever; that is the design (no timeout, no auto-death).
+- **Owner never returns:** the pet stays down forever unless it lies beside a kennel post, which brings it back on its own over time (§9); there is no timeout and no auto-death.
 - **`enableDownedState = false`:** vanilla deaths, including for already-downed pets on next damage — existing downed pets remain downed until revived or killed; no new downs occur.
 - **Untamed animals** never enter downed; taming state is checked at the lethal blow.
 
@@ -667,6 +669,53 @@ Livestock is unowned, so a guardian keeps the pasture for whoever's animals stan
 
 ---
 
+## 9. Kennel Post
+
+A home for the pack — one placed block the whistle sends pets to, and beside which a downed pet mends on its own.
+
+### Problem
+
+Dismissing the pack scatters it wherever you stand, and a downed pet comes back only by spending a golden apple or a Vet Kit on the spot. There is no home to send an animal to, and no way to let time do the healing. A settled farm wants a place its animals belong.
+
+### Behavior
+
+**The block.** The **kennel post** (`instinct:kennel_post`) is a humble wooden marker — planks, a fence, and a bone — that joins the trough in the creative register (§5). It is a *place, not a system*: no block entity, no storage, no ownership, no spawn mechanics. It has no collision — a thin marker a pet paths right onto — and is axe-mineable, dropping itself.
+
+**Assigning a home.** Point the command whistle at a kennel post and right-click (no sneak — sneak + right-click is the guard order, §6): every commandable pet within the whistle's voice (`whistleRadiusBlocks`, §6) adopts that post as home and walks there now. The home — the post's position and dimension — rides a persistent `HomeData` attachment on the pet. Feedback: `✦ <n> pets will call this home.`
+
+**Recall on Stay.** A **Stay** order (left-click, §6) sends every homed pet to its post to settle, instead of sitting it where it stands. A pet that is un-homed, or whose post is in another dimension, sits in place exactly as before. A recalled pet stands and paths home; on arrival it sits, and a post it cannot reach (walled off, too far) is given up at a deadline so a recalled pet always settles rather than pathing forever. A post mined out from under a homed pet degrades to sitting in place. Any other whistle order (attack, guard, round-up, Follow) clears an in-progress recall.
+
+**Recovery.** A downed **pets-set** pet (§7) within `kennelRecoveryRadiusBlocks` (default 4) of *any* kennel post recovers on its own, over `kennelRecoverySeconds` (default 300 — five minutes) of real time, **without an item and without losing a veterancy rank**. The golden apple and Vet Kit remain the instant, one-rank-cost path in the field; the post is the patient, no-cost path at home. Recovery accrues only while the pet is beside a post — a downed pet cannot move itself, so it simply waits — and a small pet carried (§7) to a post recovers there. The recovered pet comes back exactly as an item revival does — `reviveHealthFraction` of max health, Regeneration II, the post-revive grace window, the Stay pose — minus the rank penalty. Its owner, online at any distance, gets one chat line: `✦ <name> recovered at their post.` A downed mount is not the pack's — only pets recover at a post.
+
+### Edge cases
+
+- **Post in another dimension:** a homed pet led to another dimension sits in place on Stay (there is no cross-dimension pathing); its home is remembered and honored again once it returns.
+- **Post mined during a recall:** the pet settles where it stands rather than trekking to the empty spot.
+- **Recovery pauses off-post:** a downed pet moved away from a post holds its recovery progress and resumes beside one; progress persists across save/reload on the downed attachment.
+- **Recovery in an unloaded chunk:** a downed pet whose chunk is unloaded does not tick, so recovery pauses until the chunk loads — the same as the whine (§7).
+- **`enableKennelPost = false`:** the post is inert decoration — no assignment, no recall, no recovery; the block stays placeable and craftable.
+
+### Multiplayer
+
+Per-pet server state; the post itself holds none. Recovery keys on proximity to any kennel post, so it never punishes an absent player and needs no online owner. A recovered pet's notice goes to its owner alone.
+
+### Config
+
+| Key | Type | Default | Range |
+|---|---|---|---|
+| `enableKennelPost` | bool | `true` | |
+| `kennelRecoveryRadiusBlocks` | int | `4` | 2–8 |
+| `kennelRecoverySeconds` | int | `300` | 30–3600 |
+
+### Implementation Notes
+
+- The block is a plain `Block` (`KennelPostBlock`) — no block entity — with a post `VoxelShape` outline, empty collision, and `isPathfindable` returning true, so a recalled pet paths onto it. Registered beside the trough in `InstinctBlocks`, axe-mineable, dropping itself.
+- The home is a codec-backed `HomeData { BlockPos post; ResourceKey<Level> dimension }` attachment (the first Instinct attachment to persist a dimension). Assignment writes it from the whistle; the recall itself is a transient in-memory order (`KennelHandler`), not persisted — a reload sits the pet where it is.
+- `HomeGoal` (priority 1, the §6 guard / §8 watch install pattern via `ServerEntityEvents.ENTITY_LOAD`) is inert until the pet is recalled; it repaths to the post on a scan interval, settles on arrival or at a deadline, and degrades a mined or cross-dimension post to sitting in place. It is mutually exclusive with the guard order — each whistle order clears the other's state.
+- Recovery is a sibling pass in the §7 downed engine's per-tick sweep, reusing the bounded loaded-downed set: config-gated, staggered per pet, a hard-clamped-radius block scan for a nearby post, accruing `recoveryTicks` on the downed attachment until the threshold, then a shared rank-free state restore extracted from the item-revival path.
+
+---
+
 ## Configuration
 
 All features are independently toggleable via a ModMenu / Cloth Config screen and a JSON config file (`config/instinct.json`), created with defaults on first launch. `configVersion` is **1**. Unknown/missing fields are filled with defaults and clamped to their stated ranges after load; a corrupted file falls back to defaults and is left untouched on disk.
@@ -724,6 +773,9 @@ All features are independently toggleable via a ModMenu / Cloth Config screen an
 | `predatorWatchRadiusBlocks` | int | 12 | Radius a Stay guardian watches for predators over livestock (4–24) |
 | `predatorsInclude` | list | [] | Entity types forced into the wild-predator set |
 | `predatorsExclude` | list | [] | Entity types forced out of the wild-predator set |
+| `enableKennelPost` | bool | true | §9 master toggle (block stays placeable, inert) |
+| `kennelRecoveryRadiusBlocks` | int | 4 | Radius a downed pet recovers within of a kennel post (2–8) |
+| `kennelRecoverySeconds` | int | 300 | Seconds a downed pet takes to recover beside a post (30–3600) |
 | `enableInspection` | bool | true | Crouch-look inspection lines (§2/§3) |
 
 ### Client Config
