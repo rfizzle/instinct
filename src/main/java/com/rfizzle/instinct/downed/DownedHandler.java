@@ -11,6 +11,8 @@ import com.rfizzle.instinct.coverage.OwnedAnimals;
 import com.rfizzle.instinct.data.DownedData;
 import com.rfizzle.instinct.data.InstinctAttachments;
 import com.rfizzle.instinct.data.InstinctItemTagProvider;
+import com.rfizzle.instinct.kennel.Kennel;
+import com.rfizzle.instinct.kennel.KennelPosts;
 import com.rfizzle.instinct.mixin.LivingEntitySoundInvoker;
 import com.rfizzle.instinct.registry.InstinctCriteria;
 import com.rfizzle.instinct.registry.InstinctSounds;
@@ -44,6 +46,7 @@ import net.minecraft.world.phys.EntityHitResult;
 
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -80,6 +83,8 @@ public final class DownedHandler {
 
     /** Whine + smoke cadence for a downed pet (SPEC §7). */
     static final int WHINE_INTERVAL_TICKS = 100;
+    /** How often a downed pet checks for a nearby kennel post and advances its recovery (SPEC §9). */
+    static final int RECOVERY_CHECK_INTERVAL_TICKS = 20;
     /** Post-revive invulnerability window (SPEC §7). */
     static final int POST_REVIVE_INVULN_TICKS = 60;
     /** Radius of the on-down sweep that clears mobs already targeting the pet. */
@@ -226,6 +231,20 @@ public final class DownedHandler {
         }
     }
 
+    /** The single owner chat line when a pet recovers on its own at its post (SPEC §9) — sent to chat,
+     *  like the down notice, so an owner who wasn't watching still learns their pet is up. */
+    private static void notifyOwnerRecovered(Animal animal) {
+        UUID ownerUUID = OwnedAnimals.ownerUUID(animal);
+        if (ownerUUID == null || !(animal.level() instanceof ServerLevel level)) {
+            return;
+        }
+        ServerPlayer owner = level.getServer().getPlayerList().getPlayer(ownerUUID);
+        if (owner != null) {
+            owner.sendSystemMessage(
+                    Component.translatable("notification.instinct.pet_recovered", animal.getName()));
+        }
+    }
+
     /** Idempotent load-time re-assertion in case a datapack or mod cleared a persisted downed flag. */
     private static void reassertDownedState(Animal animal) {
         animal.setInvulnerable(true);
@@ -265,16 +284,33 @@ public final class DownedHandler {
     }
 
     /**
-     * Brings a downed animal back. The rank penalty (pets only — a mount has no veterancy) is
-     * applied <b>first</b> so the restored health fraction reflects the post-demotion max health (a
-     * demotion lowers max health); then health, Regeneration II, the post-revive invulnerability
-     * window, the Stay pose (pets only), and the cue land.
+     * Brings a downed animal back via a revival item: the shared state restore (with the config rank
+     * penalty for pets), then the reviving player's feedback, the advancement, and the public callback.
      */
     static void revive(Animal animal, Player reviver, ItemStack stack) {
-        // A carried pet dismounts first, so it revives on the ground and its carrier's slowdown clears.
+        restoreFromDowned(animal, InstinctConfig.get().downedRankPenalty);
+        if (reviver instanceof ServerPlayer serverReviver) {
+            serverReviver.displayClientMessage(
+                    Component.translatable("notification.instinct.pet_revived", animal.getName()), true);
+            InstinctCriteria.PET_REVIVED.trigger(serverReviver);
+        }
+        if (animal instanceof TamableAnimal pet) {
+            fireRevivedCallback(pet, reviver, stack);
+        }
+    }
+
+    /**
+     * The shared "back on their feet" state restore, common to item revival and kennel-post recovery.
+     * The rank penalty (pets only — a mount has no veterancy) is applied <b>first</b> so the restored
+     * health fraction reflects the post-demotion max health (a demotion lowers max health); then AI,
+     * the Stay pose (pets only), health, Regeneration II, the post-revive invulnerability window, and
+     * the cue land. A carried pet dismounts first, so it comes back on the ground and its carrier's
+     * slowdown clears.
+     */
+    private static void restoreFromDowned(Animal animal, boolean withRankPenalty) {
         CarryHandler.releaseIfCarried(animal);
         InstinctConfig config = InstinctConfig.get();
-        if (config.downedRankPenalty && animal instanceof TamableAnimal pet) {
+        if (withRankPenalty && animal instanceof TamableAnimal pet) {
             applyRankPenalty(pet, config);
         }
         animal.removeAttached(InstinctAttachments.DOWNED);
@@ -288,14 +324,6 @@ public final class DownedHandler {
         animal.setInvulnerable(true);
         POST_REVIVE_INVULN.put(animal, animal.level().getGameTime() + POST_REVIVE_INVULN_TICKS);
         reviveEffects(animal);
-        if (reviver instanceof ServerPlayer serverReviver) {
-            serverReviver.displayClientMessage(
-                    Component.translatable("notification.instinct.pet_revived", animal.getName()), true);
-            InstinctCriteria.PET_REVIVED.trigger(serverReviver);
-        }
-        if (animal instanceof TamableAnimal pet) {
-            fireRevivedCallback(pet, reviver, stack);
-        }
     }
 
     private static void applyRankPenalty(TamableAnimal pet, InstinctConfig config) {
@@ -329,6 +357,77 @@ public final class DownedHandler {
         } catch (Exception e) {
             Instinct.LOGGER.error("Downed whine sweep failed", e);
         }
+        try {
+            recoveryPass();
+        } catch (Exception e) {
+            Instinct.LOGGER.error("Downed recovery sweep failed", e);
+        }
+    }
+
+    /**
+     * The kennel-post recovery sweep (SPEC §9): a downed pet beside a kennel post gets back up on its
+     * own, slowly, without an item and without losing a rank. Reuses the bounded {@link #DOWNED} set,
+     * runs only when the feature is on, and only advances each pet on its own staggered recovery beat —
+     * so the per-post block scan touches only the rare downed pets, on a coarse cadence, over a
+     * config-clamped radius. A downed mount is not the pack's — only pets-set animals recover here.
+     */
+    private static void recoveryPass() {
+        if (DOWNED.isEmpty()) {
+            return;
+        }
+        InstinctConfig config = InstinctConfig.get();
+        if (!config.enableKennelPost) {
+            return;
+        }
+        int radius = config.kennelRecoveryRadiusBlocks;
+        int threshold = Kennel.recoveryThresholdTicks(config.kennelRecoverySeconds);
+        // Snapshot: recoverAtPost removes from DOWNED, so we can't iterate the live set.
+        for (Animal animal : new ArrayList<>(DOWNED)) {
+            try {
+                if (isRecoveryTick(animal)) {
+                    advanceRecovery(animal, radius, threshold);
+                }
+            } catch (Exception e) {
+                Instinct.LOGGER.error("Downed recovery failed for {}", animal.getType(), e);
+            }
+        }
+    }
+
+    /** Whether this tick is a recovery beat for the animal — staggered off its own down time, like the
+     *  whine, so a group of downed pets don't all scan for posts on the same tick. */
+    private static boolean isRecoveryTick(Animal animal) {
+        DownedData data = animal.getAttached(InstinctAttachments.DOWNED);
+        if (data == null) {
+            return false;
+        }
+        long elapsed = animal.level().getGameTime() - data.downedAtGameTime();
+        return elapsed > 0 && elapsed % RECOVERY_CHECK_INTERVAL_TICKS == 0;
+    }
+
+    /** Advances one pet's recovery: paused unless it is a pets-set animal beside a kennel post, then
+     *  accumulates a beat of progress and gets the pet up once the threshold is reached. */
+    private static void advanceRecovery(Animal animal, int radius, int threshold) {
+        DownedData data = animal.getAttached(InstinctAttachments.DOWNED);
+        if (data == null || !AnimalCoverage.membershipOf(animal).pet()) {
+            return;
+        }
+        if (!KennelPosts.hasPostWithin(animal.level(), animal.blockPosition(), radius)) {
+            return; // not beside a post — a downed pet can't move itself, so recovery just waits
+        }
+        int progress = data.recoveryTicks() + RECOVERY_CHECK_INTERVAL_TICKS;
+        if (Kennel.recoveryComplete(progress, threshold)) {
+            recoverAtPost(animal);
+        } else {
+            animal.setAttached(InstinctAttachments.DOWNED, data.withRecoveryTicks(progress));
+        }
+    }
+
+    /** Brings a pet back on its own beside its post: the shared state restore, always rank-free (SPEC
+     *  §9 — the patient path keeps the rank the field item would spend), then the owner's notice. No
+     *  reviving player, so no item feedback and no advancement. */
+    private static void recoverAtPost(Animal animal) {
+        restoreFromDowned(animal, false);
+        notifyOwnerRecovered(animal);
     }
 
     private static void expirePostReviveInvuln() {

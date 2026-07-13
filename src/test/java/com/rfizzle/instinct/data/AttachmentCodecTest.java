@@ -4,15 +4,17 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.mojang.serialization.JsonOps;
 import com.rfizzle.instinct.api.Perk;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.Level;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
 /**
- * Round-trip and forward-compatibility contracts for the three persistent attachment codecs. The
- * codecs are static fields on plain records, so they test without attachment registration (which
- * only happens in {@code onInitialize}).
+ * Round-trip and forward-compatibility contracts for the persistent attachment codecs. The codecs are
+ * static fields on plain records, so they test without attachment registration (which only happens in
+ * {@code onInitialize}).
  */
 class AttachmentCodecTest {
 
@@ -38,12 +40,35 @@ class AttachmentCodecTest {
 
     @Test
     void downedDataRoundTrips() {
-        DownedData data = new DownedData(777L);
+        DownedData data = new DownedData(777L, 250);
         JsonObject encoded = DownedData.CODEC.encodeStart(JsonOps.INSTANCE, data)
                 .getOrThrow().getAsJsonObject();
         DownedData decoded = DownedData.CODEC.parse(JsonOps.INSTANCE, encoded).getOrThrow();
 
         assertEquals(data, decoded);
+        assertEquals(250, decoded.recoveryTicks());
+    }
+
+    @Test
+    void downedDataFromBeforeRecoveryDecodesWithZeroProgress() {
+        // A save written before recoveryTicks existed carries only downedAtGameTime.
+        JsonObject legacy = JsonParser.parseString("""
+                { "downedAtGameTime": 777 }
+                """).getAsJsonObject();
+        DownedData decoded = DownedData.CODEC.parse(JsonOps.INSTANCE, legacy).getOrThrow();
+        assertEquals(777L, decoded.downedAtGameTime());
+        assertEquals(0, decoded.recoveryTicks(), "an older save has no recovery progress");
+    }
+
+    @Test
+    void homeDataRoundTrips() {
+        HomeData data = new HomeData(new BlockPos(12, 64, -30), Level.NETHER);
+        JsonObject encoded = HomeData.CODEC.encodeStart(JsonOps.INSTANCE, data)
+                .getOrThrow().getAsJsonObject();
+        HomeData decoded = HomeData.CODEC.parse(JsonOps.INSTANCE, encoded).getOrThrow();
+
+        assertEquals(data, decoded);
+        assertEquals(Level.NETHER, decoded.dimension(), "the post's dimension survives the round trip");
     }
 
     @Test
@@ -59,6 +84,9 @@ class AttachmentCodecTest {
 
         DownedData downed = DownedData.CODEC.parse(JsonOps.INSTANCE, empty).getOrThrow();
         assertEquals(new DownedData(), downed);
+
+        HomeData home = HomeData.CODEC.parse(JsonOps.INSTANCE, empty).getOrThrow();
+        assertEquals(new HomeData(), home);
     }
 
     @Test
