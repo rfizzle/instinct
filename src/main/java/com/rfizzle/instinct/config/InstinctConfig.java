@@ -96,6 +96,8 @@ public class InstinctConfig {
     public boolean enableDownedState = true;
     public double reviveHealthFraction = 0.5;
     public boolean downedRankPenalty = true;
+    public boolean enableCarryDowned = true;
+    public double carrySlowdownFraction = 0.30;
 
     // §8 Predator Watch
     public boolean enablePredatorWatch = true;
@@ -312,6 +314,7 @@ public class InstinctConfig {
         whistleCooldownTicks = clampInt("whistleCooldownTicks", whistleCooldownTicks, 0, 100);
         roundUpGroupRadiusBlocks = clampInt("roundUpGroupRadiusBlocks", roundUpGroupRadiusBlocks, 4, 16);
         reviveHealthFraction = clampDouble("reviveHealthFraction", reviveHealthFraction, 0.1, 1.0);
+        carrySlowdownFraction = clampDouble("carrySlowdownFraction", carrySlowdownFraction, 0.0, 0.9);
         predatorWatchRadiusBlocks = clampInt("predatorWatchRadiusBlocks", predatorWatchRadiusBlocks, 4, 24);
 
         petsInclude = sanitizeEntityIds("petsInclude", petsInclude);

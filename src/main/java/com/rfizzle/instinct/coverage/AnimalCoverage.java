@@ -41,6 +41,11 @@ public final class AnimalCoverage {
      *  {@code predatorsInclude}, minus {@code predatorsExclude}; there is no heuristic layer — a
      *  predator is only ever what the tag or config names. */
     public static final TagKey<EntityType<?>> PREDATORS_TAG = tag("predators");
+    /** Small pets that can be scooped up and carried while downed (§7 Carry). A downed pets-set
+     *  animal is carryable when it is a baby (a pup) or its type is in this tag; ships cat and
+     *  parrot. Full-size pets and every mount stay where they fall. A mod adds its own small pets
+     *  via this tag. */
+    public static final TagKey<EntityType<?>> CARRYABLE_TAG = tag("carryable");
 
     private static final Map<EntityType<?>, AnimalCapability> CAPABILITIES = new ConcurrentHashMap<>();
 
