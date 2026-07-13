@@ -1,6 +1,7 @@
 package com.rfizzle.instinct;
 
 import com.rfizzle.instinct.command.InstinctCommand;
+import com.rfizzle.instinct.boating.Boating;
 import com.rfizzle.instinct.compat.tribulation.TribulationCompat;
 import com.rfizzle.instinct.config.InstinctConfig;
 import com.rfizzle.instinct.coverage.AnimalCoverage;
@@ -54,6 +55,7 @@ public class Instinct implements ModInitializer {
         VeterancyHandler.register();
         GeneticsHandler.register();
         Herding.register();
+        Boating.register();
         PredatorWatch.register();
         Guard.register();
         CarryHandler.register();

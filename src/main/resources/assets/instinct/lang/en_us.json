@@ -114,6 +114,8 @@
   "config.instinct.enableHerding.tooltip": "Whistling at livestock rounds up its group and drives it to you.",
   "config.instinct.herdingMaxPets": "Herding max pets",
   "config.instinct.herdingMaxPets.tooltip": "How many pets can drive a round-up at once. Range 1–4.",
+  "config.instinct.enablePetBoating": "Pets board boats",
+  "config.instinct.enablePetBoating.tooltip": "A following pet takes the spare seat in your boat and hops out when you land.",
   "config.instinct.enableTrough": "Enable feeding trough",
   "config.instinct.enableTrough.tooltip": "The feeding trough passively feeds and breeds nearby livestock.",
   "config.instinct.troughRadiusBlocks": "Trough radius (blocks)",

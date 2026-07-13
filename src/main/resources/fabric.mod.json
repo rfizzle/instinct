@@ -33,6 +33,7 @@
             "com.rfizzle.instinct.gametest.YieldGameTest",
             "com.rfizzle.instinct.gametest.BestInShowGameTest",
             "com.rfizzle.instinct.gametest.HerdingGameTest",
+            "com.rfizzle.instinct.gametest.BoatBoardGameTest",
             "com.rfizzle.instinct.gametest.PredatorWatchGameTest",
             "com.rfizzle.instinct.gametest.DownedGameTest",
             "com.rfizzle.instinct.gametest.CarryGameTest",

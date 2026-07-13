@@ -8,3 +8,8 @@ accessible field net/minecraft/world/entity/Mob goalSelector Lnet/minecraft/worl
 # The sheep coat-color → wool map, read by the genetics product table for the
 # "special": "wool_coat" secondary drop (§3) from non-mixin code.
 accessible field net/minecraft/world/entity/animal/Sheep ITEM_BY_DYE Ljava/util/Map;
+
+# Boat seat count, read by the boat-boarding goal (§4 water crossings) to tell a spare
+# seat from a full boat — a ChestBoat seats one, an ordinary boat two — so a pet only
+# boards where a seat is actually free.
+accessible method net/minecraft/world/entity/vehicle/Boat getMaxPassengers ()I

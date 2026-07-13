@@ -46,6 +46,7 @@
             ["<code>flockSpacingBlocks</code>", "double", "<code>2.0</code>", "1.0–4.0", "Flocking"],
             ["<code>enableHerding</code>", "bool", "<code>true</code>", "—", "Herding"],
             ["<code>herdingMaxPets</code>", "int", "<code>2</code>", "1–4", "Herding"],
+            ["<code>enablePetBoating</code>", "bool", "<code>true</code>", "—", "Herding"],
             ["<code>enableTrough</code>", "bool", "<code>true</code>", "—", "Feeding trough"],
             ["<code>troughRadiusBlocks</code>", "int", "<code>10</code>", "4–24", "Feeding trough"],
             ["<code>troughFeedIntervalTicks</code>", "int", "<code>40</code>", "10–200", "Feeding trough"],
