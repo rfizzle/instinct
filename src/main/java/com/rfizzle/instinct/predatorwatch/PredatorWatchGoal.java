@@ -19,21 +19,27 @@ import java.util.List;
  * and, each repath, does two things at once: it <em>deters</em> every predator in radius — clearing
  * any covered-livestock attack target and driving it away from the pasture — and <em>intercepts</em>
  * the nearest one, pathing the pet to a blocking point between that predator and its nearest prey.
- * When no predator or no livestock remains in radius the pet re-sits where it stands.
+ * When no predator or no livestock remains in radius the pet re-sits where it stands — on its own,
+ * because the Stay order still holds; the goal never touches that order itself.
  *
- * <p>Self-preservation always wins: the goal never engages while a creeper is swelling within the
- * berth's awareness radius, and it stands down the moment one appears mid-watch, freeing the move
- * slot for {@link com.rfizzle.instinct.selfpreservation.CreeperBerthGoal} (which shares this
- * priority). Every gate is re-read live, so a config toggle or a fresh tame takes effect at once.
+ * <p>Self-preservation always wins. The goal never engages while a creeper is swelling within the
+ * berth's awareness radius and drops the watch the moment one appears, freeing the move slot for
+ * {@link com.rfizzle.instinct.selfpreservation.CreeperBerthGoal}; and it stands down while the pet
+ * is on fire or in lava so the pet's vanilla panic goal can flee. Both {@code CreeperBerthGoal} and
+ * the panic goal share this goal's priority, so it yields to them by standing down rather than by
+ * priority. Every gate is re-read live, so a config toggle or a fresh tame takes effect at once.
  */
 public class PredatorWatchGoal extends Goal {
 
-    /** Priority 1 — above {@code SitWhenOrderedToGoal} (2 on wolf/cat/parrot) so a Stay pet stands
-     *  to guard, and above {@code HerdWorkGoal} (5) / {@code FollowOwnerGoal} (6). It ties
-     *  {@code CreeperBerthGoal} (1): rather than lean on priority to let the berth preempt (equal
-     *  priorities never preempt each other mid-run), this goal yields to a swelling creeper itself —
-     *  {@link #canUse()} never engages while one is near and {@link #tick()} drops the watch when one
-     *  appears — so the berth always gets the slot within a scan of ignition, well inside the fuse. */
+    /** Priority 1 — it preempts {@code SitWhenOrderedToGoal} (2 on wolf/cat/parrot), so a Stay pet
+     *  stands to guard <em>without this goal ever mutating the sit order</em>: the order stays the
+     *  player's, so a whistle to Follow ends the watch at once and the pet is never re-sat against a
+     *  command. It also outranks {@code HerdWorkGoal} (5) / {@code FollowOwnerGoal} (6). It ties
+     *  {@code CreeperBerthGoal} and {@code TamableAnimalPanicGoal} (both 1); equal priorities never
+     *  preempt each other mid-run, so this goal yields to both itself — never engaging while a
+     *  creeper is swelling ({@link #canUse}), dropping the watch when one appears ({@link #tick}),
+     *  and standing down while on fire or in lava ({@link #eligible}) — keeping self-preservation
+     *  ahead of the watch within a scan. */
     static final int PRIORITY = 1;
 
     private static final int SCAN_INTERVAL_TICKS = 10;
@@ -49,7 +55,6 @@ public class PredatorWatchGoal extends Goal {
 
     private final TamableAnimal pet;
     private Animal threat;
-    private boolean wasSitting;
     private int scanCooldown;
     private int repathCooldown;
 
@@ -65,7 +70,7 @@ public class PredatorWatchGoal extends Goal {
         }
         scanCooldown = adjustedTickDelay(SCAN_INTERVAL_TICKS);
         InstinctConfig config = InstinctConfig.get();
-        if (!config.enablePredatorWatch || !eligible() || creeperThreatNear()) {
+        if (!config.enablePredatorWatch || !eligible()) {
             return false;
         }
         double radius = config.predatorWatchRadiusBlocks;
@@ -73,6 +78,12 @@ public class PredatorWatchGoal extends Goal {
         // A predator with a pasture to guard: no livestock in range means no watch to keep, so a
         // wolf merely passing a lone stationed pet is never harassed.
         if (predator == null || nearestLivestock(predator, radius) == null) {
+            return false;
+        }
+        // Pay the creeper scan only once there's actually a pasture to guard: an idle stationed pet
+        // with no predator near never runs it, and self-preservation still wins here (the berth
+        // takes the slot) and mid-watch (tick drops the threat).
+        if (creeperThreatNear()) {
             return false;
         }
         this.threat = predator;
@@ -91,13 +102,9 @@ public class PredatorWatchGoal extends Goal {
 
     @Override
     public void start() {
-        // Stand a sitting pet to guard, restoring the Stay order at its new spot on stop — stay
-        // means stay, minus the predator. wasSitting is always true here (canUse engages only a
-        // sitting pet), but track it so the re-sit is unconditional on the recorded state.
-        wasSitting = pet.isOrderedToSit();
-        if (wasSitting) {
-            pet.setOrderedToSit(false);
-        }
+        // The pet stands purely by this goal preempting SitWhenOrderedToGoal (that goal clears the
+        // sitting pose on stop); the sit order itself is left untouched, so the pet re-sits on its
+        // own when the watch ends — and a whistle to Follow ends the watch instead of being ignored.
         repathCooldown = 0;
     }
 
@@ -146,14 +153,18 @@ public class PredatorWatchGoal extends Goal {
     public void stop() {
         threat = null;
         pet.getNavigation().stop();
-        if (wasSitting) {
-            pet.setOrderedToSit(true);
-        }
-        wasSitting = false;
+        // No sit restoration: the sit order was never cleared, so SitWhenOrderedToGoal re-seats the
+        // pet on its own if the pet is still on Stay — and leaves it standing if the player commanded
+        // Follow while it guarded.
     }
 
-    /** Drops a predator's hunt and drives it off: clears a covered-livestock target and paths it
-     *  {@link #FLEE_DISTANCE} away from the guardian, re-issued each repath so it keeps its distance. */
+    /**
+     * Drops a predator's hunt and drives it off: clears a covered-livestock target and paths it
+     * {@link #FLEE_DISTANCE} away from the guardian, re-issued each repath so it keeps its distance.
+     * A goal-driven predator (fox, wolf) obeys the navigation override; a brain-driven {@code Animal}
+     * added via {@code predatorsInclude} would fight its own brain and be deterred only intermittently
+     * — graceful degradation per Animal Coverage, never a crash. The shipped default set is goal-driven.
+     */
     private void deter(Animal predator) {
         LivingEntity target = predator.getTarget();
         if (target instanceof Animal prey && AnimalCoverage.membershipOf(prey).livestock()) {
@@ -164,13 +175,18 @@ public class PredatorWatchGoal extends Goal {
         predator.getNavigation().moveTo(away[0], predator.getY(), away[1], FLEE_SPEED);
     }
 
-    /** True when the pet is a valid guardian: tamed, not downed, on Stay (or already standing to
-     *  guard from a Stay), and a pets-set member. */
+    /** True when the pet is a valid guardian: tamed, not downed, not fleeing a hazard, on Stay, and a
+     *  pets-set member. The Stay check reads the live sit order (never a cached flag), so a whistle to
+     *  Follow ends the watch at once; the fire/lava check stands the guard down so the pet's vanilla
+     *  panic goal — which ties this goal's priority and so cannot preempt it — can take over and flee. */
     private boolean eligible() {
         if (!pet.isTame() || InstinctAPI.isDowned(pet)) {
             return false;
         }
-        if (!pet.isOrderedToSit() && !wasSitting) {
+        if (pet.isOnFire() || pet.isInLava()) {
+            return false;
+        }
+        if (!pet.isOrderedToSit()) {
             return false;
         }
         return AnimalCoverage.membershipOf(pet).pet();

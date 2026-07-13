@@ -597,7 +597,7 @@ A guardian with no livestock in range has no pasture to keep, so a predator mere
 
 ### Sitting and commanded state
 
-The watch engages only a **Stay** pet; a following pet keeps following. Standing to guard clears the sit order for the duration and restores it on completion (the §1 berth's was-sitting memory). Self-preservation always wins: a swelling creeper within the §1 berth's awareness radius ends the watch at once, freeing the guardian to flee. Downed pets (§7) have no AI and never guard.
+The watch engages only a **Stay** pet; a following pet keeps following. The guardian stands by preempting the sit goal and never touches the sit order itself — so a whistle to Follow ends the watch at once (the pet is never re-sat against a command), and when the watch ends the pet re-sits on its own because the Stay order still holds. Self-preservation always wins: a swelling creeper within the §1 berth's awareness radius, or the guardian catching fire or stepping in lava, ends the watch at once so the pet can flee. Downed pets (§7) have no AI and never guard.
 
 ### Edge cases
 
@@ -622,7 +622,7 @@ Livestock is unowned, so a guardian keeps the pasture for whoever's animals stan
 
 - One injected goal, `PredatorWatchGoal` (priority 1), added to every tamed pets-set animal on `ServerEntityEvents.ENTITY_LOAD` (idempotent, the §4 install pattern). Both halves run from the guardian, so no goal is ever installed on a wild predator: an untamed fox or wolf with no guardian nearby is exactly vanilla and costs nothing.
 - Inert until engaged: scans are interval-gated (`adjustedTickDelay`, the §1 berth cadence), and a stationed pet with no predator in range pays only the scan. Deterrence is `setTarget(null)` on a covered-livestock target plus a re-issued away-navigation; interception is a move to `PredatorWatch.interceptPoint(...)`.
-- Priority 1 ties `CreeperBerthGoal`; rather than lean on priority (equal priorities never preempt mid-run), the watch yields to a swelling creeper itself — it never engages while one is near and stands down when one appears — so the berth always takes the slot within a scan.
+- Priority 1 preempts the sit goal so a Stay pet stands without the watch ever mutating the sit order (the order stays the player's, so a whistle to Follow ends the watch instead of being swallowed, and no forced re-sit ever fights a command). It ties `CreeperBerthGoal` and `TamableAnimalPanicGoal`; rather than lean on priority (equal priorities never preempt mid-run), the watch yields to both itself — never engaging while a creeper is swelling, dropping the watch when one appears, and standing down while on fire or in lava — so self-preservation always takes the slot within a scan.
 - Predator-set resolution (`#instinct:predators` ∪ `predatorsInclude`, minus `predatorsExclude`) has no heuristic layer; the pure geometry (`interceptPoint`, `fleePoint`) is unit-tested, the live behavior gametested.
 
 ---

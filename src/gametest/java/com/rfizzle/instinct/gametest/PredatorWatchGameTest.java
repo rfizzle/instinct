@@ -1,15 +1,19 @@
 package com.rfizzle.instinct.gametest;
 
 import com.rfizzle.instinct.config.InstinctConfig;
+import com.rfizzle.instinct.gametest.util.MockPlayers;
 import com.rfizzle.instinct.predatorwatch.PredatorWatchGoal;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.gametest.v1.FabricGameTest;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.animal.Sheep;
 import net.minecraft.world.entity.animal.Wolf;
+import net.minecraft.world.entity.monster.Creeper;
 import net.minecraft.world.level.block.Blocks;
 
 import java.util.UUID;
@@ -50,17 +54,81 @@ public class PredatorWatchGameTest implements FabricGameTest {
         Wolf predator = spawnWildWolf(helper, new BlockPos(5, 2, 5));
         predator.setTarget(sheep);
         Wolf guardian = spawnGuardianWolf(helper, new BlockPos(2, 2, 2));
-        // Give the watch a moment to engage, confirm the pet left its seat to guard, then remove the
-        // threat and confirm the Stay order is restored — stay means stay, minus the predator.
+        // Give the watch a moment to engage, confirm the pet left its seat to guard while the Stay
+        // order itself is never cleared, then remove the threat and confirm it re-sits on its own —
+        // stay means stay, minus the predator.
         helper.runAfterDelay(60, () -> {
             helper.assertFalse(guardian.isInSittingPose(), "guardian stands to intercept the predator");
+            helper.assertTrue(guardian.isOrderedToSit(), "the watch never clears the Stay order");
             predator.discard();
             helper.runAfterDelay(60, () -> {
                 helper.assertTrue(guardian.isInSittingPose(), "guardian re-sits once the predator is gone");
+                helper.assertTrue(guardian.isOrderedToSit(), "the Stay order still holds");
                 guardian.discard();
                 sheep.discard();
                 helper.succeed();
             });
+        });
+    }
+
+    @GameTest(template = EMPTY_STRUCTURE, timeoutTicks = 200, batch = "instinctPredatorWatch")
+    public void followCommandEndsTheWatch(GameTestHelper helper) {
+        buildFloor(helper);
+        // A real online owner: vanilla SitWhenOrderedToGoal auto-sits a tamed pet whose owner is
+        // absent (getOwner() == null), so an ownerless pet would re-sit regardless of the order —
+        // the meaningful test needs the pet's owner present, as it is when a player whistles Follow.
+        // The owner is discarded inside the deferred callback, not a synchronous finally: it must
+        // stay present across the delay (an absent owner would auto-sit the pet). A synchronous setup
+        // failure still discards it via the catch.
+        ServerPlayer owner = MockPlayers.serverPlayerInLevel(helper);
+        try {
+            Sheep sheep = helper.spawn(EntityType.SHEEP, new BlockPos(3, 2, 2));
+            Wolf predator = spawnWildWolf(helper, new BlockPos(5, 2, 5));
+            predator.setTarget(sheep);
+            Wolf guardian = spawnGuardianWolf(helper, new BlockPos(2, 2, 2));
+            guardian.setOwnerUUID(owner.getUUID());
+            // Let the watch engage (the pet leaves its seat), then whistle the pet to Follow mid-guard.
+            // The command must be honored even with the predator still there — the pet stops guarding
+            // and is never forced back into its seat.
+            helper.runAfterDelay(60, () -> {
+                helper.assertFalse(guardian.isInSittingPose(), "precondition: guardian engaged and stood");
+                guardian.setOrderedToSit(false); // the whistle's Follow order
+                helper.runAfterDelay(60, () -> {
+                    helper.assertFalse(guardian.isOrderedToSit(), "the Follow command is honored, not swallowed");
+                    helper.assertFalse(guardian.isInSittingPose(), "a followed pet is never re-sat against the command");
+                    predator.discard();
+                    guardian.discard();
+                    sheep.discard();
+                    owner.discard();
+                    helper.succeed();
+                });
+            });
+        } catch (RuntimeException e) {
+            owner.discard();
+            throw e;
+        }
+    }
+
+    // Own batch: a live fuse must never sit within another test's berth awareness radius.
+    @GameTest(template = EMPTY_STRUCTURE, timeoutTicks = 200, batch = "instinctPredatorWatchCreeper")
+    public void swellingCreeperBeatsTheWatch(GameTestHelper helper) {
+        buildFloor(helper);
+        Sheep sheep = helper.spawn(EntityType.SHEEP, new BlockPos(3, 2, 2));
+        Wolf predator = spawnWildWolf(helper, new BlockPos(5, 2, 5));
+        predator.setTarget(sheep);
+        Wolf guardian = spawnGuardianWolf(helper, new BlockPos(2, 2, 2));
+        Creeper creeper = spawnFuseOnlyCreeper(helper, new BlockPos(2, 2, 5));
+        var creeperPos = creeper.position();
+        creeper.ignite();
+        // Self-preservation trumps the watch: with a predator right there, the guardian still breaks
+        // for the fuse instead of guarding, and clears the berth distance.
+        helper.succeedWhen(() -> {
+            helper.assertTrue(guardian.position().distanceTo(creeperPos) >= 4.0,
+                    "guardian flees the fuse rather than holding the watch");
+            guardian.discard();
+            predator.discard();
+            sheep.discard();
+            creeper.discard();
         });
     }
 
@@ -163,5 +231,17 @@ public class PredatorWatchGameTest implements FabricGameTest {
         helper.getLevel().addFreshEntity(wolf);
         wolf.setNoAi(true);
         return wolf;
+    }
+
+    /** A creeper that can fuse but not hurt the test: NoAI keeps it in place, ExplosionRadius 0 makes
+     *  any detonation harmless, and a 400-tick fuse outlives the timeout. Tests must discard it. */
+    private static Creeper spawnFuseOnlyCreeper(GameTestHelper helper, BlockPos rel) {
+        Creeper creeper = helper.spawn(EntityType.CREEPER, rel);
+        creeper.setNoAi(true);
+        CompoundTag tag = creeper.saveWithoutId(new CompoundTag());
+        tag.putByte("ExplosionRadius", (byte) 0);
+        tag.putShort("Fuse", (short) 400);
+        creeper.load(tag);
+        return creeper;
     }
 }

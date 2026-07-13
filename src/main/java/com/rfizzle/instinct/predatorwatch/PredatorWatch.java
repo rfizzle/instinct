@@ -30,10 +30,11 @@ public final class PredatorWatch {
 
     public static void register() {
         ServerEntityEvents.ENTITY_LOAD.register((entity, level) -> {
+            if (!(entity instanceof TamableAnimal pet)) {
+                return;
+            }
             try {
-                if (entity instanceof TamableAnimal pet) {
-                    addWatchGoal(pet);
-                }
+                addWatchGoal(pet);
             } catch (Exception e) {
                 Instinct.LOGGER.error("Failed to install predator watch on {}", entity.getType(), e);
             }
