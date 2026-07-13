@@ -34,6 +34,7 @@
             "com.rfizzle.instinct.gametest.HerdingGameTest",
             "com.rfizzle.instinct.gametest.PredatorWatchGameTest",
             "com.rfizzle.instinct.gametest.DownedGameTest",
+            "com.rfizzle.instinct.gametest.CarryGameTest",
             "com.rfizzle.instinct.gametest.FeedingTroughGameTest",
             "com.rfizzle.instinct.gametest.WhistleGameTest",
             "com.rfizzle.instinct.gametest.ProbeTooltipGameTest",

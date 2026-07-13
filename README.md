@@ -54,8 +54,9 @@ package is internal and may change in any release.
 - `InstinctAPI.isTroughFed(Animal)` — trough-fed within the last 24000 ticks
 
 An animal mod needs **no code at all** to opt in or out: ship entries in the
-`#instinct:pets`, `#instinct:pets_exclude`, `#instinct:livestock`, or
-`#instinct:livestock_exclude` entity-type tags (and `#instinct:trough_food` /
+`#instinct:pets`, `#instinct:pets_exclude`, `#instinct:livestock`,
+`#instinct:livestock_exclude`, or `#instinct:carryable` (small pets a rescuer
+can carry while downed) entity-type tags (and `#instinct:trough_food` /
 `#instinct:revive_items` item tags) in your own data.
 
 ### Gradle Setup

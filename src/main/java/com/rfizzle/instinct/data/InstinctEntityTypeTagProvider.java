@@ -46,6 +46,14 @@ public class InstinctEntityTypeTagProvider extends FabricTagProvider.EntityTypeT
                 .add(EntityType.FOX)
                 .add(EntityType.WOLF);
 
+        // §7 Carry: the small pets a rescuer can scoop up and carry while downed. Cats and parrots
+        // are the vanilla small pets; a downed pup (any baby pet) is carryable by size regardless of
+        // this tag. An adult wolf is too big — it stays where it falls. A mod adds its own small
+        // pets here.
+        getOrCreateTagBuilder(AnimalCoverage.CARRYABLE_TAG)
+                .add(EntityType.CAT)
+                .add(EntityType.PARROT);
+
         getOrCreateTagBuilder(AnimalCoverage.LIVESTOCK_EXCLUDE_TAG)
                 .add(EntityType.HORSE)
                 .add(EntityType.DONKEY)

@@ -546,6 +546,8 @@ The item is consumed; the pet revives: health set to `reviveHealthFraction` (def
 
 **Wrong item on a downed pet:** nothing happens (no swing, no consume). Regular interactions (sit toggle, dye, food) are all suppressed while downed.
 
+**Carrying.** While `enableCarryDowned` is true (default), a downed pet small enough to lift can be scooped up and carried out of danger. A downed pets-set animal is **carryable** when it is a baby (a pup) or its type is in `#instinct:carryable` (ships cat and parrot; a mod extends it) — full-size pets and every mount stay where they fall. Sneak + empty-hand use on a carryable downed pet makes it a **passenger of the rescuer**: `✦ Carrying <name>.` The pet stays downed the whole time — invulnerable, no AI, still whimpering — so lifting only relocates it. Carrying occupies no inventory slot but slows the carrier: a transient `MOVEMENT_SPEED` modifier of `carrySlowdownFraction` (default 0.30 → ×0.70), removed the instant the carry ends and never persisted, so a logout can never strand a slowed player. A rescuer carries one pet at a time (`✦ Your hands are full.`). Sneak + empty-hand use on a block sets the pet down again, still downed: `✦ <name> set down.` Reviving a carried pet — a co-op partner can, with a `#instinct:revive_items` item — releases it from the carrier's arms and clears the slowdown; the carrier's own flow is to set the pet down, then revive it on the ground. However a carry ends — set down, revived, or the carrier logging out or dying — the pet is left downed wherever it comes to rest, no worse off than where it fell. Fire, lava, and the void remain beyond saving, carried or not: a pet taken into them dies as it would anywhere.
+
 ### Edge cases
 
 - **Explosion that downs the pet:** the triggering damage resolves first (pet goes down); subsequent blast/fire ticks hit invulnerability. A pet downed *in* fire that keeps burning: the next fire tick is lethal-class fire damage against a downed pet — downed pets are invulnerable to it like everything else; the "beyond saving" test applies only to the *lethal blow that would have killed a healthy pet*, not to damage after downing. (A pet downed at the lava edge is safe; a pet swimming in lava never goes down at all.)
@@ -565,6 +567,8 @@ Per-pet server state. Any player can revive (co-op rescue is a feature); only th
 | `enableDownedState` | bool | `true` | |
 | `reviveHealthFraction` | double | `0.5` | 0.1–1.0 |
 | `downedRankPenalty` | bool | `true` | |
+| `enableCarryDowned` | bool | `true` | |
+| `carrySlowdownFraction` | double | `0.30` | 0.0–0.9 |
 
 ### Implementation Notes
 
@@ -573,6 +577,7 @@ Per-pet server state. Any player can revive (co-op rescue is a feature); only th
 - "Beyond saving" test: `source.is(DamageTypeTags.IS_FIRE) || source.is(DamageTypes.LAVA) || source.is(DamageTypes.FELL_OUT_OF_WORLD) || source.is(DamageTypes.GENERIC_KILL)`.
 - Target immunity: a `Mob#canAttack`-site guard (or targeting-conditions predicate injection) plus a sweep clearing `getTarget() == downed` on down.
 - Revival: `UseEntityCallback` intercepting item-on-downed before vanilla interactions.
+- Carrying: the pet rides the player via `startRiding`, so vanilla owns the render, position sync, portal travel, and auto-eject on logout/death. The `CarryHandler` `UseEntityCallback` (pick up) registers ahead of the revival handler so the sneak + empty-hand gesture is claimed before empty-hand suppression; set-down is a `UseBlockCallback`. The slowdown is an `addTransientModifier` on `MOVEMENT_SPEED` (never serialized); a per-second sweep over the tracked carriers strips a stale modifier if a carried pet leaves by an untracked path (`/kill`, the void).
 - `InstinctPetDownedCallback` / `InstinctPetRevivedCallback` fire at the respective transitions (§Public API).
 
 ---
@@ -678,6 +683,8 @@ All features are independently toggleable via a ModMenu / Cloth Config screen an
 | `enableDownedState` | bool | true | §7 master toggle |
 | `reviveHealthFraction` | double | 0.5 | Health fraction restored on revival (0.1–1.0) |
 | `downedRankPenalty` | bool | true | Revival costs one veterancy rank |
+| `enableCarryDowned` | bool | true | Sneak-use to carry a downed small pet to safety |
+| `carrySlowdownFraction` | double | 0.30 | Movement slowdown while carrying a downed pet (0.0–0.9) |
 | `enablePredatorWatch` | bool | true | §8 master toggle |
 | `predatorWatchRadiusBlocks` | int | 12 | Radius a Stay guardian watches for predators over livestock (4–24) |
 | `predatorsInclude` | list | [] | Entity types forced into the wild-predator set |

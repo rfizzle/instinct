@@ -297,6 +297,17 @@ final class ClothConfigScreenBuilder {
                 .setTooltip(tooltip("downedRankPenalty"))
                 .setSaveConsumer(v -> working.downedRankPenalty = v)
                 .build());
+        downed.addEntry(entry.startBooleanToggle(label("enableCarryDowned"), config.enableCarryDowned)
+                .setDefaultValue(defaults.enableCarryDowned)
+                .setTooltip(tooltip("enableCarryDowned"))
+                .setSaveConsumer(v -> working.enableCarryDowned = v)
+                .build());
+        downed.addEntry(entry.startDoubleField(label("carrySlowdownFraction"), config.carrySlowdownFraction)
+                .setDefaultValue(defaults.carrySlowdownFraction)
+                .setMin(0.0).setMax(0.9)
+                .setTooltip(tooltip("carrySlowdownFraction"))
+                .setSaveConsumer(v -> working.carrySlowdownFraction = v)
+                .build());
 
         // --- Predator Watch (§8) ---
         ConfigCategory predatorWatch = builder.getOrCreateCategory(Component.translatable("config.instinct.category.predator_watch"));

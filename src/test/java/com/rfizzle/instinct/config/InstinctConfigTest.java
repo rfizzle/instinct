@@ -30,6 +30,7 @@ class InstinctConfigTest {
             "enableWhistle", "whistleRadiusBlocks", "whistleTargetRangeBlocks", "whistleCooldownTicks",
             "roundUpGroupRadiusBlocks",
             "enableDownedState", "reviveHealthFraction", "downedRankPenalty",
+            "enableCarryDowned", "carrySlowdownFraction",
             "enableInspection");
 
     @TempDir
