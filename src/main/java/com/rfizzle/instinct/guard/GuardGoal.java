@@ -68,32 +68,30 @@ public class GuardGoal extends Goal {
 
     @Override
     public boolean canUse() {
-        // Not running yet: scan for a creeper live, since tick() (which refreshes the cache) isn't ticking.
-        return active(creeperThreatNear(InstinctConfig.get()));
+        // Cheap gates first (&& short-circuits), so the live creeper scan is reached only for a pet
+        // that is genuinely posted and free — an unposted pet pays only the guardData() null check.
+        // Live here because tick() (which refreshes the cached flag) isn't running yet.
+        return postedAndFree() && !creeperThreatNear(InstinctConfig.get());
     }
 
     @Override
     public boolean canContinueToUse() {
         // Running: read the cached stand-down flag tick() refreshes on the scan interval — no per-tick scan.
-        return active(creeperNear);
+        return postedAndFree() && !creeperNear;
     }
 
     /**
-     * True while the pet should be actively holding its post: the whistle is enabled, the pet carries
-     * a guard order and is a valid guardian, it has no <em>live</em> combat target (a live target hands
-     * the move slot to vanilla melee), and no creeper is swelling nearby (self-preservation takes the
-     * slot instead). A non-guarding pet fails the {@link #guardData()} null check first, so it pays
-     * only that.
+     * The cheap keep-alive gates: the whistle is enabled, the pet carries a guard order and is a valid
+     * guardian, and it has no <em>live</em> combat target (a live target hands the move slot to vanilla
+     * melee). A non-guarding pet fails the {@link #guardData()} null check first, so it pays only that —
+     * the creeper scan is left to the callers, behind this method's short-circuit.
      */
-    private boolean active(boolean creeperThreat) {
+    private boolean postedAndFree() {
         InstinctConfig config = InstinctConfig.get();
         if (!config.enableWhistle || guardData() == null || !eligible()) {
             return false;
         }
-        if (hasLiveTarget()) {
-            return false;
-        }
-        return !creeperThreat;
+        return !hasLiveTarget();
     }
 
     @Override
