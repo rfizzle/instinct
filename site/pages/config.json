@@ -24,6 +24,7 @@
             ["<code>enableSelfPreservation</code>", "bool", "<code>true</code>", "—", "Self-preservation"],
             ["<code>creeperBerthBlocks</code>", "int", "<code>4</code>", "2–8", "Self-preservation"],
             ["<code>teleportSuppressFallDistance</code>", "double", "<code>3.0</code>", "0.5–10.0", "Self-preservation"],
+            ["<code>enableOwnerFriendlyFireProtection</code>", "bool", "<code>true</code>", "—", "Self-preservation"],
             ["<code>enableVeterancy</code>", "bool", "<code>true</code>", "—", "Veterancy"],
             ["<code>veterancyThresholdDays</code>", "int list", "<code>[10, 30, 60]</code>", "ascending, 1–1000", "Veterancy"],
             ["<code>healthPerRank</code>", "double", "<code>2.0</code>", "0.0–20.0", "Veterancy"],

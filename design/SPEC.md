@@ -82,9 +82,15 @@ Protections 1 and 2 apply regardless of sit state (a sitting pet flees a fuse, t
 
 Protections 1 and 2 apply to tamed mounts, with three differences from pets. The berth fires only while the mount is **riderless** — a ridden mount answers to its rider, not its instinct — and a mount has no sit pose, so it simply resumes its prior behavior after clearing the berth rather than re-sitting. The berth is a goal-selector goal, so it attaches only to **goal-driven** mounts; a brain-driven mount (the camel, whose movement runs on a brain rather than the goal selector) gets hazard-aware pathing (protection 1, which prices path nodes regardless of AI architecture) but not the creeper berth — graceful degradation per Animal Coverage, never a broken goal fighting the brain. Protection 3 (teleport refusal) does not apply: a mount never follow-teleports to an owner, so there is nothing to suppress. A downed mount (§7) has no AI and is exempt.
 
+### Owner friendly-fire
+
+Scoped to the **pets set** only — livestock and mounts stay vulnerable to their keeper. While `enableOwnerFriendlyFireProtection` (default true), an owner's own damage never lands on their own pet, whatever the source: melee and the sweep arc, arrows, splash and lingering potions, an explosion the owner set off. Every one of these credits the owning player as the blow's causing entity, so a single rule covers them all — the pet takes no damage and is not knocked back. Another player's damage is untouched; this is about your own hand, not invulnerability. A pet that would have gone down (§7) to its owner's own blow instead simply shrugs it off, so an owner can no longer down or kill their own pet by their own hand while this is on.
+
+The rank-2 "Knows your swing" sweep-dodge (§2) is the narrower veteran trick — the arc only, rank 2+ only — that governs a pet when this blanket protection is switched off.
+
 ### Multiplayer
 
-Per-pet, evaluated against the pet's own owner only. Another player falling past your wolf changes nothing.
+Per-pet, evaluated against the pet's own owner only. Another player falling past your wolf changes nothing. Owner friendly-fire keys on the blow's causing player: your damage spares only *your* pets, and another player's damage on your pet lands as vanilla.
 
 ### Failure paths
 
@@ -97,6 +103,7 @@ If the pet is already standing in a hazard (spawned there, pushed there), hazard
 | `enableSelfPreservation` | bool | `true` | |
 | `creeperBerthBlocks` | int | `4` | 2–8 |
 | `teleportSuppressFallDistance` | double | `3.0` | 0.5–10.0 |
+| `enableOwnerFriendlyFireProtection` | bool | `true` | |
 
 ### Implementation Notes
 
@@ -104,6 +111,7 @@ If the pet is already standing in a hazard (spawned there, pushed there), hazard
 - Malus application is idempotent (setting the same malus twice is harmless), so re-loads are safe.
 - Teleport suppression: a mixin gating the vanilla follow-owner goal's teleport step on the owner-state predicate above. The predicate lives in one helper (`SelfPreservation.ownerUnsafeToJoin(owner)`) so the goal mixin stays a two-line guard. Modded pets running the vanilla goal get this free; custom follow goals are left alone (Animal Coverage → graceful degradation).
 - Escape-vs-enter asymmetry comes free with maluses: maluses affect node *cost evaluation* for nodes being entered; the current node is not re-evaluated. No extra code, but the gametest below pins it.
+- Owner friendly-fire: a `ServerLivingEntityEvents.ALLOW_DAMAGE` listener returns `false` (cancelling the blow, before any mitigation) when `source.getEntity()` is a player who owns the pets-set victim. `getEntity()` resolves the causing player across melee, arrows, potions, and player-primed TNT alike, so one listener covers every source. Pure verdict in `FriendlyFire.blocks(protectionOn, ownedPetOfAttacker)`; the listener fails open (a broken check allows the blow, never leaves a pet unhittable). Independent of the §2 sweep filter, which stays as the off-switch fallback.
 
 ---
 
@@ -144,7 +152,7 @@ Per-rank increments are `healthPerRank` (default 2.0) and `damagePerRank` (defau
 
 **Warning (rank 1+).** Evaluated on a 40-tick server cadence per online owner with loaded rank-1+ pets: for each monster within `warningRadiusBlocks` (default 16) of such a pet whose current attack target is that pet's owner, and which no pet of that owner has warned about in the last 300 ticks — the nearest eligible pet warns: it faces the threat and plays its species' own aggression or hurt sound (wolf growl, cat hiss, parrot's threat imitation — always the entity's own vanilla voice, volume 1.0). No text, no particles; the pet's voice *is* the message. A sitting pet warns without standing; a downed pet never warns. One warning per threat per owner per 300 ticks, however many pets qualify.
 
-**Knows your swing (rank 2+).** The owner's sweeping-edge area damage skips their own rank-2+ pets. Direct hits are unchanged — the pet learned to duck the arc, not to be immune to its owner. Other players' sweeps, and all other damage, are unaffected.
+**Knows your swing (rank 2+).** The owner's sweeping-edge area damage skips their own rank-2+ pets. It is the arc only — a direct hit is outside its scope (the pet learned to duck the sweep, not to be immune to its owner) — and rank 2+ only. Other players' sweeps, and all other damage, are unaffected. When §1 owner friendly-fire protection is on (its default), every owned pet is already spared from all of its owner's damage at every rank, so this dodge is what still governs a veteran when a server turns that protection off.
 
 **Mentor (rank 3).** While a rank-3 pet is loaded, alive, and not downed, every pets-set tamed animal of rank 0–2 within `mentorRadiusBlocks` (default 16) accrues veterancy at ×(1 + `mentorRateBonus`) (default 0.25). Non-stacking: any number of mentors in range yields one bonus. Composes multiplicatively with the veterancy-rate provider (§Public API) — e.g. Tribulation's 2.0 × the mentor's 1.25 = 2.5. Like provider rates, it applies to live loaded accrual only; unloaded gaps stay at 1.0. Owners may differ — any rank-3 pet steadies any lower-rank pet.
 

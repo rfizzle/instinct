@@ -70,6 +70,8 @@
   "config.instinct.creeperBerthBlocks.tooltip": "How far a pet keeps from a creeper about to explode. Range 2–8.",
   "config.instinct.teleportSuppressFallDistance": "Teleport-suppress fall distance",
   "config.instinct.teleportSuppressFallDistance.tooltip": "A pet won't teleport to an owner falling at least this many blocks, so it isn't yanked off a ledge. Range 0.5–10.",
+  "config.instinct.enableOwnerFriendlyFireProtection": "Owner friendly-fire protection",
+  "config.instinct.enableOwnerFriendlyFireProtection.tooltip": "Your own damage never lands on your own pets — melee, arrows, potions, or an explosion you set off. Other players' damage is untouched; livestock stay vulnerable.",
   "config.instinct.enableVeterancy": "Enable veterancy",
   "config.instinct.enableVeterancy.tooltip": "Pets accrue days with age, gaining ranks and attribute bonuses.",
   "config.instinct.veterancyThresholdDays": "Rank thresholds (days)",

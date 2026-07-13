@@ -13,7 +13,7 @@ In the first hours you notice what *doesn't* happen: your new wolf walks around 
 ## The features, as you'll play them
 
 ### Pets that look before they leap
-- **What it is** — tamed pets — wolves, cats, parrots — gain a survival instinct. They path around lava and cacti, keep a 4-block berth from an ignited creeper, and refuse to teleport to your side while you are falling more than 3 blocks or swimming in lava. The horse family — horses, donkeys, mules, camels, llamas — gets the same hazard sense and creeper berth whenever you are not in the saddle; ride it and it follows your lead instead.
+- **What it is** — tamed pets — wolves, cats, parrots — gain a survival instinct. They path around lava and cacti, keep a 4-block berth from an ignited creeper, and refuse to teleport to your side while you are falling more than 3 blocks or swimming in lava. Your own damage never lands on them either — the arrow that overshoots, the splash potion, the blast you set off all pass your pets by. The horse family — horses, donkeys, mules, camels, llamas — gets the same hazard sense and creeper berth whenever you are not in the saddle; ride it and it follows your lead instead.
 - **How you use it** — you don't. Tame the animal; the instinct is already there.
 - **What changes for you** — you stop losing pets to your own terrain, and bring them places you never dared. The pet you tame in your first week can still be alive in your hundredth day — which is exactly when veterancy starts to matter.
 
@@ -54,7 +54,7 @@ In the first hours you notice what *doesn't* happen: your new wolf walks around 
 
 ## Staying in control
 
-Every feature above — survival instinct, veterancy and the habits it teaches, genetics, flocking, herding, predator watch, the trough, the whistle, downed pets — can be switched off on its own, and the numbers a server plans around (rank thresholds and caps, the mentor bonus, watch radius, trough radius, flock speed, grade drop bonuses) are all adjustable. Animals from other mods join in automatically when they live like vanilla's — a tameable otter is a pet, a breedable critter is livestock, a modded prowler a predator — and a server owner can add or remove any animal by name. Defaults assume a survival world that wants all of it. Change nothing and untamed wild animals behave exactly as vanilla — save for a fox or wolf that stalks a pasture one of your stationed pets is watching; nothing appears on your screen — Instinct has no HUD, and everything it ever says is one short line that fades.
+Every feature above — survival instinct (including whether your own damage spares your pets), veterancy and the habits it teaches, genetics, flocking, herding, predator watch, the trough, the whistle, downed pets — can be switched off on its own, and the numbers a server plans around (rank thresholds and caps, the mentor bonus, watch radius, trough radius, flock speed, grade drop bonuses) are all adjustable. Animals from other mods join in automatically when they live like vanilla's — a tameable otter is a pet, a breedable critter is livestock, a modded prowler a predator — and a server owner can add or remove any animal by name. Defaults assume a survival world that wants all of it. Change nothing and untamed wild animals behave exactly as vanilla — save for a fox or wolf that stalks a pasture one of your stationed pets is watching; nothing appears on your screen — Instinct has no HUD, and everything it ever says is one short line that fades.
 
 ## Better together
 
