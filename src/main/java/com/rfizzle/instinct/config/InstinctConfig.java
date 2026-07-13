@@ -97,6 +97,12 @@ public class InstinctConfig {
     public double reviveHealthFraction = 0.5;
     public boolean downedRankPenalty = true;
 
+    // §8 Predator Watch
+    public boolean enablePredatorWatch = true;
+    public int predatorWatchRadiusBlocks = 12;
+    public List<String> predatorsInclude = new ArrayList<>();
+    public List<String> predatorsExclude = new ArrayList<>();
+
     // §2/§3 shared
     public boolean enableInspection = true;
 
@@ -108,6 +114,8 @@ public class InstinctConfig {
     public transient Set<String> livestockExcludeSet = Set.of();
     public transient Set<String> mountsIncludeSet = Set.of();
     public transient Set<String> mountsExcludeSet = Set.of();
+    public transient Set<String> predatorsIncludeSet = Set.of();
+    public transient Set<String> predatorsExcludeSet = Set.of();
 
     private static List<Integer> defaultVeterancyThresholds() {
         return new ArrayList<>(List.of(10, 30, 60));
@@ -266,6 +274,8 @@ public class InstinctConfig {
         if (livestockExclude == null) livestockExclude = new ArrayList<>();
         if (mountsInclude == null) mountsInclude = new ArrayList<>();
         if (mountsExclude == null) mountsExclude = new ArrayList<>();
+        if (predatorsInclude == null) predatorsInclude = new ArrayList<>();
+        if (predatorsExclude == null) predatorsExclude = new ArrayList<>();
         if (veterancyThresholdDays == null || veterancyThresholdDays.isEmpty()) {
             veterancyThresholdDays = defaultVeterancyThresholds();
         }
@@ -302,6 +312,7 @@ public class InstinctConfig {
         whistleCooldownTicks = clampInt("whistleCooldownTicks", whistleCooldownTicks, 0, 100);
         roundUpGroupRadiusBlocks = clampInt("roundUpGroupRadiusBlocks", roundUpGroupRadiusBlocks, 4, 16);
         reviveHealthFraction = clampDouble("reviveHealthFraction", reviveHealthFraction, 0.1, 1.0);
+        predatorWatchRadiusBlocks = clampInt("predatorWatchRadiusBlocks", predatorWatchRadiusBlocks, 4, 24);
 
         petsInclude = sanitizeEntityIds("petsInclude", petsInclude);
         petsExclude = sanitizeEntityIds("petsExclude", petsExclude);
@@ -309,12 +320,16 @@ public class InstinctConfig {
         livestockExclude = sanitizeEntityIds("livestockExclude", livestockExclude);
         mountsInclude = sanitizeEntityIds("mountsInclude", mountsInclude);
         mountsExclude = sanitizeEntityIds("mountsExclude", mountsExclude);
+        predatorsInclude = sanitizeEntityIds("predatorsInclude", predatorsInclude);
+        predatorsExclude = sanitizeEntityIds("predatorsExclude", predatorsExclude);
         petsIncludeSet = Set.copyOf(petsInclude);
         petsExcludeSet = Set.copyOf(petsExclude);
         livestockIncludeSet = Set.copyOf(livestockInclude);
         livestockExcludeSet = Set.copyOf(livestockExclude);
         mountsIncludeSet = Set.copyOf(mountsInclude);
         mountsExcludeSet = Set.copyOf(mountsExclude);
+        predatorsIncludeSet = Set.copyOf(predatorsInclude);
+        predatorsExcludeSet = Set.copyOf(predatorsExclude);
     }
 
     /**

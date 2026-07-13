@@ -32,6 +32,11 @@ In the first hours you notice what *doesn't* happen: your new wolf walks around 
 - **How you use it** — hold the food and walk; the herd sorts itself out and the dog handles the back. For the ones that won't come, point the command whistle at an animal and right-click: your pets get behind it and its neighbors and walk them to you.
 - **What changes for you** — moving twelve cows across a river becomes a drive you run together — you on point, your wolf on the flank. What used to take a boat, a lead, and swearing takes a handful of wheat and a good dog.
 
+### The dog that guards the pen
+- **What it is** — a pet left on Stay near your livestock watches the fence line. A fox creeping in on the chickens or a wild wolf stalking the sheep finds its hunt broken and itself turned back from the pasture, and your dog stands off its seat to put its body between the predator and the pen — then settles again once the coast is clear. It never touches a predator that isn't near your animals, and it never needs a command.
+- **How you use it** — station a pet by the pasture with the whistle and leave it. That's the whole trick; the dog knows what a dog is for.
+- **What changes for you** — the pen no longer needs to be a fortress. A dog on the field is worth a wall, and unlike a wall it walks the fox off and goes back to sleep.
+
 ### The feeding trough
 - **What it is** — a new wooden block, built from planks and a fence, that holds one full stack of wheat, carrots, seeds, or hay.
 - **How you use it** — place it in the pasture and fill it. Animals within 10 blocks help themselves when they're ready to breed, one item per meal, and pair off on their own. Trough-raised animals count as well-fed for genetics.
@@ -49,7 +54,7 @@ In the first hours you notice what *doesn't* happen: your new wolf walks around 
 
 ## Staying in control
 
-Every feature above — survival instinct, veterancy and the habits it teaches, genetics, flocking, herding, the trough, the whistle, downed pets — can be switched off on its own, and the numbers a server plans around (rank thresholds and caps, the mentor bonus, trough radius, flock speed, grade drop bonuses) are all adjustable. Animals from other mods join in automatically when they live like vanilla's — a tameable otter is a pet, a breedable critter is livestock — and a server owner can add or remove any animal by name. Defaults assume a survival world that wants all of it. Change nothing and untamed wild animals behave exactly as vanilla; nothing appears on your screen — Instinct has no HUD, and everything it ever says is one short line that fades.
+Every feature above — survival instinct, veterancy and the habits it teaches, genetics, flocking, herding, predator watch, the trough, the whistle, downed pets — can be switched off on its own, and the numbers a server plans around (rank thresholds and caps, the mentor bonus, watch radius, trough radius, flock speed, grade drop bonuses) are all adjustable. Animals from other mods join in automatically when they live like vanilla's — a tameable otter is a pet, a breedable critter is livestock, a modded prowler a predator — and a server owner can add or remove any animal by name. Defaults assume a survival world that wants all of it. Change nothing and untamed wild animals behave exactly as vanilla — save for a fox or wolf that stalks a pasture one of your stationed pets is watching; nothing appears on your screen — Instinct has no HUD, and everything it ever says is one short line that fades.
 
 ## Better together
 

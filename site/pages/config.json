@@ -57,6 +57,10 @@
             ["<code>enableDownedState</code>", "bool", "<code>true</code>", "—", "Downed pets"],
             ["<code>reviveHealthFraction</code>", "double", "<code>0.5</code>", "0.1–1.0", "Downed pets"],
             ["<code>downedRankPenalty</code>", "bool", "<code>true</code>", "—", "Downed pets"],
+            ["<code>enablePredatorWatch</code>", "bool", "<code>true</code>", "—", "Predator watch"],
+            ["<code>predatorWatchRadiusBlocks</code>", "int", "<code>12</code>", "4–24", "Predator watch"],
+            ["<code>predatorsInclude</code>", "list", "<code>[]</code>", "—", "Predator watch"],
+            ["<code>predatorsExclude</code>", "list", "<code>[]</code>", "—", "Predator watch"],
             ["<code>enableInspection</code>", "bool", "<code>true</code>", "—", "Crouch-look lines"]
           ]
         },

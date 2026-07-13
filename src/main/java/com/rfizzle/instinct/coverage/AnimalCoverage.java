@@ -37,6 +37,10 @@ public final class AnimalCoverage {
     public static final TagKey<EntityType<?>> LIVESTOCK_EXCLUDE_TAG = tag("livestock_exclude");
     public static final TagKey<EntityType<?>> MOUNTS_TAG = tag("mounts");
     public static final TagKey<EntityType<?>> MOUNTS_EXCLUDE_TAG = tag("mounts_exclude");
+    /** Wild predators a guardian pet watches for (§8 Predator Watch). Membership is the tag plus
+     *  {@code predatorsInclude}, minus {@code predatorsExclude}; there is no heuristic layer — a
+     *  predator is only ever what the tag or config names. */
+    public static final TagKey<EntityType<?>> PREDATORS_TAG = tag("predators");
 
     private static final Map<EntityType<?>, AnimalCapability> CAPABILITIES = new ConcurrentHashMap<>();
 
