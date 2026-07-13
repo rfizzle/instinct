@@ -5,9 +5,11 @@ import com.rfizzle.instinct.api.InstinctAPI;
 import com.rfizzle.instinct.api.Perk;
 import com.rfizzle.instinct.data.DownedData;
 import com.rfizzle.instinct.data.GeneticsData;
+import com.rfizzle.instinct.data.GuardData;
 import com.rfizzle.instinct.data.InstinctAttachments;
 import com.rfizzle.instinct.data.VeterancyData;
 import net.fabricmc.fabric.api.gametest.v1.FabricGameTest;
+import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.nbt.CompoundTag;
@@ -62,6 +64,27 @@ public class AttachmentPersistenceGameTest implements FabricGameTest {
         helper.assertValueEqual(genetics.lastTroughFeedTime(), 100L, "trough-fed time");
         helper.assertValueEqual(InstinctAPI.getGrade(loaded), Grade.PRIME, "grade through the API");
         helper.assertTrue(InstinctAPI.isDowned(loaded), "downed state should survive save/load");
+        loaded.discard();
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY_STRUCTURE)
+    public void guardOrderSurvivesEntityNbtRoundTrip(GameTestHelper helper) {
+        Wolf wolf = helper.spawn(EntityType.WOLF, 1, 2, 1);
+        BlockPos anchor = new BlockPos(12, 64, -30);
+        wolf.setAttached(InstinctAttachments.GUARD, new GuardData(anchor));
+
+        CompoundTag saved = new CompoundTag();
+        wolf.saveWithoutId(saved);
+        wolf.discard();
+
+        Wolf loaded = EntityType.WOLF.create(helper.getLevel());
+        helper.assertTrue(loaded != null, "wolf entity should be created");
+        loaded.load(saved);
+
+        GuardData guard = loaded.getAttached(InstinctAttachments.GUARD);
+        helper.assertTrue(guard != null, "guard order should survive save/load");
+        helper.assertValueEqual(guard.anchor(), anchor, "the guard post anchor survives the round trip");
         loaded.discard();
         helper.succeed();
     }

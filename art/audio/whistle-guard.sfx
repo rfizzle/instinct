@@ -1,0 +1,27 @@
+{
+  "name": "whistle_guard",
+  "sample_rate": 44100,
+  "peak_dbfs": -1.0,
+  "subtitle": "subtitles.instinct.whistle_guard",
+  "seed": 65,
+  "layers": [
+    {
+      "waveform": "sine",
+      "freq": 1174.66,
+      "start": 0.0, "duration": 0.16, "gain": 0.8,
+      "env": {"attack": 0.006, "decay": 0.06, "sustain": 0.5, "release": 0.05}
+    },
+    {
+      "waveform": "sine",
+      "freq": 1174.66,
+      "start": 0.2, "duration": 0.26, "gain": 0.85,
+      "env": {"attack": 0.006, "decay": 0.08, "sustain": 0.55, "release": 0.14}
+    },
+    {
+      "waveform": "triangle",
+      "freq": 2349.32,
+      "start": 0.0, "duration": 0.46, "gain": 0.09,
+      "env": {"attack": 0.008, "decay": 0.16, "sustain": 0.3, "release": 0.16}
+    }
+  ]
+}

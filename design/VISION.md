@@ -44,7 +44,7 @@ In the first hours you notice what *doesn't* happen: your new wolf walks around 
 
 ### The command whistle
 - **What it is** — a new item cut from copper and bone. It speaks to every tamed pet within 20 blocks at once.
-- **How you use it** — left-click to toggle the pack between Stay and Follow; right-click at a monster to send the pack after it, or at your livestock to round them up and walk them to you. The answer is one dry line ("3 wolves will stay") and gone. The whistle never orders an attack on your farm animals — if you want the cow dead, your sword is right there.
+- **How you use it** — left-click to toggle the pack between Stay and Follow; right-click at a monster to send the pack after it, or at your livestock to round them up and walk them to you; sneak and right-click a spot to post the pack there on guard, holding the ground and turning back hostiles that wander in before settling to their post again. The answer is one dry line ("3 wolves will hold here") and gone. The whistle never orders an attack on your farm animals, and a stationed guard never turns on them either — if you want the cow dead, your sword is right there.
 - **What changes for you** — commanding fifteen wolves stops meaning fifteen crouch-clicks. Your pack moves like a pack.
 
 ### Downed, not dead

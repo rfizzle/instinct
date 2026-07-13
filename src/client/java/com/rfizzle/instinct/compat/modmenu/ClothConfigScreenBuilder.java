@@ -278,6 +278,12 @@ final class ClothConfigScreenBuilder {
                 .setTooltip(tooltip("roundUpGroupRadiusBlocks"))
                 .setSaveConsumer(v -> working.roundUpGroupRadiusBlocks = v)
                 .build());
+        whistle.addEntry(entry.startIntField(label("guardRadiusBlocks"), config.guardRadiusBlocks)
+                .setDefaultValue(defaults.guardRadiusBlocks)
+                .setMin(4).setMax(16)
+                .setTooltip(tooltip("guardRadiusBlocks"))
+                .setSaveConsumer(v -> working.guardRadiusBlocks = v)
+                .build());
 
         // --- Downed Pets & Revival (§7) ---
         ConfigCategory downed = builder.getOrCreateCategory(Component.translatable("config.instinct.category.downed"));

@@ -3,10 +3,14 @@ package com.rfizzle.instinct.whistle;
 import com.rfizzle.instinct.api.InstinctAPI;
 import com.rfizzle.instinct.config.InstinctConfig;
 import com.rfizzle.instinct.coverage.AnimalCoverage;
+import com.rfizzle.instinct.data.GuardData;
+import com.rfizzle.instinct.data.InstinctAttachments;
+import com.rfizzle.instinct.guard.Guard;
 import com.rfizzle.instinct.herding.Herding;
 import com.rfizzle.instinct.registry.InstinctCriteria;
 import com.rfizzle.instinct.registry.InstinctItems;
 import com.rfizzle.instinct.registry.InstinctSounds;
+import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -20,7 +24,9 @@ import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.ProjectileUtil;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.EntityHitResult;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
@@ -46,13 +52,13 @@ public final class WhistleActions {
     /** The outcome of one whistle action, with the pet count that fills the {@code <n>} feedback. */
     public record WhistleResult(Outcome outcome, int count) {
         public enum Outcome {
-            FOLLOW, STAY, NO_PETS, ATTACK, NO_TARGET, ROUND_UP, NOTHING_TO_ROUND_UP, SILENT
+            FOLLOW, STAY, NO_PETS, ATTACK, NO_TARGET, ROUND_UP, NOTHING_TO_ROUND_UP, GUARD, SILENT
         }
 
         /** Outcomes that actually command pets — the ones that can grant Pack Leader. */
         boolean commandsPets() {
             return count > 0 && (outcome == Outcome.FOLLOW || outcome == Outcome.STAY
-                    || outcome == Outcome.ATTACK || outcome == Outcome.ROUND_UP);
+                    || outcome == Outcome.ATTACK || outcome == Outcome.ROUND_UP || outcome == Outcome.GUARD);
         }
     }
 
@@ -74,6 +80,14 @@ public final class WhistleActions {
         present(player, command(player));
     }
 
+    /** Sneak + right-click: post the pack to guard the looked-at spot, with feedback, cue, and cooldown. */
+    public static void performGuard(ServerPlayer player) {
+        if (silentIfDisabled(player)) {
+            return;
+        }
+        present(player, guardOrder(player, guardAnchor(player)));
+    }
+
     // ── Core commands (state changes only; unit/gametest seam) ───────────────────────────────────
 
     /** Toggles every commandable pet in range into one coherent Stay/Follow state. */
@@ -85,6 +99,7 @@ public final class WhistleActions {
         boolean anyStanding = pets.stream().anyMatch(pet -> !pet.isOrderedToSit());
         boolean sit = WhistleRules.shouldSitAll(anyStanding);
         for (TamableAnimal pet : pets) {
+            pet.removeAttached(InstinctAttachments.GUARD);
             pet.setOrderedToSit(sit);
         }
         return new WhistleResult(sit ? WhistleResult.Outcome.STAY : WhistleResult.Outcome.FOLLOW, pets.size());
@@ -124,6 +139,7 @@ public final class WhistleActions {
     public static WhistleResult attackOrder(ServerPlayer player, LivingEntity target) {
         int commanded = 0;
         for (TamableAnimal pet : commandablePets(player)) {
+            pet.removeAttached(InstinctAttachments.GUARD);
             if (WhistleRules.isCombatCapable(pet.getAttribute(Attributes.ATTACK_DAMAGE) != null)) {
                 pet.setOrderedToSit(false);
                 pet.setTarget(target);
@@ -134,11 +150,35 @@ public final class WhistleActions {
     }
 
     /**
+     * Posts every commandable pet that can fight to guard {@code anchor}: it stands, drops any prior
+     * target, and takes a persistent {@code GuardData} order (the {@code GuardGoal} reads it
+     * from there). Only pets with a melee goal to act on a target ({@link Guard#canFight}) are posted;
+     * a parrot or cat — which carries the attack-damage attribute in 1.21.1 yet has no such goal — is
+     * left out, since a guard order works by handing that goal a target. The order lasts until any new
+     * whistle order replaces it.
+     */
+    public static WhistleResult guardOrder(ServerPlayer player, BlockPos anchor) {
+        int commanded = 0;
+        for (TamableAnimal pet : commandablePets(player)) {
+            if (Guard.canFight(pet)) {
+                pet.setOrderedToSit(false);
+                pet.setTarget(null);
+                pet.setAttached(InstinctAttachments.GUARD, new GuardData(anchor));
+                commanded++;
+            }
+        }
+        return new WhistleResult(WhistleResult.Outcome.GUARD, commanded);
+    }
+
+    /**
      * Orders a round-up: builds the drive group (the target plus every covered same-species animal
      * within {@code roundUpGroupRadiusBlocks}, excluding leashed and in-vehicle animals) and hands it
      * to §4's press machinery via a whistle order toward the player. An empty group rounds up nothing.
      */
     public static WhistleResult roundUp(ServerPlayer player, Animal target) {
+        for (TamableAnimal pet : commandablePets(player)) {
+            pet.removeAttached(InstinctAttachments.GUARD);
+        }
         ServerLevel level = player.serverLevel();
         double radius = InstinctConfig.get().roundUpGroupRadiusBlocks;
         List<Animal> group = new ArrayList<>();
@@ -201,6 +241,19 @@ public final class WhistleActions {
         return hit != null && hit.getEntity() instanceof LivingEntity living ? living : null;
     }
 
+    /**
+     * The guard post: the block the player is looking at within {@code whistleTargetRangeBlocks},
+     * falling back to the player's own feet when the crosshair rests on nothing — so a guard order
+     * always has a spot, aimed at a fence post or dropped where you stand.
+     */
+    private static BlockPos guardAnchor(ServerPlayer player) {
+        HitResult hit = player.pick(InstinctConfig.get().whistleTargetRangeBlocks, 1.0F, false);
+        if (hit.getType() == HitResult.Type.BLOCK && hit instanceof BlockHitResult block) {
+            return block.getBlockPos();
+        }
+        return player.blockPosition();
+    }
+
     // ── Shared side effects ──────────────────────────────────────────────────────────────────────
 
     /** Shows the inert "silent" line and burns the cooldown when the feature is off; {@code true} then. */
@@ -241,6 +294,7 @@ public final class WhistleActions {
             case NO_TARGET -> "notification.instinct.whistle.no_target";
             case ROUND_UP -> "notification.instinct.whistle.round_up";
             case NOTHING_TO_ROUND_UP -> "notification.instinct.whistle.nothing";
+            case GUARD -> "notification.instinct.whistle.guard";
             case SILENT -> "notification.instinct.whistle.silent";
         };
     }
@@ -251,6 +305,7 @@ public final class WhistleActions {
             case STAY -> InstinctSounds.WHISTLE_STAY;
             case ATTACK -> InstinctSounds.WHISTLE_ATTACK;
             case ROUND_UP -> InstinctSounds.WHISTLE_HERD;
+            case GUARD -> InstinctSounds.WHISTLE_GUARD;
             default -> null;
         };
     }

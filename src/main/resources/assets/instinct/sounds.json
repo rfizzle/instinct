@@ -34,5 +34,11 @@
       "instinct:whistle_herd"
     ],
     "subtitle": "subtitles.instinct.whistle_herd"
+  },
+  "whistle_guard": {
+    "sounds": [
+      "instinct:whistle_guard"
+    ],
+    "subtitle": "subtitles.instinct.whistle_guard"
   }
 }
