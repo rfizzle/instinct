@@ -6,7 +6,9 @@ import com.rfizzle.instinct.data.DownedData;
 import com.rfizzle.instinct.data.GuardData;
 import com.rfizzle.instinct.data.InstinctAttachments;
 import com.rfizzle.instinct.gametest.util.MockPlayers;
+import com.rfizzle.instinct.registry.InstinctItems;
 import com.rfizzle.instinct.whistle.WhistleActions;
+import com.rfizzle.instinct.whistle.WhistleLocator;
 import net.fabricmc.fabric.api.gametest.v1.FabricGameTest;
 import net.minecraft.advancements.AdvancementHolder;
 import net.minecraft.core.BlockPos;
@@ -312,6 +314,157 @@ public class WhistleGameTest implements FabricGameTest {
         wolf.discard();
         owner.discard();
         helper.succeed();
+    }
+
+    // ── lost-pet locator (SPEC §6) ────────────────────────────────────────────────────────────────
+    // A world-wide owned-pet scan, so these run in their own batch (temporally isolated from the
+    // pathfinding batches) and each filters by its own mock owner. A pet placed far from the structure
+    // has no floor and would fall, so every test reads locate() synchronously in the spawn tick — the
+    // census is a snapshot, no ticks needed.
+
+    @GameTest(template = EMPTY_STRUCTURE, batch = "instinctLocate")
+    public void locateReportsDistantPetAndSkipsNearOne(GameTestHelper helper) {
+        buildFloor(helper, 8, 8);
+        ServerPlayer owner = mockPlayer(helper, new BlockPos(4, 2, 4));
+        Wolf near = spawnTamedWolf(helper, new BlockPos(6, 2, 4), owner.getUUID()); // ~2 blocks — within voice
+        Wolf far = spawnTamedWolf(helper, new BlockPos(30, 2, 4), owner.getUUID()); // ~26 blocks east — beyond voice
+        far.setOrderedToSit(true);
+
+        WhistleActions.LocateResult result = WhistleActions.locate(owner);
+        helper.assertValueEqual(result.sightings().size(), 1, "only the pet beyond the whistle's voice is listed");
+        helper.assertValueEqual(result.overflow(), 0, "no overflow for a single distant pet");
+        WhistleActions.Sighting sighting = result.sightings().get(0);
+        helper.assertTrue(sighting.sameDimension(), "the distant pet is in the player's dimension");
+        helper.assertValueEqual(sighting.direction(), WhistleLocator.Compass8.E, "a pet due east reads east");
+        helper.assertValueEqual(sighting.state(), WhistleLocator.PetState.SITTING, "a sitting pet reads sitting");
+        helper.assertTrue(sighting.blocks() >= 25 && sighting.blocks() <= 27,
+                "the distance is reported in whole blocks (~26)");
+
+        near.discard();
+        far.discard();
+        owner.discard();
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY_STRUCTURE, batch = "instinctLocate")
+    public void locateIncludesTheDownedPatient(GameTestHelper helper) {
+        buildFloor(helper, 8, 8);
+        ServerPlayer owner = mockPlayer(helper, new BlockPos(4, 2, 4));
+        Wolf downed = spawnTamedWolf(helper, new BlockPos(4, 2, 30), owner.getUUID()); // ~26 blocks south
+        downed.setAttached(InstinctAttachments.DOWNED, new DownedData(helper.getLevel().getGameTime()));
+
+        WhistleActions.LocateResult result = WhistleActions.locate(owner);
+        helper.assertValueEqual(result.sightings().size(), 1,
+                "a downed distant pet is listed (the locator finds the patient, unlike a command)");
+        WhistleActions.Sighting sighting = result.sightings().get(0);
+        helper.assertValueEqual(sighting.state(), WhistleLocator.PetState.DOWNED, "the downed pet reads downed");
+        helper.assertValueEqual(sighting.direction(), WhistleLocator.Compass8.S, "a pet due south reads south");
+
+        downed.discard();
+        owner.discard();
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY_STRUCTURE, batch = "instinctLocate")
+    public void locateReportsNothingWhenEveryPetIsNear(GameTestHelper helper) {
+        buildFloor(helper, 8, 8);
+        ServerPlayer owner = mockPlayer(helper, new BlockPos(4, 2, 4));
+        Wolf near = spawnTamedWolf(helper, new BlockPos(6, 2, 4), owner.getUUID()); // within voice
+
+        WhistleActions.LocateResult result = WhistleActions.locate(owner);
+        helper.assertValueEqual(result.sightings().size(), 0, "a pet within the whistle's voice is never a locator line");
+        helper.assertValueEqual(result.overflow(), 0, "no overflow when nothing is beyond earshot");
+
+        near.discard();
+        owner.discard();
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY_STRUCTURE, batch = "instinctLocate")
+    public void locateCapsTheListAndCountsTheOverflow(GameTestHelper helper) {
+        buildFloor(helper, 8, 8);
+        ServerPlayer owner = mockPlayer(helper, new BlockPos(4, 2, 4));
+        List<Wolf> pack = new ArrayList<>();
+        for (int i = 0; i < 12; i++) {
+            // A fan of pets each well beyond the 20-block voice (25..36 blocks south-east).
+            pack.add(spawnTamedWolf(helper, new BlockPos(30, 2, 25 + i), owner.getUUID()));
+        }
+
+        WhistleActions.LocateResult result = WhistleActions.locate(owner);
+        helper.assertValueEqual(result.sightings().size(), WhistleLocator.MAX_LINES, "the census caps at the line limit");
+        helper.assertValueEqual(result.overflow(), 2, "the two pets past the cap are counted as overflow");
+
+        pack.forEach(Animal::discard);
+        owner.discard();
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY_STRUCTURE, batch = "instinctLocate")
+    public void locateReportsAGuardingPetsPosture(GameTestHelper helper) {
+        buildFloor(helper, 8, 8);
+        ServerPlayer owner = mockPlayer(helper, new BlockPos(4, 2, 4));
+        // A pet posted to guard (order stands it and writes the GUARD attachment), then left behind
+        // beyond the whistle's voice — its posture reads "guarding", not "following".
+        Wolf posted = spawnTamedWolf(helper, new BlockPos(30, 2, 4), owner.getUUID());
+        posted.setOrderedToSit(false);
+        posted.setAttached(InstinctAttachments.GUARD,
+                new GuardData(helper.absolutePos(new BlockPos(30, 2, 4))));
+
+        WhistleActions.LocateResult result = WhistleActions.locate(owner);
+        helper.assertValueEqual(result.sightings().size(), 1, "the posted pet beyond earshot is listed");
+        helper.assertValueEqual(result.sightings().get(0).state(), WhistleLocator.PetState.GUARDING,
+                "a guarding pet reads guarding, not following");
+
+        posted.discard();
+        owner.discard();
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY_STRUCTURE, batch = "instinctLocateCooldown")
+    public void locateAppliesACooldownFloorEvenWithTheKnobZeroed(GameTestHelper helper) {
+        // Locate's world-wide scan must not be floodable: even with whistleCooldownTicks zeroed, a
+        // locate press floors the whistle cooldown so the next press is gated.
+        boolean savedEnabled = InstinctConfig.get().enableWhistle;
+        int savedCooldown = InstinctConfig.get().whistleCooldownTicks;
+        InstinctConfig.get().enableWhistle = true;
+        InstinctConfig.get().whistleCooldownTicks = 0;
+        try {
+            buildFloor(helper, 8, 8);
+            ServerPlayer owner = mockPlayer(helper, new BlockPos(4, 2, 4));
+            helper.assertFalse(owner.getCooldowns().isOnCooldown(InstinctItems.COMMAND_WHISTLE),
+                    "the whistle starts off cooldown");
+
+            WhistleActions.performLocate(owner);
+            helper.assertTrue(owner.getCooldowns().isOnCooldown(InstinctItems.COMMAND_WHISTLE),
+                    "a locate press floors the cooldown even with the config knob at 0");
+
+            owner.discard();
+            helper.succeed();
+        } finally {
+            InstinctConfig.get().enableWhistle = savedEnabled;
+            InstinctConfig.get().whistleCooldownTicks = savedCooldown;
+        }
+    }
+
+    @GameTest(template = EMPTY_STRUCTURE, batch = "instinctLocateDisabled")
+    public void locateIsInertWhenWhistleDisabled(GameTestHelper helper) {
+        boolean saved = InstinctConfig.get().enableWhistle;
+        InstinctConfig.get().enableWhistle = false;
+        try {
+            buildFloor(helper, 8, 8);
+            ServerPlayer owner = mockPlayer(helper, new BlockPos(4, 2, 4));
+            Wolf far = spawnTamedWolf(helper, new BlockPos(30, 2, 4), owner.getUUID());
+
+            WhistleActions.LocateResult result = WhistleActions.locate(owner);
+            helper.assertValueEqual(result.sightings().size(), 0,
+                    "with the whistle disabled the locator reports nothing, even with a distant pet");
+
+            far.discard();
+            owner.discard();
+            helper.succeed();
+        } finally {
+            InstinctConfig.get().enableWhistle = saved;
+        }
     }
 
     // ── helpers ─────────────────────────────────────────────────────────────────────────────────

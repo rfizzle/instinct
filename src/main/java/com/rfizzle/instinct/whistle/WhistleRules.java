@@ -28,6 +28,15 @@ public final class WhistleRules {
         return tame && ownedByPlayer && !downed && petCovered;
     }
 
+    /**
+     * Whether a pet appears in the owner's lost-pet locator: tamed, owned by this player, and a covered
+     * pets-set animal. Unlike {@link #isCommandablePet}, downed pets are <em>included</em> — the locator
+     * is how the owner finds a downed pet to revive it.
+     */
+    public static boolean isLocatablePet(boolean tame, boolean ownedByPlayer, boolean petCovered) {
+        return tame && ownedByPlayer && petCovered;
+    }
+
     /** Whether a commandable pet can be sent to attack — it must carry an attack-damage attribute
      *  (wolves and most modded fighters; cats and parrots have none). */
     public static boolean isCombatCapable(boolean hasAttackDamageAttribute) {

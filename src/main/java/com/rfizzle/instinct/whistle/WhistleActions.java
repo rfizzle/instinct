@@ -23,6 +23,7 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.ProjectileUtil;
+import net.minecraft.world.level.entity.EntityTypeTest;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.EntityHitResult;
@@ -30,6 +31,7 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -46,6 +48,14 @@ public final class WhistleActions {
     /** A round-up order runs at most this many ticks before the pets stand down (§6). */
     private static final int ROUND_UP_DEADLINE_TICKS = 600;
 
+    /**
+     * A hard floor on the cooldown a locate press applies, independent of {@code whistleCooldownTicks}
+     * (which an admin may set to 0). Locate's census is a full-world, all-dimensions entity scan — far
+     * heavier than the other gestures' local AABB scans — so a floodable C2S trigger with the item
+     * cooldown zeroed would be a server-thread DoS. This floor keeps a flood to one scan per interval.
+     */
+    private static final int LOCATE_MIN_COOLDOWN_TICKS = 10;
+
     private WhistleActions() {
     }
 
@@ -60,6 +70,17 @@ public final class WhistleActions {
             return count > 0 && (outcome == Outcome.FOLLOW || outcome == Outcome.STAY
                     || outcome == Outcome.ATTACK || outcome == Outcome.ROUND_UP || outcome == Outcome.GUARD);
         }
+    }
+
+    /** One distant pet in the locator census: its name and posture, plus either a same-dimension
+     *  distance and bearing or (across dimensions) the dimension it stands in. */
+    public record Sighting(Component name, boolean sameDimension, int blocks,
+                           WhistleLocator.Compass8 direction, String dimensionId,
+                           WhistleLocator.PetState state) {
+    }
+
+    /** The locator's ordered, capped census plus the count of pets that spilled past the line cap. */
+    public record LocateResult(List<Sighting> sightings, int overflow) {
     }
 
     // ── Full entry points (item / payload / attack callbacks) ────────────────────────────────────
@@ -86,6 +107,32 @@ public final class WhistleActions {
             return;
         }
         present(player, guardOrder(player, guardAnchor(player)));
+    }
+
+    /**
+     * Sneak + left-click: report every bonded pet beyond the whistle's voice as one dry chat line each
+     * — name, distance, and compass bearing (or, across dimensions, the dimension it stands in). The
+     * census goes to chat, not the action bar, so a multi-pet answer isn't overwritten line by line;
+     * an empty census answers with a single action-bar line. Shares the whistle's item cooldown.
+     */
+    public static void performLocate(ServerPlayer player) {
+        if (silentIfDisabled(player)) {
+            return;
+        }
+        LocateResult result = locate(player);
+        cooldownLocate(player);
+        if (result.sightings().isEmpty()) {
+            player.displayClientMessage(Component.translatable("notification.instinct.whistle.locate.none"), true);
+            return;
+        }
+        player.sendSystemMessage(Component.translatable("notification.instinct.whistle.locate.header"));
+        for (Sighting sighting : result.sightings()) {
+            player.sendSystemMessage(locatorLine(sighting));
+        }
+        if (result.overflow() > 0) {
+            player.sendSystemMessage(
+                    Component.translatable("notification.instinct.whistle.locate.more", result.overflow()));
+        }
     }
 
     // ── Core commands (state changes only; unit/gametest seam) ───────────────────────────────────
@@ -201,6 +248,67 @@ public final class WhistleActions {
         return new WhistleResult(WhistleResult.Outcome.ROUND_UP, commandablePets(player).size());
     }
 
+    /**
+     * Gathers the lost-pet census: every owned, tamed, covered pet — downed included — across all loaded
+     * dimensions, dropping the same-dimension pets within the whistle's voice (those you already command).
+     * Same-dimension sightings carry a distance and bearing and sort nearest-first; cross-dimension
+     * sightings follow, carrying only their dimension. The list is capped at {@link WhistleLocator#MAX_LINES},
+     * with the remainder returned as the overflow count. Only <em>loaded</em> pets appear — a pet in an
+     * unloaded chunk is not in memory to be found.
+     */
+    public static LocateResult locate(ServerPlayer player) {
+        if (!InstinctConfig.get().enableWhistle) {
+            return new LocateResult(List.of(), 0);
+        }
+        MinecraftServer server = player.getServer();
+        if (server == null) {
+            return new LocateResult(List.of(), 0);
+        }
+        double radius = InstinctConfig.get().whistleRadiusBlocks;
+        double radiusSq = radius * radius;
+        var playerDim = player.level().dimension();
+        Vec3 origin = player.position();
+        List<Sighting> sameDim = new ArrayList<>();
+        List<Sighting> otherDim = new ArrayList<>();
+        for (ServerLevel level : server.getAllLevels()) {
+            boolean same = level.dimension().equals(playerDim);
+            for (TamableAnimal pet : level.getEntities(EntityTypeTest.forClass(TamableAnimal.class),
+                    candidate -> WhistleRules.isLocatablePet(candidate.isTame(), candidate.isOwnedBy(player),
+                            AnimalCoverage.membershipOf(candidate).pet()))) {
+                WhistleLocator.PetState state = stateOf(pet);
+                if (same) {
+                    double distSq = pet.distanceToSqr(origin);
+                    if (distSq <= radiusSq) {
+                        continue; // within the whistle's voice — a near pet you already command and can see
+                    }
+                    sameDim.add(new Sighting(pet.getName(), true, WhistleLocator.roundedBlocks(Math.sqrt(distSq)),
+                            WhistleLocator.bearing(pet.getX() - origin.x, pet.getZ() - origin.z), null, state));
+                } else {
+                    otherDim.add(new Sighting(pet.getName(), false, 0, null,
+                            level.dimension().location().toString(), state));
+                }
+            }
+        }
+        sameDim.sort(Comparator.comparingInt(Sighting::blocks));
+        List<Sighting> all = new ArrayList<>(sameDim);
+        all.addAll(otherDim);
+        int overflow = Math.max(0, all.size() - WhistleLocator.MAX_LINES);
+        if (overflow > 0) {
+            all = all.subList(0, WhistleLocator.MAX_LINES);
+        }
+        return new LocateResult(List.copyOf(all), overflow);
+    }
+
+    private static WhistleLocator.PetState stateOf(TamableAnimal pet) {
+        if (InstinctAPI.isDowned(pet)) {
+            return WhistleLocator.PetState.DOWNED;
+        }
+        if (pet.getAttached(InstinctAttachments.GUARD) != null) {
+            return WhistleLocator.PetState.GUARDING; // a posted pet stands its anchor, not at the player's heel
+        }
+        return pet.isOrderedToSit() ? WhistleLocator.PetState.SITTING : WhistleLocator.PetState.FOLLOWING;
+    }
+
     // ── Selection ────────────────────────────────────────────────────────────────────────────────
 
     /** Every owned, tamed, non-downed pets-set animal within {@code whistleRadiusBlocks}. */
@@ -278,11 +386,44 @@ public final class WhistleActions {
         }
     }
 
+    /** Builds one census line: a same-dimension pet reads "name — Nm bearing, posture", a
+     *  cross-dimension pet "name — in <dimension>" (with a downed flag). */
+    private static Component locatorLine(Sighting sighting) {
+        if (sighting.sameDimension()) {
+            return Component.translatable(WhistleLocator.lineKey(true, false),
+                    sighting.name(),
+                    sighting.blocks(),
+                    Component.translatable(sighting.direction().langKey()),
+                    Component.translatable(sighting.state().langKey()));
+        }
+        boolean downed = sighting.state() == WhistleLocator.PetState.DOWNED;
+        return Component.translatable(WhistleLocator.lineKey(false, downed),
+                sighting.name(), dimensionName(sighting.dimensionId()));
+    }
+
+    /** The localized name for a dimension the census reports a pet in, falling back to the raw id
+     *  for a modded dimension. */
+    private static Component dimensionName(String dimensionId) {
+        return switch (dimensionId) {
+            case "minecraft:overworld" -> Component.translatable("notification.instinct.whistle.locate.dim.overworld");
+            case "minecraft:the_nether" -> Component.translatable("notification.instinct.whistle.locate.dim.nether");
+            case "minecraft:the_end" -> Component.translatable("notification.instinct.whistle.locate.dim.end");
+            default -> Component.literal(dimensionId);
+        };
+    }
+
     private static void cooldown(ServerPlayer player) {
         int ticks = InstinctConfig.get().whistleCooldownTicks;
         if (ticks > 0) {
             player.getCooldowns().addCooldown(InstinctItems.COMMAND_WHISTLE, ticks);
         }
+    }
+
+    /** Locate's cooldown, floored at {@link #LOCATE_MIN_COOLDOWN_TICKS} so its heavy census scan can't
+     *  be flooded even with {@code whistleCooldownTicks} zeroed. */
+    private static void cooldownLocate(ServerPlayer player) {
+        int ticks = Math.max(InstinctConfig.get().whistleCooldownTicks, LOCATE_MIN_COOLDOWN_TICKS);
+        player.getCooldowns().addCooldown(InstinctItems.COMMAND_WHISTLE, ticks);
     }
 
     private static String feedbackKey(WhistleResult.Outcome outcome) {
