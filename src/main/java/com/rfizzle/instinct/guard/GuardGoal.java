@@ -27,12 +27,15 @@ import java.util.EnumSet;
  *
  * <p>Targets are hostile monsters only ({@link WhistleRules#isGuardTarget}) — never players, never
  * any animal — so a guard keeps a pen without ever turning on its own livestock or another player's
- * pets. Self-preservation always wins: the goal yields the move slot the instant the pet acquires any
+ * pets. Self-preservation always wins: the goal yields the move slot while the pet holds a live
  * target (vanilla combat takes over) and stands down while a creeper swells within the berth's
  * awareness or while the pet is on fire or in lava, freeing the slot for
  * {@link com.rfizzle.instinct.selfpreservation.CreeperBerthGoal} and the vanilla panic goal, both of
- * which share this goal's priority. Every gate is re-read live, so a config toggle, a new whistle
- * order, or a fresh tame takes effect at once.
+ * which share this goal's priority.
+ *
+ * <p>Cost is kept off the tick: the expensive work — the creeper stand-down scan, the hostile scan,
+ * and any repath toward the post — runs only once per {@link #SCAN_INTERVAL_TICKS}, and the
+ * per-tick {@link #canContinueToUse()} reads a cached stand-down flag rather than re-scanning.
  */
 public class GuardGoal extends Goal {
 
@@ -41,8 +44,8 @@ public class GuardGoal extends Goal {
      *  (2) should a posted pet ever be sitting. It ties {@code CreeperBerthGoal} and
      *  {@code TamableAnimalPanicGoal} (both 1); equal priorities never preempt each other mid-run, so
      *  this goal yields to both by standing down. It never fights the vanilla melee goal for the move
-     *  slot: the moment it assigns a target it stops running (a target means combat, and combat is
-     *  vanilla's job), so melee (5) is free to pursue. */
+     *  slot: the moment it assigns a target it stops running (a live target means combat, and combat
+     *  is vanilla's job), so melee (5) is free to pursue. */
     static final int PRIORITY = 1;
 
     private static final int SCAN_INTERVAL_TICKS = 10;
@@ -54,6 +57,9 @@ public class GuardGoal extends Goal {
 
     private final TamableAnimal pet;
     private int scanCooldown;
+    /** Refreshed on the scan interval in {@link #tick()}; read by the per-tick {@link #canContinueToUse()}
+     *  so the creeper AABB scan never runs every tick. */
+    private boolean creeperNear;
 
     public GuardGoal(TamableAnimal pet) {
         this.pet = pet;
@@ -62,34 +68,38 @@ public class GuardGoal extends Goal {
 
     @Override
     public boolean canUse() {
-        return active();
+        // Not running yet: scan for a creeper live, since tick() (which refreshes the cache) isn't ticking.
+        return active(creeperThreatNear(InstinctConfig.get()));
     }
 
     @Override
     public boolean canContinueToUse() {
-        return active();
+        // Running: read the cached stand-down flag tick() refreshes on the scan interval — no per-tick scan.
+        return active(creeperNear);
     }
 
     /**
      * True while the pet should be actively holding its post: the whistle is enabled, the pet carries
-     * a guard order and is a valid guardian, it has no combat target (a target hands the move slot to
-     * vanilla melee), and no creeper is swelling nearby (self-preservation takes the slot instead).
-     * A non-guarding pet fails the {@link #guardData()} null check first, so it pays only that.
+     * a guard order and is a valid guardian, it has no <em>live</em> combat target (a live target hands
+     * the move slot to vanilla melee), and no creeper is swelling nearby (self-preservation takes the
+     * slot instead). A non-guarding pet fails the {@link #guardData()} null check first, so it pays
+     * only that.
      */
-    private boolean active() {
+    private boolean active(boolean creeperThreat) {
         InstinctConfig config = InstinctConfig.get();
         if (!config.enableWhistle || guardData() == null || !eligible()) {
             return false;
         }
-        if (pet.getTarget() != null) {
+        if (hasLiveTarget()) {
             return false;
         }
-        return !standDownForCreeper(config);
+        return !creeperThreat;
     }
 
     @Override
     public void start() {
         scanCooldown = 0;
+        creeperNear = false;
     }
 
     @Override
@@ -98,19 +108,25 @@ public class GuardGoal extends Goal {
         if (data == null) {
             return;
         }
-        BlockPos anchor = data.anchor();
+        clearDeadTarget();
         if (--scanCooldown > 0) {
-            holdOrReturn(anchor);
             return;
         }
         scanCooldown = adjustedTickDelay(SCAN_INTERVAL_TICKS);
-        LivingEntity hostile = nearestHostile(anchor, InstinctConfig.get().guardRadiusBlocks);
+        InstinctConfig config = InstinctConfig.get();
+        creeperNear = creeperThreatNear(config);
+        if (creeperNear) {
+            // Yield to the berth (same priority): stop, and next canContinueToUse stands the guard down.
+            pet.getNavigation().stop();
+            return;
+        }
+        LivingEntity hostile = nearestHostile(data.anchor(), config.guardRadiusBlocks);
         if (hostile != null) {
             // Hand the fight to vanilla melee; active() then yields the move slot so the pet pursues.
             pet.setTarget(hostile);
             return;
         }
-        holdOrReturn(anchor);
+        holdOrReturn(data.anchor());
     }
 
     @Override
@@ -118,8 +134,14 @@ public class GuardGoal extends Goal {
         pet.getNavigation().stop();
     }
 
-    /** Path back to the post once the pet has drifted past the hold radius; otherwise stand still. */
+    /** Path back to the post once the pet has drifted past the hold radius; otherwise stand still.
+     *  Called only on the scan interval, so the return path is issued at most once per interval — never
+     *  a per-tick A* search. Degrades to standing put when the anchor's chunk isn't loaded. */
     private void holdOrReturn(BlockPos anchor) {
+        if (!pet.level().isLoaded(anchor)) {
+            pet.getNavigation().stop();
+            return;
+        }
         double cx = anchor.getX() + 0.5;
         double cy = anchor.getY();
         double cz = anchor.getZ() + 0.5;
@@ -134,6 +156,22 @@ public class GuardGoal extends Goal {
         return pet.getAttached(InstinctAttachments.GUARD);
     }
 
+    /** True only while the pet holds a target that is still alive — a dead hostile no longer keeps the
+     *  guard yielded, so the pet resumes its post once the threat is down. */
+    private boolean hasLiveTarget() {
+        LivingEntity target = pet.getTarget();
+        return target != null && target.isAlive();
+    }
+
+    /** Clears a target the pet killed: vanilla melee leaves a dead hostile set, so the guard drops it
+     *  itself rather than staying pinned to a corpse. */
+    private void clearDeadTarget() {
+        LivingEntity target = pet.getTarget();
+        if (target != null && !target.isAlive()) {
+            pet.setTarget(null);
+        }
+    }
+
     /** A valid guardian: tamed, not downed, not fleeing a hazard, and a pets-set member. */
     private boolean eligible() {
         if (!pet.isTame() || InstinctAPI.isDowned(pet)) {
@@ -145,7 +183,7 @@ public class GuardGoal extends Goal {
         return AnimalCoverage.membershipOf(pet).pet();
     }
 
-    private boolean standDownForCreeper(InstinctConfig config) {
+    private boolean creeperThreatNear(InstinctConfig config) {
         if (!config.enableSelfPreservation) {
             return false;
         }
