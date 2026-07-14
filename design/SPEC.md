@@ -88,6 +88,12 @@ Scoped to the **pets set** only — livestock and mounts stay vulnerable to thei
 
 The rank-2 "Knows your swing" sweep-dodge (§2) is the narrower veteran trick — the arc only, rank 2+ only — that governs a pet when this blanket protection is switched off.
 
+### Shoulder riding
+
+A pets-set animal perched on its owner's shoulder — vanilla parrots, and any modded shoulder-rider that resolves into the pets set — rides steady while `enableSteadyShoulders` (default true). Vanilla dislodges a shoulder parrot on almost any knock: a jump, a fall of half a block, any damage down to a cactus scratch, so no one carries one anywhere that matters. Here the bird stays put through the incidental ones — jumps, sprint-jumps, short falls, and minor damage.
+
+It comes off in two deliberate ways: the owner **sneaks** (dropping it on purpose), or the owner takes a **serious hit** — a blow whose raw incoming damage is at least `steadyShoulderDismountDamage` (default 4.0), which the fall damage of a hard landing also clears. A scratch keeps the bird; a real blow puts it in the air. Vanilla's other dismount states are unchanged — swimming, flying, sleeping, and standing in powder snow still set the bird down — and how a parrot climbs onto the shoulder in the first place is untouched. A modded shoulder-rider outside the pets set keeps exact vanilla behavior.
+
 ### Multiplayer
 
 Per-pet, evaluated against the pet's own owner only. Another player falling past your wolf changes nothing. Owner friendly-fire keys on the blow's causing player: your damage spares only *your* pets, and another player's damage on your pet lands as vanilla.
@@ -104,6 +110,8 @@ If the pet is already standing in a hazard (spawned there, pushed there), hazard
 | `creeperBerthBlocks` | int | `4` | 2–8 |
 | `teleportSuppressFallDistance` | double | `3.0` | 0.5–10.0 |
 | `enableOwnerFriendlyFireProtection` | bool | `true` | |
+| `enableSteadyShoulders` | bool | `true` | |
+| `steadyShoulderDismountDamage` | double | `4.0` | 0.0–20.0 |
 
 ### Implementation Notes
 
@@ -112,6 +120,7 @@ If the pet is already standing in a hazard (spawned there, pushed there), hazard
 - Teleport suppression: a mixin gating the vanilla follow-owner goal's teleport step on the owner-state predicate above. The predicate lives in one helper (`SelfPreservation.ownerUnsafeToJoin(owner)`) so the goal mixin stays a two-line guard. Modded pets running the vanilla goal get this free; custom follow goals are left alone (Animal Coverage → graceful degradation).
 - Escape-vs-enter asymmetry comes free with maluses: maluses affect node *cost evaluation* for nodes being entered; the current node is not re-evaluated. No extra code, but the gametest below pins it.
 - Owner friendly-fire: a `ServerLivingEntityEvents.ALLOW_DAMAGE` listener returns `false` (cancelling the blow, before any mitigation) when `source.getEntity()` is a player who owns the pets-set victim. `getEntity()` resolves the causing player across melee, arrows, potions, and player-primed TNT alike, so one listener covers every source. Pure verdict in `FriendlyFire.blocks(protectionOn, ownedPetOfAttacker)`; the listener fails open (a broken check allows the blow, never leaves a pet unhittable). Independent of the §2 sweep filter, which stays as the off-switch fallback.
+- Shoulder riding: vanilla funnels every dismount through `Player#removeEntitiesOnShoulder`, called from `aiStep()` (fall/water/flying/sleeping/powder-snow) and `hurt()` (any damage). A `PlayerMixin` `@WrapWithCondition` on each of those two call sites skips the removal — the `aiStep()` one only for the fall branch (water/flying/sleeping/powder-snow are re-read and left to vanilla), the `hurt()` one only below `steadyShoulderDismountDamage` (the raw amount captured via `@Local`). A sneak drop is a `tick()`-TAIL inject calling the shadowed `removeEntitiesOnShoulder` server-side; the riptide spin-attack call site is untouched. Every path is gated on a shoulder tag resolving into the pets set (`EntityType.by(tag)` → `AnimalCoverage.membershipOf`), so a non-pet shoulder-rider keeps vanilla behavior. Pure verdicts (`suppressesTickDismount`, `dismountsOnHit`) live in `SteadyShoulders`; vanilla's built-in 20-tick post-mount grace already blocks a drop the instant a bird lands.
 
 ---
 

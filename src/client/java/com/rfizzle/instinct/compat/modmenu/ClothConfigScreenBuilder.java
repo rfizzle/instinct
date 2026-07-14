@@ -96,6 +96,17 @@ final class ClothConfigScreenBuilder {
                 .setTooltip(tooltip("enableOwnerFriendlyFireProtection"))
                 .setSaveConsumer(v -> working.enableOwnerFriendlyFireProtection = v)
                 .build());
+        selfPreservation.addEntry(entry.startBooleanToggle(label("enableSteadyShoulders"), config.enableSteadyShoulders)
+                .setDefaultValue(defaults.enableSteadyShoulders)
+                .setTooltip(tooltip("enableSteadyShoulders"))
+                .setSaveConsumer(v -> working.enableSteadyShoulders = v)
+                .build());
+        selfPreservation.addEntry(entry.startDoubleField(label("steadyShoulderDismountDamage"), config.steadyShoulderDismountDamage)
+                .setDefaultValue(defaults.steadyShoulderDismountDamage)
+                .setMin(0.0).setMax(20.0)
+                .setTooltip(tooltip("steadyShoulderDismountDamage"))
+                .setSaveConsumer(v -> working.steadyShoulderDismountDamage = v)
+                .build());
 
         // --- Pet Veterancy (§2) ---
         ConfigCategory veterancy = builder.getOrCreateCategory(Component.translatable("config.instinct.category.veterancy"));
