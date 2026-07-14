@@ -382,12 +382,18 @@ public class WhistleGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE, batch = "instinctLocate")
     public void locateCapsTheListAndCountsTheOverflow(GameTestHelper helper) {
-        buildFloor(helper, 8, 8);
+        // The floor is deep enough to stand every pet on loaded ground: locate only enumerates pets in
+        // loaded chunks, and setBlock is what loads a chunk. Pets over the void beyond the structure's
+        // own force-loaded box are seen non-deterministically — that was the flake.
+        buildFloor(helper, 10, 31);
         ServerPlayer owner = mockPlayer(helper, new BlockPos(4, 2, 4));
         List<Wolf> pack = new ArrayList<>();
-        for (int i = 0; i < 12; i++) {
-            // A fan of pets each well beyond the 20-block voice (25..36 blocks south-east).
-            pack.add(spawnTamedWolf(helper, new BlockPos(30, 2, 25 + i), owner.getUUID()));
+        // Twelve pets fanned across the loaded floor, each 22..27 blocks south of the player — well past
+        // the 20-block voice, so all twelve count as sightings, two of them as overflow past the cap.
+        for (int z = 26; z <= 30; z += 2) {
+            for (int x = 2; x <= 8; x += 2) {
+                pack.add(spawnTamedWolf(helper, new BlockPos(x, 2, z), owner.getUUID()));
+            }
         }
 
         WhistleActions.LocateResult result = WhistleActions.locate(owner);

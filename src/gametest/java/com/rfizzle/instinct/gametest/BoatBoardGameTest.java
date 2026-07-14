@@ -128,17 +128,26 @@ public class BoatBoardGameTest implements FabricGameTest {
         ServerPlayer driver = driverInBoat(helper, new BlockPos(6, 2, 4));
         Boat boat = (Boat) driver.getVehicle();
         Wolf wolf = spawnTamedWolf(helper, new BlockPos(4, 2, 4), driver.getUUID());
-        Cow prey = helper.spawn(EntityType.COW, new BlockPos(4, 2, 5));
+        // An invulnerable cow the wolf can never kill: the combat target holds for the whole window, so
+        // it never clears mid-test and frees the boarding goal to start (the old flake).
+        Cow prey = helper.spawn(EntityType.COW, new BlockPos(4, 2, 7));
+        prey.setInvulnerable(true);
         wolf.setTarget(prey); // a pet defending itself stands the boarding goal down
-        helper.runAfterDelay(60, () -> {
-            helper.assertFalse(isBoardGoalRunning(wolf), "a pet with a combat target never works the boarding goal");
-            helper.assertTrue(wolf.getVehicle() == null, "a pet with a combat target does not board");
-            wolf.discard();
-            prey.discard();
-            boat.discard();
-            driver.discard();
-            helper.succeed();
-        });
+        helper.startSequence()
+                // Hold the target across the window and assert the boarding goal never works while it stands.
+                .thenExecuteFor(60, () -> {
+                    wolf.setTarget(prey);
+                    helper.assertFalse(isBoardGoalRunning(wolf),
+                            "a pet with a combat target never works the boarding goal");
+                    helper.assertTrue(wolf.getVehicle() == null, "a pet with a combat target does not board");
+                })
+                .thenExecute(() -> {
+                    wolf.discard();
+                    prey.discard();
+                    boat.discard();
+                    driver.discard();
+                })
+                .thenSucceed();
     }
 
     @GameTest(template = EMPTY_STRUCTURE, timeoutTicks = 300)
