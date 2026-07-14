@@ -52,6 +52,8 @@ public class InstinctConfig {
     public int creeperBerthBlocks = 4;
     public double teleportSuppressFallDistance = 3.0;
     public boolean enableOwnerFriendlyFireProtection = true;
+    public boolean enableSteadyShoulders = true;
+    public double steadyShoulderDismountDamage = 4.0;
 
     // §2 Pet Veterancy
     public boolean enableVeterancy = true;
@@ -300,6 +302,7 @@ public class InstinctConfig {
     public void validate() {
         creeperBerthBlocks = clampInt("creeperBerthBlocks", creeperBerthBlocks, 2, 8);
         teleportSuppressFallDistance = clampDouble("teleportSuppressFallDistance", teleportSuppressFallDistance, 0.5, 10.0);
+        steadyShoulderDismountDamage = clampDouble("steadyShoulderDismountDamage", steadyShoulderDismountDamage, 0.0, 20.0);
         veterancyThresholdDays = sanitizeThresholds(veterancyThresholdDays);
         healthPerRank = clampDouble("healthPerRank", healthPerRank, 0.0, 20.0);
         damagePerRank = clampDouble("damagePerRank", damagePerRank, 0.0, 10.0);
