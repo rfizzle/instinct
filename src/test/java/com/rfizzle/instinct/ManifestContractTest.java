@@ -12,6 +12,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -94,17 +95,50 @@ class ManifestContractTest {
                 "the accessWidener belongs only to the main manifest");
     }
 
+    private static List<String> gametestEntrypoints() {
+        JsonArray list = entrypoints(gametestManifest()).getAsJsonArray("fabric-gametest");
+        List<String> fqcns = new ArrayList<>();
+        for (JsonElement element : list) {
+            fqcns.add(element.getAsString());
+        }
+        return fqcns;
+    }
+
     @Test
     void everyGametestEntrypointClassExists() {
-        JsonArray list = entrypoints(gametestManifest()).getAsJsonArray("fabric-gametest");
         List<String> missing = new ArrayList<>();
-        for (JsonElement element : list) {
-            String fqcn = element.getAsString();
+        for (String fqcn : gametestEntrypoints()) {
             Path source = GAMETEST_JAVA_ROOT.resolve(fqcn.replace('.', '/') + ".java");
             if (!Files.exists(source)) {
                 missing.add(fqcn);
             }
         }
         assertTrue(missing.isEmpty(), "fabric-gametest entrypoints without a source class: " + missing);
+    }
+
+    /**
+     * The reverse of {@link #everyGametestEntrypointClassExists()}: every {@code *GameTest} source
+     * class must be listed in the manifest, so a newly added gametest can never silently go
+     * unregistered and unrun.
+     */
+    @Test
+    void everyGametestSourceClassIsRegistered() {
+        List<String> registered = gametestEntrypoints();
+        List<String> unregistered = new ArrayList<>();
+        try (Stream<Path> sources = Files.walk(GAMETEST_JAVA_ROOT)) {
+            sources.filter(p -> p.getFileName().toString().endsWith("GameTest.java"))
+                    .forEach(p -> {
+                        String fqcn = GAMETEST_JAVA_ROOT.relativize(p).toString()
+                                .replace(java.io.File.separatorChar, '.')
+                                .replaceAll("\\.java$", "");
+                        if (!registered.contains(fqcn)) {
+                            unregistered.add(fqcn);
+                        }
+                    });
+        } catch (IOException e) {
+            throw new AssertionError("could not walk " + GAMETEST_JAVA_ROOT, e);
+        }
+        assertTrue(unregistered.isEmpty(),
+                "gametest classes missing from the manifest's fabric-gametest list: " + unregistered);
     }
 }
