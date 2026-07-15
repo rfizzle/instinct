@@ -518,7 +518,7 @@ public class WhistleGameTest implements FabricGameTest {
     }
 
     /**
-     * A three-cow herd just outside the 5-block arrival ring (~6 blocks from the player at 2,2,4),
+     * A three-cow herd just outside the 5-block arrival ring (~7 blocks from the player at 2,2,3),
      * fanned across z so each animal crosses the ring in its own lane before the herd reconverges and
      * piles up. cows.get(0) is the round-up target. The short travel keeps convergence robust against
      * pathfinding RNG while still starting the herd outside the arrival ring.
