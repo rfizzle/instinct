@@ -39,6 +39,12 @@ import java.util.UUID;
  */
 public class WhistleGameTest implements FabricGameTest {
 
+    // The round-up tests drive a herd ~7 blocks across the floor. EMPTY_STRUCTURE force-loads only an
+    // 8x8 box, so a cow placed beyond it lands in a loaded-but-not-entity-ticking chunk and its AI never
+    // runs — a frozen straggler that never reaches. This 16x5x6 lane keeps the whole herd inside the
+    // entity-ticking box, exactly as the herding drive tests use it.
+    private static final String LANE = "instinct:drive_lane";
+
     @GameTest(template = EMPTY_STRUCTURE)
     public void toggleSitsThenStandsMixedPack(GameTestHelper helper) {
         buildFloor(helper, 8, 8);
@@ -114,11 +120,10 @@ public class WhistleGameTest implements FabricGameTest {
         helper.succeed();
     }
 
-    // A generous tick budget: driving the whole herd to the player is real pathfinding
-    // convergence, which needs ample headroom to finish on a loaded/variable CI runner even though
-    // it settles in a fraction of it locally. succeedWhen exits the instant every cow has reached,
-    // so the budget only bounds a struggling run. The assertion (every cow reaches) is unchanged.
-    @GameTest(template = EMPTY_STRUCTURE, timeoutTicks = 3000, batch = "instinctRoundUp")
+    // A generous poll budget: driving the whole herd home is real pathfinding convergence that needs
+    // ample headroom on a loaded/variable CI runner even though it settles in a fraction of it locally.
+    // succeedWhen exits the instant every cow has reached, so the budget only bounds a struggling run.
+    @GameTest(template = LANE, timeoutTicks = 3000, batch = "instinctRoundUp")
     public void roundUpBringsTheHerdToThePlayer(GameTestHelper helper) {
         // The round-up drives livestock through the §4 tempt machinery, so it needs flocking on;
         // pin both flags rather than trust config another batch may have left flipped (restored on
@@ -128,11 +133,11 @@ public class WhistleGameTest implements FabricGameTest {
         InstinctConfig.get().enableFlocking = true;
         InstinctConfig.get().enableHerding = true;
         try {
-            buildFloor(helper, 16, 8);
-            ServerPlayer owner = mockPlayer(helper, new BlockPos(2, 2, 4));
+            buildFloor(helper, 16, 6);
+            ServerPlayer owner = mockPlayer(helper, new BlockPos(2, 2, 3));
             // A following pet drives the herd home — the §6 promise (and what pushes the last straggler
             // through the animals already gathered at the player, exactly as in the §4 drive).
-            Wolf wolf = spawnTamedWolf(helper, new BlockPos(3, 2, 4), owner.getUUID());
+            Wolf wolf = spawnTamedWolf(helper, new BlockPos(3, 2, 3), owner.getUUID());
             List<Cow> cows = spawnHerd(helper);
 
             WhistleActions.WhistleResult result = WhistleActions.roundUp(owner, cows.get(0));
@@ -163,7 +168,7 @@ public class WhistleGameTest implements FabricGameTest {
 
     // Same convergence headroom as the flocking-on round-up above — more marginal here, since with
     // flocking off there is no drive-assist and the cows reach on the order alone.
-    @GameTest(template = EMPTY_STRUCTURE, timeoutTicks = 3000, batch = "instinctRoundUpNoFlock")
+    @GameTest(template = LANE, timeoutTicks = 3000, batch = "instinctRoundUpNoFlock")
     public void roundUpWorksWithFlockingOff(GameTestHelper helper) {
         // SPEC §4: with flocking off but herding on, the drive assist never activates, but the whistle
         // round-up still works — the order is a tempt source the flocking toggle must not silence.
@@ -172,8 +177,8 @@ public class WhistleGameTest implements FabricGameTest {
         InstinctConfig.get().enableFlocking = false;
         InstinctConfig.get().enableHerding = true;
         try {
-            buildFloor(helper, 16, 8);
-            ServerPlayer owner = mockPlayer(helper, new BlockPos(2, 2, 4));
+            buildFloor(helper, 16, 6);
+            ServerPlayer owner = mockPlayer(helper, new BlockPos(2, 2, 3));
             List<Cow> cows = spawnHerd(helper);
 
             helper.assertValueEqual(WhistleActions.roundUp(owner, cows.get(0)).outcome(),
@@ -382,12 +387,18 @@ public class WhistleGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE, batch = "instinctLocate")
     public void locateCapsTheListAndCountsTheOverflow(GameTestHelper helper) {
-        buildFloor(helper, 8, 8);
+        // The floor is deep enough to stand every pet on loaded ground: locate only enumerates pets in
+        // loaded chunks, and setBlock is what loads a chunk. Pets over the void beyond the structure's
+        // own force-loaded box are seen non-deterministically — that was the flake.
+        buildFloor(helper, 10, 31);
         ServerPlayer owner = mockPlayer(helper, new BlockPos(4, 2, 4));
         List<Wolf> pack = new ArrayList<>();
-        for (int i = 0; i < 12; i++) {
-            // A fan of pets each well beyond the 20-block voice (25..36 blocks south-east).
-            pack.add(spawnTamedWolf(helper, new BlockPos(30, 2, 25 + i), owner.getUUID()));
+        // Twelve pets fanned across the loaded floor, each 22..27 blocks south of the player — well past
+        // the 20-block voice, so all twelve count as sightings, two of them as overflow past the cap.
+        for (int z = 26; z <= 30; z += 2) {
+            for (int x = 2; x <= 8; x += 2) {
+                pack.add(spawnTamedWolf(helper, new BlockPos(x, 2, z), owner.getUUID()));
+            }
         }
 
         WhistleActions.LocateResult result = WhistleActions.locate(owner);
@@ -507,16 +518,18 @@ public class WhistleGameTest implements FabricGameTest {
     }
 
     /**
-     * A three-cow herd just outside the 5-block arrival ring (~6 blocks from the player at 2,2,4),
+     * A three-cow herd just outside the 5-block arrival ring (~7 blocks from the player at 2,2,3),
      * fanned across z so each animal crosses the ring in its own lane before the herd reconverges and
      * piles up. cows.get(0) is the round-up target. The short travel keeps convergence robust against
      * pathfinding RNG while still starting the herd outside the arrival ring.
      */
     private static List<Cow> spawnHerd(GameTestHelper helper) {
         List<Cow> cows = new ArrayList<>();
-        cows.add(helper.spawn(EntityType.COW, new BlockPos(8, 2, 4)));
-        cows.add(helper.spawn(EntityType.COW, new BlockPos(8, 2, 2)));
-        cows.add(helper.spawn(EntityType.COW, new BlockPos(8, 2, 6)));
+        // Fanned across z inside the drive lane's entity-ticking box (x 0..15, z 0..5), each ~7 blocks
+        // from the player at (2, 3) — well past the 5-block arrival, so every cow must be driven in.
+        cows.add(helper.spawn(EntityType.COW, new BlockPos(9, 2, 3)));
+        cows.add(helper.spawn(EntityType.COW, new BlockPos(9, 2, 2)));
+        cows.add(helper.spawn(EntityType.COW, new BlockPos(9, 2, 4)));
         return cows;
     }
 
