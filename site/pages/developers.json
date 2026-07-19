@@ -36,8 +36,8 @@
           "nowrapHeaders": true,
           "rows": [
             ["<code>InstinctAnimalBredCallback</code>", "after grade resolution at breeding — parents, child, final grade"],
-            ["<code>InstinctPetDownedCallback</code>", "when a pet enters the downed state — pet and damage source"],
-            ["<code>InstinctPetRevivedCallback</code>", "on revival — pet, reviving player, item used"]
+            ["<code>InstinctAnimalDownedCallback</code>", "when a pet or mount enters the downed state — animal and damage source"],
+            ["<code>InstinctAnimalRevivedCallback</code>", "on every path back up — animal, reviving player, item used. Kennel-post recovery passes a null reviver and an empty stack"]
           ]
         }
       ]

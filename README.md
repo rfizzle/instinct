@@ -42,7 +42,8 @@ package is internal and may change in any release.
 
 - `InstinctAPI.isPet(EntityType<?>)` / `InstinctAPI.isLivestock(EntityType<?>)` /
   `InstinctAPI.isMount(EntityType<?>)` — set membership after full Animal Coverage
-  resolution (mounts are the horse family: self-preservation and downed only)
+  resolution (mounts are the horse family by default, extensible by tag and config:
+  self-preservation and downed only)
 - `InstinctAPI.getGrade(Animal)` / `InstinctAPI.getPerk(Animal)` — bloodline grade
   and birth perk (`ORDINARY`/`NONE` for untracked animals)
 - `InstinctAPI.getVeterancyDays(TamableAnimal)` / `InstinctAPI.getVeterancyRank(TamableAnimal)` —
@@ -52,6 +53,16 @@ package is internal and may change in any release.
   1.0; last registration wins)
 - `InstinctAPI.isDowned(LivingEntity)` — downed state
 - `InstinctAPI.isTroughFed(Animal)` — trough-fed within the last 24000 ticks
+
+**Events** — Fabric `Event` objects, fired server-side:
+
+- `InstinctAnimalBredCallback(parentA, parentB, child, grade)` — after a newborn's bloodline
+  grade resolves at breeding
+- `InstinctAnimalDownedCallback(animal, source)` — when a pet or mount enters the downed state,
+  with the lethal damage source that downed it
+- `InstinctAnimalRevivedCallback(animal, reviver, item)` — on every path back up: an item revival
+  in the field, and a pet's own recovery at a kennel post. The recovery path passes a null
+  `reviver` and an empty `item`, so null-check the player
 
 An animal mod needs **no code at all** to opt in or out: ship entries in the
 `#instinct:pets`, `#instinct:pets_exclude`, `#instinct:livestock`,
