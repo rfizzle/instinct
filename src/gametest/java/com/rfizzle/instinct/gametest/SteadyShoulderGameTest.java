@@ -76,7 +76,8 @@ public class SteadyShoulderGameTest implements FabricGameTest {
             // A hand-edited save can carry a shoulder tag naming a type that no longer exists —
             // an uninstalled mod's animal, or outright junk. Neither may resolve: the entity-type
             // registry answers an unknown id with minecraft:pig unless the lookup bypasses its
-            // default, and a malformed id used to throw straight out into vanilla's aiStep.
+            // default, and ResourceLocation.parse throws on a malformed id rather than rejecting
+            // it, which would carry the failure straight into vanilla's aiStep.
             for (String id : new String[]{"instinct:no_such_entity_type", "not a valid id!"}) {
                 mountShoulder(helper, owner, id);
                 helper.assertFalse(SteadyShoulders.holdsInstinctPet(owner),

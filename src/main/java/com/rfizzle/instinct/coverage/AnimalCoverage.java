@@ -176,6 +176,11 @@ public final class AnimalCoverage {
      * <p>Deliberately routed through {@code getOptional}: {@code BuiltInRegistries.ENTITY_TYPE} is
      * a defaulted registry, so plain {@code get} answers an unknown id with {@code minecraft:pig}
      * rather than nothing, which would silently resolve a bogus tag into a real animal.
+     *
+     * <p>The memo keys on the stored id string rather than the parsed {@link ResourceLocation},
+     * so the probe comes before the parse — which is the whole point, since parsing is what the
+     * hot path is here to avoid. A hand-edited tag spelling an id non-canonically therefore takes
+     * its own entry; both entries resolve to the same type, and the registry bounds the total.
      */
     @Nullable
     public static EntityType<?> typeById(String id) {

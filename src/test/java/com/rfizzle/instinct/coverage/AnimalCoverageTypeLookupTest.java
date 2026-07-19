@@ -16,13 +16,16 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
- * {@code AnimalCoverage.typeById} is the memoized replacement for {@code EntityType.by(tag)} on the
- * shoulder path ({@code mc-mod-testing} tier 2: it reads the real entity-type registry, so it
- * bootstraps vanilla rather than mocking one). Two properties carry the risk. The memo must only
- * ever hold ids that resolve, or a save-edited shoulder tag could grow it without bound; and an
- * unknown id must read as nothing, because {@code BuiltInRegistries.ENTITY_TYPE} is a defaulted
- * registry whose plain {@code get} answers {@code minecraft:pig} — which would quietly turn a bogus
- * tag into a real pets-set animal.
+ * {@code AnimalCoverage.typeById} is the memoized id → type lookup behind the shoulder path
+ * ({@code mc-mod-testing} tier 2: it reads the real entity-type registry, so it bootstraps vanilla
+ * rather than mocking one). Two properties carry the risk. The memo must only ever hold ids that
+ * resolve, or a save-edited shoulder tag could grow it without bound; and an unknown id must read
+ * as nothing, because {@code BuiltInRegistries.ENTITY_TYPE} is a defaulted registry whose plain
+ * {@code get} answers {@code minecraft:pig} — which would quietly turn a bogus tag into a real
+ * pets-set animal.
+ *
+ * <p>The memo-size assertions read shared static state, so they assume tests run sequentially —
+ * which they do: the project sets no JUnit parallelism.
  */
 class AnimalCoverageTypeLookupTest {
 
@@ -93,8 +96,8 @@ class AnimalCoverageTypeLookupTest {
     @Test
     void theMemoHardensTheOneCaseVanillaThrowsOn() {
         // EntityType.by parses with ResourceLocation.parse, which throws on a malformed id — an
-        // exception that travelled out of the shoulder check into vanilla's aiStep. The memoized
-        // lookup parses with tryParse instead, so a hand-edited tag reads as "not a pet".
+        // exception that would escape the shoulder check into vanilla's aiStep. The memoized
+        // lookup parses with tryParse, so a hand-edited tag reads as "not a pet".
         assertThrows(ResourceLocationException.class, () -> EntityType.by(tagFor(MALFORMED_ID)));
         assertNull(AnimalCoverage.typeById(MALFORMED_ID));
     }
