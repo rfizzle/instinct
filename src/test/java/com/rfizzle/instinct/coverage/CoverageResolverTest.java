@@ -239,36 +239,89 @@ class CoverageResolverTest {
         assertEquals(MembershipRule.NONE, CoverageResolver.ruleFor(false, false, false, false, false));
     }
 
+    /** One of the three sets, as the layer fields that feed it and the record fields it produces. */
+    private enum Set {
+        PETS(AnimalCapability.TAMABLE),
+        LIVESTOCK(AnimalCapability.BREEDABLE),
+        MOUNTS(AnimalCapability.MOUNT);
+
+        final AnimalCapability heuristicCapability;
+
+        Set(AnimalCapability heuristicCapability) {
+            this.heuristicCapability = heuristicCapability;
+        }
+
+        void feed(LayersBuilder layers, boolean configExclude, boolean configInclude,
+                  boolean tagExclude, boolean tagInclude) {
+            switch (this) {
+                case PETS -> {
+                    layers.configPetsExclude = configExclude;
+                    layers.configPetsInclude = configInclude;
+                    layers.tagPetsExclude = tagExclude;
+                    layers.tagPetsInclude = tagInclude;
+                }
+                case LIVESTOCK -> {
+                    layers.configLivestockExclude = configExclude;
+                    layers.configLivestockInclude = configInclude;
+                    layers.tagLivestockExclude = tagExclude;
+                    layers.tagLivestockInclude = tagInclude;
+                }
+                case MOUNTS -> {
+                    layers.configMountsExclude = configExclude;
+                    layers.configMountsInclude = configInclude;
+                    layers.tagMountsExclude = tagExclude;
+                    layers.tagMountsInclude = tagInclude;
+                }
+            }
+        }
+
+        boolean readFrom(Membership membership) {
+            return switch (this) {
+                case PETS -> membership.pet();
+                case LIVESTOCK -> membership.livestock();
+                case MOUNTS -> membership.mount();
+            };
+        }
+
+        MembershipRule ruleFrom(Membership membership) {
+            return switch (this) {
+                case PETS -> membership.petRule();
+                case LIVESTOCK -> membership.livestockRule();
+                case MOUNTS -> membership.mountRule();
+            };
+        }
+    }
+
     /**
      * The fast path and the record path must never disagree. Sweeps every combination of the five
-     * ladder inputs through both, so any future edit that touches one and not the other fails here.
+     * ladder inputs through both, for each of the three sets — {@code resolve} wires the ladder up
+     * three separate times, so a mistake confined to one set only fails if all three are swept.
      */
     @Test
-    void inSetAgreesWithResolveAcrossEveryLayerCombination() {
-        for (int bits = 0; bits < 32; bits++) {
-            boolean configExclude = (bits & 1) != 0;
-            boolean configInclude = (bits & 2) != 0;
-            boolean tagExclude = (bits & 4) != 0;
-            boolean tagInclude = (bits & 8) != 0;
-            boolean heuristic = (bits & 16) != 0;
+    void inSetAgreesWithResolveAcrossEveryLayerCombinationAndSet() {
+        for (Set set : Set.values()) {
+            for (int bits = 0; bits < 32; bits++) {
+                boolean configExclude = (bits & 1) != 0;
+                boolean configInclude = (bits & 2) != 0;
+                boolean tagExclude = (bits & 4) != 0;
+                boolean tagInclude = (bits & 8) != 0;
+                boolean heuristic = (bits & 16) != 0;
 
-            LayersBuilder layers = new LayersBuilder();
-            layers.configPetsExclude = configExclude;
-            layers.configPetsInclude = configInclude;
-            layers.tagPetsExclude = tagExclude;
-            layers.tagPetsInclude = tagInclude;
-            layers.capability = heuristic ? AnimalCapability.TAMABLE : AnimalCapability.NONE;
-            Membership membership = CoverageResolver.resolve(layers.build());
+                LayersBuilder layers = new LayersBuilder();
+                set.feed(layers, configExclude, configInclude, tagExclude, tagInclude);
+                layers.capability = heuristic ? set.heuristicCapability : AnimalCapability.NONE;
+                Membership membership = CoverageResolver.resolve(layers.build());
 
-            String facts = "configExclude=" + configExclude + " configInclude=" + configInclude
-                    + " tagExclude=" + tagExclude + " tagInclude=" + tagInclude
-                    + " heuristic=" + heuristic;
-            assertEquals(membership.pet(),
-                    CoverageResolver.inSet(configExclude, configInclude, tagExclude, tagInclude, heuristic),
-                    "inSet disagreed with resolve for " + facts);
-            assertEquals(membership.petRule(),
-                    CoverageResolver.ruleFor(configExclude, configInclude, tagExclude, tagInclude, heuristic),
-                    "ruleFor disagreed with resolve for " + facts);
+                String facts = set + " configExclude=" + configExclude + " configInclude=" + configInclude
+                        + " tagExclude=" + tagExclude + " tagInclude=" + tagInclude
+                        + " heuristic=" + heuristic;
+                assertEquals(set.readFrom(membership),
+                        CoverageResolver.inSet(configExclude, configInclude, tagExclude, tagInclude, heuristic),
+                        "inSet disagreed with resolve for " + facts);
+                assertEquals(set.ruleFrom(membership),
+                        CoverageResolver.ruleFor(configExclude, configInclude, tagExclude, tagInclude, heuristic),
+                        "ruleFor disagreed with resolve for " + facts);
+            }
         }
     }
 }
