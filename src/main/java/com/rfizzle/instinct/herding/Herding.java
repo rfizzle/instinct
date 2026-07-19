@@ -85,7 +85,7 @@ public final class Herding {
     public static void register() {
         ServerEntityEvents.ENTITY_LOAD.register((entity, level) -> {
             try {
-                if (entity instanceof Animal animal && AnimalCoverage.membershipOf(animal).livestock()) {
+                if (entity instanceof Animal animal && AnimalCoverage.isLivestock(animal)) {
                     swapTemptGoals(animal);
                 }
                 if (entity instanceof TamableAnimal pet) {

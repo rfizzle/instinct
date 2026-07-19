@@ -100,7 +100,7 @@ public final class InstinctCommand {
             return 0;
         }
         Animal animal = raycastAnimal(player, INFO_RANGE_BLOCKS);
-        if (!(animal instanceof TamableAnimal pet) || !AnimalCoverage.membershipOf(pet).pet()) {
+        if (!(animal instanceof TamableAnimal pet) || !AnimalCoverage.isPet(pet)) {
             source.sendFailure(Component.translatable("command.instinct.set.no_pet"));
             return 0;
         }
@@ -128,7 +128,7 @@ public final class InstinctCommand {
             return 0;
         }
         Animal animal = raycastAnimal(player, INFO_RANGE_BLOCKS);
-        if (animal == null || !AnimalCoverage.membershipOf(animal).livestock()) {
+        if (animal == null || !AnimalCoverage.isLivestock(animal)) {
             source.sendFailure(Component.translatable("command.instinct.set.no_livestock"));
             return 0;
         }

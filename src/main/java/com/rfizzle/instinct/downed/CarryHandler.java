@@ -130,7 +130,7 @@ public final class CarryHandler {
         if (!InstinctAPI.isDowned(animal)) {
             return false;
         }
-        boolean pet = AnimalCoverage.membershipOf(animal).pet();
+        boolean pet = AnimalCoverage.isPet(animal);
         return Carry.carryable(true, pet, animal.isBaby(),
                 animal.getType().is(AnimalCoverage.CARRYABLE_TAG));
     }

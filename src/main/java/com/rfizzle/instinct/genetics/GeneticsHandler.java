@@ -71,7 +71,7 @@ public final class GeneticsHandler {
     public static void register() {
         ProductTable.init();
         ServerEntityEvents.ENTITY_LOAD.register((entity, level) -> {
-            if (!(entity instanceof Animal animal) || !AnimalCoverage.membershipOf(animal).livestock()) {
+            if (!(entity instanceof Animal animal) || !AnimalCoverage.isLivestock(animal)) {
                 return;
             }
             try {
@@ -107,7 +107,7 @@ public final class GeneticsHandler {
      */
     public static void onBred(Animal parentA, Animal parentB, Animal child) {
         InstinctConfig config = InstinctConfig.get();
-        if (!config.enableGenetics || !AnimalCoverage.membershipOf(child).livestock()) {
+        if (!config.enableGenetics || !AnimalCoverage.isLivestock(child)) {
             return;
         }
         // The HEAD inject runs before vanilla's resetLove(): an uncaught throw here would strand the
@@ -181,7 +181,7 @@ public final class GeneticsHandler {
     }
 
     private static void scaleFertileCooldown(Animal parent) {
-        if (!AnimalCoverage.membershipOf(parent).livestock()) {
+        if (!AnimalCoverage.isLivestock(parent)) {
             return;
         }
         Perk perk = InstinctAPI.getPerk(parent);
@@ -256,7 +256,7 @@ public final class GeneticsHandler {
                 midX + radius, midY + radius, midZ + radius);
         double radiusSq = radius * radius;
         List<Animal> nearby = parentA.level().getEntitiesOfClass(Animal.class, box,
-                other -> AnimalCoverage.membershipOf(other).livestock());
+                other -> AnimalCoverage.isLivestock(other));
         int count = 0;
         for (Animal animal : nearby) {
             double dx = animal.getX() - midX;
@@ -291,7 +291,7 @@ public final class GeneticsHandler {
     private static void onDeath(Animal animal, DamageSource source) {
         InstinctConfig config = InstinctConfig.get();
         if (!config.enableGenetics || animal.isBaby()
-                || !AnimalCoverage.membershipOf(animal).livestock()) {
+                || !AnimalCoverage.isLivestock(animal)) {
             return;
         }
         int grade = InstinctAPI.getGrade(animal).level();
@@ -329,7 +329,7 @@ public final class GeneticsHandler {
      */
     public static void reassertModifiers(Animal animal) {
         boolean active = InstinctConfig.get().enableGenetics
-                && AnimalCoverage.membershipOf(animal).livestock();
+                && AnimalCoverage.isLivestock(animal);
         if (active) {
             applyGeneticModifiers(animal, InstinctAPI.getGrade(animal).level(), InstinctAPI.getPerk(animal));
         } else {
@@ -392,7 +392,7 @@ public final class GeneticsHandler {
 
     /** The bonus wool count a sheep shears at its grade: sturdy +1, prime +2 (§3 renewables). */
     public static int shearWoolBonus(Animal sheep) {
-        if (!InstinctConfig.get().enableGenetics || !AnimalCoverage.membershipOf(sheep).livestock()) {
+        if (!InstinctConfig.get().enableGenetics || !AnimalCoverage.isLivestock(sheep)) {
             return 0;
         }
         return Genetics.primaryBonus(InstinctAPI.getGrade(sheep).level());
@@ -419,17 +419,17 @@ public final class GeneticsHandler {
     /**
      * The renewable-cadence factor a covered animal applies to its egg interval or graze roll
      * ({@link Genetics#renewableIntervalFactor}), or {@code 1.0} (no change) for a
-     * genetics-disabled world, an ordinary animal, or one outside the livestock set. The cheap grade
-     * attachment is read before the {@link AnimalCoverage#membershipOf} resolve so an ordinary animal
-     * — the common case on a per-tick graze poll — short-circuits without paying for membership's
-     * allocations; a graded animal is still membership-gated exactly as before.
+     * genetics-disabled world, an ordinary animal, or one outside the livestock set. The grade
+     * attachment is read before the {@link AnimalCoverage#isLivestock} resolve so an ordinary animal
+     * — the common case on a per-tick graze poll — short-circuits ahead of the tag lookups; a graded
+     * animal is still membership-gated.
      */
     private static double renewableFactor(Animal animal, InstinctConfig config) {
         if (!config.enableGenetics) {
             return 1.0;
         }
         int grade = InstinctAPI.getGrade(animal).level();
-        if (grade <= 0 || !AnimalCoverage.membershipOf(animal).livestock()) {
+        if (grade <= 0 || !AnimalCoverage.isLivestock(animal)) {
             return 1.0;
         }
         return Genetics.renewableIntervalFactor(grade, InstinctAPI.getPerk(animal),

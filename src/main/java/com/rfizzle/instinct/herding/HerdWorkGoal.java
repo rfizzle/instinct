@@ -157,7 +157,7 @@ public class HerdWorkGoal extends Goal {
                 || InstinctAPI.isDowned(pet) || pet.getTarget() != null) {
             return false;
         }
-        if (!AnimalCoverage.membershipOf(pet).pet() || fleeingCreeper()) {
+        if (!AnimalCoverage.isPet(pet) || fleeingCreeper()) {
             return false;
         }
         return pet.getOwner() instanceof Player owner
@@ -179,7 +179,7 @@ public class HerdWorkGoal extends Goal {
         AABB box = owner.getBoundingBox().inflate(FlockingTemptGoal.FLOCK_RANGE);
         List<Animal> flock = new ArrayList<>();
         for (Animal animal : pet.level().getEntitiesOfClass(Animal.class, box,
-                candidate -> AnimalCoverage.membershipOf(candidate).livestock())) {
+                candidate -> AnimalCoverage.isLivestock(candidate))) {
             if (Herding.temptTargetOf(animal) == owner) {
                 flock.add(animal);
             }

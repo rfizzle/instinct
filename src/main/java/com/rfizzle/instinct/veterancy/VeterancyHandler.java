@@ -146,7 +146,7 @@ public final class VeterancyHandler {
     }
 
     private static void accruePet(TamableAnimal pet, InstinctConfig config, List<TamableAnimal> mentors) {
-        if (!pet.isTame() || !AnimalCoverage.membershipOf(pet).pet()) {
+        if (!pet.isTame() || !AnimalCoverage.isPet(pet)) {
             // Untamed (or uncovered): accrual stops and bonuses drop; the attachment is retained
             // so re-taming the same animal resumes from its prior days.
             applyBonuses(pet, 0);
@@ -184,7 +184,7 @@ public final class VeterancyHandler {
             if (other.isRemoved() || !other.isAlive() || !other.isTame() || InstinctAPI.isDowned(other)) {
                 continue;
             }
-            if (InstinctAPI.getVeterancyRank(other) == 3 && AnimalCoverage.membershipOf(other).pet()) {
+            if (InstinctAPI.getVeterancyRank(other) == 3 && AnimalCoverage.isPet(other)) {
                 mentors.add(other);
             }
         }
@@ -233,7 +233,7 @@ public final class VeterancyHandler {
      */
     private static void onPetLoad(TamableAnimal pet) {
         if (!InstinctConfig.get().enableVeterancy || !pet.isTame()
-                || !AnimalCoverage.membershipOf(pet).pet()) {
+                || !AnimalCoverage.isPet(pet)) {
             applyBonuses(pet, 0);
             return;
         }
@@ -252,7 +252,7 @@ public final class VeterancyHandler {
      */
     public static int reassert(TamableAnimal pet) {
         boolean active = InstinctConfig.get().enableVeterancy && pet.isTame()
-                && AnimalCoverage.membershipOf(pet).pet();
+                && AnimalCoverage.isPet(pet);
         int rank = InstinctAPI.getVeterancyRank(pet);
         applyBonuses(pet, active ? rank : 0);
         if (active) {
@@ -320,7 +320,7 @@ public final class VeterancyHandler {
         if (!(victim instanceof TamableAnimal pet) || !pet.isTame() || !pet.isOwnedBy(attacker)) {
             return false;
         }
-        if (!AnimalCoverage.membershipOf(pet).pet()) {
+        if (!AnimalCoverage.isPet(pet)) {
             return false;
         }
         return Veterancy.ducksSweep(InstinctAPI.getVeterancyRank(pet), true);
@@ -343,7 +343,7 @@ public final class VeterancyHandler {
         for (TamableAnimal pet : TRACKED) {
             if (!pet.isAlive() || !pet.isTame() || InstinctAPI.isDowned(pet)
                     || InstinctAPI.getVeterancyRank(pet) < 1
-                    || !AnimalCoverage.membershipOf(pet).pet()
+                    || !AnimalCoverage.isPet(pet)
                     || !(pet.getOwner() instanceof ServerPlayer owner)
                     || owner.level() != pet.level()) {
                 continue;

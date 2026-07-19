@@ -62,7 +62,7 @@ public final class KeepsakeHandler {
         if (!InstinctConfig.get().enableKeepsakeCollar
                 || !pet.isTame()
                 || !Keepsake.keepsakeWorthy(source)
-                || !AnimalCoverage.membershipOf(pet).pet()
+                || !AnimalCoverage.isPet(pet)
                 || !(pet.level() instanceof ServerLevel level)) {
             return;
         }

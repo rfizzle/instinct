@@ -202,7 +202,7 @@ public class FeedingTroughBlockEntity extends BlockEntity implements WorldlyCont
         double cz = pos.getZ() + 0.5;
         List<Animal> inRange = new ArrayList<>();
         for (Animal animal : level.getEntitiesOfClass(Animal.class, new AABB(pos).inflate(radius),
-                a -> a.isAlive() && AnimalCoverage.membershipOf(a).livestock())) {
+                a -> a.isAlive() && AnimalCoverage.isLivestock(a))) {
             if (Trough.withinRadiusSq(animal.distanceToSqr(cx, cy, cz), radius)) {
                 inRange.add(animal);
             }

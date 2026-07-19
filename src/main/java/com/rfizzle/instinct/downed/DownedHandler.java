@@ -6,7 +6,6 @@ import com.rfizzle.instinct.api.InstinctAnimalDownedCallback;
 import com.rfizzle.instinct.api.InstinctAnimalRevivedCallback;
 import com.rfizzle.instinct.config.InstinctConfig;
 import com.rfizzle.instinct.coverage.AnimalCoverage;
-import com.rfizzle.instinct.coverage.CoverageResolver;
 import com.rfizzle.instinct.coverage.OwnedAnimals;
 import com.rfizzle.instinct.data.DownedData;
 import com.rfizzle.instinct.data.InstinctAttachments;
@@ -182,8 +181,7 @@ public final class DownedHandler {
 
     /** Whether the animal is in a set the downed state covers — pets or mounts (SPEC §7). */
     private static boolean covered(Animal animal) {
-        CoverageResolver.Membership membership = AnimalCoverage.membershipOf(animal);
-        return membership.pet() || membership.mount();
+        return AnimalCoverage.isPet(animal) || AnimalCoverage.isMount(animal);
     }
 
     private static void goDown(Animal animal, DamageSource source) {
@@ -405,7 +403,7 @@ public final class DownedHandler {
      *  accumulates a beat of progress and gets the pet up once the threshold is reached. */
     private static void advanceRecovery(Animal animal, int radius, int threshold) {
         DownedData data = animal.getAttached(InstinctAttachments.DOWNED);
-        if (data == null || !AnimalCoverage.membershipOf(animal).pet()) {
+        if (data == null || !AnimalCoverage.isPet(animal)) {
             return;
         }
         if (!KennelPosts.hasPostWithin(animal.level(), animal.blockPosition(), radius)) {

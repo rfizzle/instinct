@@ -215,7 +215,7 @@ public final class WhistleActions {
             return new WhistleResult(WhistleResult.Outcome.NO_TARGET, 0);
         }
         // Covered livestock are never attack targets — they order a round-up (or nothing, if herding off).
-        if (target instanceof Animal animal && AnimalCoverage.membershipOf(animal).livestock()) {
+        if (target instanceof Animal animal && AnimalCoverage.isLivestock(animal)) {
             if (!InstinctConfig.get().enableHerding) {
                 return new WhistleResult(WhistleResult.Outcome.NOTHING_TO_ROUND_UP, 0);
             }
@@ -297,7 +297,7 @@ public final class WhistleActions {
                         && candidate.getType() == target.getType()
                         && eligibleGroupMember(candidate)
                         && candidate.distanceToSqr(target) <= radius * radius
-                        && AnimalCoverage.membershipOf(candidate).livestock())) {
+                        && AnimalCoverage.isLivestock(candidate))) {
             group.add(animal);
         }
         if (group.isEmpty()) {
@@ -333,7 +333,7 @@ public final class WhistleActions {
             boolean same = level.dimension().equals(playerDim);
             for (TamableAnimal pet : level.getEntities(EntityTypeTest.forClass(TamableAnimal.class),
                     candidate -> WhistleRules.isLocatablePet(candidate.isTame(), candidate.isOwnedBy(player),
-                            AnimalCoverage.membershipOf(candidate).pet()))) {
+                            AnimalCoverage.isPet(candidate)))) {
                 WhistleLocator.PetState state = stateOf(pet);
                 if (same) {
                     double distSq = pet.distanceToSqr(origin);
@@ -378,7 +378,7 @@ public final class WhistleActions {
         for (TamableAnimal pet : player.serverLevel().getEntitiesOfClass(TamableAnimal.class, box, candidate ->
                 candidate.distanceToSqr(player) <= radius * radius
                         && WhistleRules.isCommandablePet(candidate.isTame(), candidate.isOwnedBy(player),
-                        InstinctAPI.isDowned(candidate), AnimalCoverage.membershipOf(candidate).pet()))) {
+                        InstinctAPI.isDowned(candidate), AnimalCoverage.isPet(candidate)))) {
             pets.add(pet);
         }
         return pets;

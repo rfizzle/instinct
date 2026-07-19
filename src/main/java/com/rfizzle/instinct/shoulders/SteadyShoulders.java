@@ -72,7 +72,7 @@ public final class SteadyShoulders {
             return false;
         }
         return EntityType.by(shoulder)
-                .map(type -> AnimalCoverage.membershipOf(type).pet())
+                .map(AnimalCoverage::isPet)
                 .orElse(false);
     }
 
