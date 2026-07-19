@@ -15,6 +15,7 @@ import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.animal.horse.AbstractHorse;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -22,6 +23,11 @@ import java.util.concurrent.ConcurrentHashMap;
  * entity-type tags, heuristic capability) and hands them to {@link CoverageResolver}. Config and
  * tag layers are evaluated live on every query — both are hot-reloadable and the lookups are
  * cheap — so only the immutable Java-class capability is cached.
+ *
+ * <p>{@link #isPet}, {@link #isLivestock}, and {@link #isMount} answer a single set's question
+ * without building the full record, which is what the goals, handlers, and per-tick gates that make
+ * up most callers actually need; {@link #membershipOf} is for the few places that report all three
+ * sets and the rule that decided each. Both run the same {@link CoverageResolver} ladder.
  *
  * <p>The capability cache is seeded once per server start by probing every registered entity type
  * ({@code EntityType#create} + {@code instanceof}, instance discarded, never added to the world;
@@ -66,24 +72,68 @@ public final class AnimalCoverage {
 
     /** Pets-set membership for a type, after full config → tag → heuristic resolution. */
     public static boolean isPet(EntityType<?> type) {
-        return membershipOf(type).pet();
+        InstinctConfig config = InstinctConfig.get();
+        return inSet(type, config.petsExcludeSet, config.petsIncludeSet, PETS_EXCLUDE_TAG, PETS_TAG,
+                config.autoDetectAnimals && capabilityOf(type) == AnimalCapability.TAMABLE);
     }
 
     /** Livestock-set membership for a type, after full config → tag → heuristic resolution. */
     public static boolean isLivestock(EntityType<?> type) {
-        return membershipOf(type).livestock();
+        InstinctConfig config = InstinctConfig.get();
+        return inSet(type, config.livestockExcludeSet, config.livestockIncludeSet,
+                LIVESTOCK_EXCLUDE_TAG, LIVESTOCK_TAG,
+                config.autoDetectAnimals && capabilityOf(type) == AnimalCapability.BREEDABLE);
     }
 
     /** Mounts-set membership for a type, after full config → tag → heuristic resolution. */
     public static boolean isMount(EntityType<?> type) {
-        return membershipOf(type).mount();
+        InstinctConfig config = InstinctConfig.get();
+        return inSet(type, config.mountsExcludeSet, config.mountsIncludeSet,
+                MOUNTS_EXCLUDE_TAG, MOUNTS_TAG,
+                config.autoDetectAnimals && capabilityOf(type) == AnimalCapability.MOUNT);
+    }
+
+    /** Pets-set membership for a live entity, learning its capability first. */
+    public static boolean isPet(Entity entity) {
+        learn(entity);
+        return isPet(entity.getType());
+    }
+
+    /** Livestock-set membership for a live entity, learning its capability first. */
+    public static boolean isLivestock(Entity entity) {
+        learn(entity);
+        return isLivestock(entity.getType());
+    }
+
+    /** Mounts-set membership for a live entity, learning its capability first. */
+    public static boolean isMount(Entity entity) {
+        learn(entity);
+        return isMount(entity.getType());
+    }
+
+    /**
+     * Runs {@link CoverageResolver#inSet} for one set without materializing the {@code Layers} and
+     * {@code Membership} records the full resolve builds. The registry id backing the config lookups
+     * is only built when that set actually has config entries to match against — with the shipped
+     * empty lists (the common case) a membership question costs two tag checks and no allocation.
+     */
+    private static boolean inSet(EntityType<?> type, Set<String> configExclude, Set<String> configInclude,
+                                 TagKey<EntityType<?>> excludeTag, TagKey<EntityType<?>> includeTag,
+                                 boolean heuristic) {
+        String id = configExclude.isEmpty() && configInclude.isEmpty() ? null : idOf(type);
+        return CoverageResolver.inSet(
+                id != null && configExclude.contains(id),
+                id != null && configInclude.contains(id),
+                type.is(excludeTag),
+                type.is(includeTag),
+                heuristic);
     }
 
     /** Resolves a type's membership from the current config, bound tags, and capability cache. */
     public static CoverageResolver.Membership membershipOf(EntityType<?> type) {
         InstinctConfig config = InstinctConfig.get();
-        String id = BuiltInRegistries.ENTITY_TYPE.getKey(type).toString();
-        AnimalCapability capability = CAPABILITIES.getOrDefault(type, AnimalCapability.NONE);
+        String id = idOf(type);
+        AnimalCapability capability = capabilityOf(type);
         return CoverageResolver.resolve(new CoverageResolver.Layers(
                 config.petsExcludeSet.contains(id),
                 config.petsIncludeSet.contains(id),
@@ -116,6 +166,14 @@ public final class AnimalCoverage {
         if (CAPABILITIES.get(entity.getType()) != observed) {
             CAPABILITIES.put(entity.getType(), observed);
         }
+    }
+
+    private static AnimalCapability capabilityOf(EntityType<?> type) {
+        return CAPABILITIES.getOrDefault(type, AnimalCapability.NONE);
+    }
+
+    private static String idOf(EntityType<?> type) {
+        return BuiltInRegistries.ENTITY_TYPE.getKey(type).toString();
     }
 
     private static AnimalCapability capabilityOf(Entity entity) {
