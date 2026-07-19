@@ -212,4 +212,63 @@ class CoverageResolverTest {
         assertTrue(viaTag.mount(), "the mounts tag still resolves with autoDetect off");
         assertEquals(MembershipRule.TAG, viaTag.mountRule());
     }
+
+    @Test
+    void inSetWalksTheLadderInPrecedenceOrder() {
+        assertFalse(CoverageResolver.inSet(true, true, true, true, true),
+                "config exclude wins over everything below it");
+        assertTrue(CoverageResolver.inSet(false, true, true, true, false),
+                "config include wins over both tag layers and the heuristic");
+        assertFalse(CoverageResolver.inSet(false, false, true, true, true),
+                "tag exclude wins over tag include and the heuristic");
+        assertTrue(CoverageResolver.inSet(false, false, false, true, false),
+                "tag include wins over the heuristic");
+        assertTrue(CoverageResolver.inSet(false, false, false, false, true),
+                "the heuristic decides when no layer above it matched");
+        assertFalse(CoverageResolver.inSet(false, false, false, false, false),
+                "nothing matching means out of the set");
+    }
+
+    @Test
+    void ruleForNamesTheDecidingLayer() {
+        assertEquals(MembershipRule.CONFIG, CoverageResolver.ruleFor(true, false, true, true, true));
+        assertEquals(MembershipRule.CONFIG, CoverageResolver.ruleFor(false, true, true, true, true));
+        assertEquals(MembershipRule.TAG, CoverageResolver.ruleFor(false, false, true, false, true));
+        assertEquals(MembershipRule.TAG, CoverageResolver.ruleFor(false, false, false, true, true));
+        assertEquals(MembershipRule.HEURISTIC, CoverageResolver.ruleFor(false, false, false, false, true));
+        assertEquals(MembershipRule.NONE, CoverageResolver.ruleFor(false, false, false, false, false));
+    }
+
+    /**
+     * The fast path and the record path must never disagree. Sweeps every combination of the five
+     * ladder inputs through both, so any future edit that touches one and not the other fails here.
+     */
+    @Test
+    void inSetAgreesWithResolveAcrossEveryLayerCombination() {
+        for (int bits = 0; bits < 32; bits++) {
+            boolean configExclude = (bits & 1) != 0;
+            boolean configInclude = (bits & 2) != 0;
+            boolean tagExclude = (bits & 4) != 0;
+            boolean tagInclude = (bits & 8) != 0;
+            boolean heuristic = (bits & 16) != 0;
+
+            LayersBuilder layers = new LayersBuilder();
+            layers.configPetsExclude = configExclude;
+            layers.configPetsInclude = configInclude;
+            layers.tagPetsExclude = tagExclude;
+            layers.tagPetsInclude = tagInclude;
+            layers.capability = heuristic ? AnimalCapability.TAMABLE : AnimalCapability.NONE;
+            Membership membership = CoverageResolver.resolve(layers.build());
+
+            String facts = "configExclude=" + configExclude + " configInclude=" + configInclude
+                    + " tagExclude=" + tagExclude + " tagInclude=" + tagInclude
+                    + " heuristic=" + heuristic;
+            assertEquals(membership.pet(),
+                    CoverageResolver.inSet(configExclude, configInclude, tagExclude, tagInclude, heuristic),
+                    "inSet disagreed with resolve for " + facts);
+            assertEquals(membership.petRule(),
+                    CoverageResolver.ruleFor(configExclude, configInclude, tagExclude, tagInclude, heuristic),
+                    "ruleFor disagreed with resolve for " + facts);
+        }
+    }
 }
