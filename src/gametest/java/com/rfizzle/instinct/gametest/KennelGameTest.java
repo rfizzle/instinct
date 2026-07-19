@@ -1,6 +1,7 @@
 package com.rfizzle.instinct.gametest;
 
 import com.rfizzle.instinct.api.InstinctAPI;
+import com.rfizzle.instinct.api.InstinctAnimalRevivedCallback;
 import com.rfizzle.instinct.config.InstinctConfig;
 import com.rfizzle.instinct.data.HomeData;
 import com.rfizzle.instinct.data.InstinctAttachments;
@@ -20,6 +21,7 @@ import net.minecraft.world.entity.projectile.AbstractArrow;
 import net.minecraft.world.level.block.Blocks;
 
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * SPEC §9 kennel post. The whistle assigns pets a home and recalls them to it on Stay; a downed pet
@@ -138,6 +140,48 @@ public class KennelGameTest implements FabricGameTest {
             helper.succeedWhen(() -> {
                 helper.assertFalse(InstinctAPI.isDowned(wolf), "the pet recovers on its own beside the post");
                 helper.assertValueEqual(InstinctAPI.getVeterancyRank(wolf), 3, "home recovery costs no rank");
+                wolf.discard();
+                InstinctConfig.get().kennelRecoverySeconds = savedSeconds;
+                InstinctConfig.get().enableKennelPost = savedEnabled;
+            });
+        } catch (RuntimeException e) {
+            InstinctConfig.get().kennelRecoverySeconds = savedSeconds;
+            InstinctConfig.get().enableKennelPost = savedEnabled;
+            throw e;
+        }
+    }
+
+    // Issue #34: post recovery is a path back up like any other, so it fires the public revived
+    // callback — but with no reviving player and no item spent, unlike the field revival.
+    @GameTest(template = EMPTY_STRUCTURE, timeoutTicks = 200, batch = "instinctKennelRecoveryCallback")
+    public void postRecoveryFiresTheRevivedCallbackWithNoReviverOrItem(GameTestHelper helper) {
+        int savedSeconds = InstinctConfig.get().kennelRecoverySeconds;
+        boolean savedEnabled = InstinctConfig.get().enableKennelPost;
+        InstinctConfig.get().kennelRecoverySeconds = 1;
+        InstinctConfig.get().enableKennelPost = true;
+        try {
+            buildFloor(helper, 8, 8);
+            helper.setBlock(new BlockPos(5, 2, 4), InstinctBlocks.KENNEL_POST.defaultBlockState());
+            Wolf wolf = spawnTamedWolf(helper, new BlockPos(4, 2, 4), UUID.randomUUID());
+            AtomicBoolean revivedFired = new AtomicBoolean(false);
+            AtomicBoolean noReviverOrItem = new AtomicBoolean(false);
+            // Match on UUID, not the entity: a registered listener can never be unregistered, so
+            // capturing the entity would pin it and its level for the rest of the run.
+            UUID wolfId = wolf.getUUID();
+            InstinctAnimalRevivedCallback.EVENT.register((animal, reviver, item) -> {
+                if (animal.getUUID().equals(wolfId)) {
+                    revivedFired.set(true);
+                    noReviverOrItem.set(reviver == null && item.isEmpty());
+                }
+            });
+            downWithArrow(helper, wolf);
+            helper.assertTrue(InstinctAPI.isDowned(wolf), "precondition: downed beside the post");
+
+            helper.succeedWhen(() -> {
+                helper.assertTrue(revivedFired.get(),
+                        "InstinctAnimalRevivedCallback fires on kennel-post recovery");
+                helper.assertTrue(noReviverOrItem.get(),
+                        "post recovery carries a null reviver and an empty stack");
                 wolf.discard();
                 InstinctConfig.get().kennelRecoverySeconds = savedSeconds;
                 InstinctConfig.get().enableKennelPost = savedEnabled;

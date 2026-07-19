@@ -2,8 +2,8 @@ package com.rfizzle.instinct.gametest;
 
 import com.rfizzle.instinct.Instinct;
 import com.rfizzle.instinct.api.InstinctAPI;
-import com.rfizzle.instinct.api.InstinctPetDownedCallback;
-import com.rfizzle.instinct.api.InstinctPetRevivedCallback;
+import com.rfizzle.instinct.api.InstinctAnimalDownedCallback;
+import com.rfizzle.instinct.api.InstinctAnimalRevivedCallback;
 import com.rfizzle.instinct.config.InstinctConfig;
 import com.rfizzle.instinct.data.InstinctAttachments;
 import com.rfizzle.instinct.gametest.util.MockPlayers;
@@ -220,27 +220,34 @@ public class DownedGameTest implements FabricGameTest {
         AtomicBoolean downedFired = new AtomicBoolean(false);
         AtomicBoolean revivedFired = new AtomicBoolean(false);
         Wolf wolf = spawnTamedWolf(helper, new BlockPos(3, 2, 3));
-        InstinctPetDownedCallback downedListener = (pet, source) -> {
-            if (pet == wolf) {
+        AtomicBoolean revivedCarriedPlayerAndItem = new AtomicBoolean(false);
+        // Match on UUID, not the entity: a registered listener can never be unregistered, so
+        // capturing the entity would pin it and its level for the rest of the run.
+        UUID wolfId = wolf.getUUID();
+        InstinctAnimalDownedCallback downedListener = (animal, source) -> {
+            if (animal.getUUID().equals(wolfId)) {
                 downedFired.set(true);
             }
         };
-        InstinctPetRevivedCallback revivedListener = (pet, reviver, item) -> {
-            if (pet == wolf) {
+        InstinctAnimalRevivedCallback revivedListener = (animal, reviver, item) -> {
+            if (animal.getUUID().equals(wolfId)) {
                 revivedFired.set(true);
+                revivedCarriedPlayerAndItem.set(reviver != null && !item.isEmpty());
             }
         };
-        InstinctPetDownedCallback.EVENT.register(downedListener);
-        InstinctPetRevivedCallback.EVENT.register(revivedListener);
+        InstinctAnimalDownedCallback.EVENT.register(downedListener);
+        InstinctAnimalRevivedCallback.EVENT.register(revivedListener);
 
         downWithArrow(helper, wolf);
-        helper.assertTrue(downedFired.get(), "InstinctPetDownedCallback fires on down");
+        helper.assertTrue(downedFired.get(), "InstinctAnimalDownedCallback fires on down");
 
         ServerPlayer reviver = MockPlayers.serverPlayerInLevel(helper);
         try {
             reviver.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Items.GOLDEN_APPLE));
             revive(helper, reviver, wolf);
-            helper.assertTrue(revivedFired.get(), "InstinctPetRevivedCallback fires on revival");
+            helper.assertTrue(revivedFired.get(), "InstinctAnimalRevivedCallback fires on revival");
+            helper.assertTrue(revivedCarriedPlayerAndItem.get(),
+                    "item revival carries the reviving player and the item used");
             wolf.discard();
             helper.succeed();
         } finally {

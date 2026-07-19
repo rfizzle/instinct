@@ -1,6 +1,8 @@
 package com.rfizzle.instinct.gametest;
 
 import com.rfizzle.instinct.api.InstinctAPI;
+import com.rfizzle.instinct.api.InstinctAnimalDownedCallback;
+import com.rfizzle.instinct.api.InstinctAnimalRevivedCallback;
 import com.rfizzle.instinct.config.InstinctConfig;
 import com.rfizzle.instinct.coverage.AnimalCoverage;
 import com.rfizzle.instinct.coverage.CoverageResolver;
@@ -34,6 +36,7 @@ import net.minecraft.world.phys.Vec3;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * SPEC §1 + §7 extended to the mounts set (the horse family, issue #17): a tamed mount gains
@@ -243,6 +246,43 @@ public class MountsGameTest implements FabricGameTest {
             InteractionResult result = revive(helper, reviver, horse);
             helper.assertTrue(result == InteractionResult.CONSUME, "the vet kit revives the mount");
             helper.assertFalse(InstinctAPI.isDowned(horse), "the mount is revived");
+            horse.discard();
+            helper.succeed();
+        } finally {
+            reviver.discard();
+        }
+    }
+
+    /** Issue #34: the public callbacks are animal-typed, so a mount's transitions signal like a pet's. */
+    @GameTest(template = EMPTY_STRUCTURE)
+    public void mountTransitionsFireThePublicCallbacks(GameTestHelper helper) {
+        AtomicBoolean downedFired = new AtomicBoolean(false);
+        AtomicBoolean revivedFired = new AtomicBoolean(false);
+        Horse horse = spawnTamedHorse(helper, new BlockPos(3, 2, 3));
+        // Match on UUID, not the entity: a registered listener can never be unregistered, so
+        // capturing the entity would pin it and its level for the rest of the run.
+        UUID horseId = horse.getUUID();
+        InstinctAnimalDownedCallback downedListener = (animal, source) -> {
+            if (animal.getUUID().equals(horseId)) {
+                downedFired.set(true);
+            }
+        };
+        InstinctAnimalRevivedCallback revivedListener = (animal, reviver, item) -> {
+            if (animal.getUUID().equals(horseId)) {
+                revivedFired.set(true);
+            }
+        };
+        InstinctAnimalDownedCallback.EVENT.register(downedListener);
+        InstinctAnimalRevivedCallback.EVENT.register(revivedListener);
+
+        downWithArrow(helper, horse);
+        helper.assertTrue(downedFired.get(), "InstinctAnimalDownedCallback fires for a downed mount");
+
+        ServerPlayer reviver = MockPlayers.serverPlayerInLevel(helper);
+        try {
+            reviver.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Items.GOLDEN_APPLE));
+            revive(helper, reviver, horse);
+            helper.assertTrue(revivedFired.get(), "InstinctAnimalRevivedCallback fires for a revived mount");
             horse.discard();
             helper.succeed();
         } finally {
