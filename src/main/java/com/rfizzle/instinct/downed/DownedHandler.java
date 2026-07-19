@@ -2,8 +2,8 @@ package com.rfizzle.instinct.downed;
 
 import com.rfizzle.instinct.Instinct;
 import com.rfizzle.instinct.api.InstinctAPI;
-import com.rfizzle.instinct.api.InstinctPetDownedCallback;
-import com.rfizzle.instinct.api.InstinctPetRevivedCallback;
+import com.rfizzle.instinct.api.InstinctAnimalDownedCallback;
+import com.rfizzle.instinct.api.InstinctAnimalRevivedCallback;
 import com.rfizzle.instinct.config.InstinctConfig;
 import com.rfizzle.instinct.coverage.AnimalCoverage;
 import com.rfizzle.instinct.coverage.CoverageResolver;
@@ -70,8 +70,9 @@ import java.util.UUID;
  * read, and revival takes no rank penalty. Ejecting the rider matters only for mounts — a downed
  * mount kept mounted could still be steered, since {@code AbstractHorse} lets its rider drive it
  * regardless of {@code setNoAi} — and is a harmless no-op for a pet, which is never a vehicle. The
- * pet-only public callbacks ({@link InstinctPetDownedCallback}/{@link InstinctPetRevivedCallback})
- * fire only for {@link TamableAnimal}.
+ * public callbacks ({@link InstinctAnimalDownedCallback}/{@link InstinctAnimalRevivedCallback})
+ * fire for every covered animal, pet and mount alike, on every transition — including the
+ * kennel-post recovery path, which carries no reviver and no item.
  *
  * <p>All state here is server-thread-confined and transient: {@code DOWNED} mirrors loaded downed
  * animals for the whine sweep, {@code POST_REVIVE_INVULN} tracks the brief post-revive grace
@@ -202,9 +203,7 @@ public final class DownedHandler {
         DOWNED.add(animal);
         POST_REVIVE_INVULN.remove(animal);
         notifyOwnerDown(animal);
-        if (animal instanceof TamableAnimal pet) {
-            fireDownedCallback(pet, source);
-        }
+        fireDownedCallback(animal, source);
     }
 
     /** Clears the target of every mob currently locked onto the animal, so aggressors visibly stand down. */
@@ -294,9 +293,7 @@ public final class DownedHandler {
                     Component.translatable("notification.instinct.pet_revived", animal.getName()), true);
             InstinctCriteria.PET_REVIVED.trigger(serverReviver);
         }
-        if (animal instanceof TamableAnimal pet) {
-            fireRevivedCallback(pet, reviver, stack);
-        }
+        fireRevivedCallback(animal, reviver, stack);
     }
 
     /**
@@ -424,10 +421,12 @@ public final class DownedHandler {
 
     /** Brings a pet back on its own beside its post: the shared state restore, always rank-free (SPEC
      *  §9 — the patient path keeps the rank the field item would spend), then the owner's notice. No
-     *  reviving player, so no item feedback and no advancement. */
+     *  reviving player, so no item feedback and no advancement — but the public revived callback
+     *  still fires, with a null reviver and an empty stack, so a consumer sees every path back up. */
     private static void recoverAtPost(Animal animal) {
         restoreFromDowned(animal, false);
         notifyOwnerRecovered(animal);
+        fireRevivedCallback(animal, null, ItemStack.EMPTY);
     }
 
     private static void expirePostReviveInvuln() {
@@ -502,19 +501,23 @@ public final class DownedHandler {
         }
     }
 
-    private static void fireDownedCallback(TamableAnimal pet, DamageSource source) {
+    // Both fire sites catch Throwable, not Exception: this is the boundary where untrusted listener
+    // code runs, and a consumer compiled against an older signature throws Error (AbstractMethodError,
+    // NoClassDefFoundError), which an Exception catch would let escape and kill the server tick.
+    private static void fireDownedCallback(Animal animal, DamageSource source) {
         try {
-            InstinctPetDownedCallback.EVENT.invoker().onPetDowned(pet, source);
-        } catch (Exception e) {
-            Instinct.LOGGER.error("A pet-downed listener threw", e);
+            InstinctAnimalDownedCallback.EVENT.invoker().onAnimalDowned(animal, source);
+        } catch (Throwable t) {
+            Instinct.LOGGER.error("An animal-downed listener threw", t);
         }
     }
 
-    private static void fireRevivedCallback(TamableAnimal pet, Player reviver, ItemStack item) {
+    /** {@code reviver} is null and {@code item} empty on the kennel-post recovery path (SPEC §9). */
+    private static void fireRevivedCallback(Animal animal, @Nullable Player reviver, ItemStack item) {
         try {
-            InstinctPetRevivedCallback.EVENT.invoker().onPetRevived(pet, reviver, item);
-        } catch (Exception e) {
-            Instinct.LOGGER.error("A pet-revived listener threw", e);
+            InstinctAnimalRevivedCallback.EVENT.invoker().onAnimalRevived(animal, reviver, item);
+        } catch (Throwable t) {
+            Instinct.LOGGER.error("An animal-revived listener threw", t);
         }
     }
 }

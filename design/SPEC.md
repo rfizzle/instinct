@@ -624,7 +624,7 @@ Per-pet server state. Any player can revive (co-op rescue is a feature); only th
 - Target immunity: a `Mob#canAttack`-site guard (or targeting-conditions predicate injection) plus a sweep clearing `getTarget() == downed` on down.
 - Revival: `UseEntityCallback` intercepting item-on-downed before vanilla interactions.
 - Carrying: the pet rides the player via `startRiding`, so vanilla owns the render, position sync, portal travel, and auto-eject on logout/death. The `CarryHandler` `UseEntityCallback` (pick up) registers ahead of the revival handler so the sneak + empty-hand gesture is claimed before empty-hand suppression; set-down is a `UseBlockCallback`. The slowdown is an `addTransientModifier` on `MOVEMENT_SPEED` (never serialized); a per-second sweep over the tracked carriers strips a stale modifier if a carried pet leaves by an untracked path (`/kill`, the void).
-- `InstinctPetDownedCallback` / `InstinctPetRevivedCallback` fire at the respective transitions (§Public API).
+- `InstinctAnimalDownedCallback` / `InstinctAnimalRevivedCallback` fire at the respective transitions, for pets and mounts alike (§Public API).
 
 ---
 
@@ -694,7 +694,7 @@ Dismissing the pack scatters it wherever you stand, and a downed pet comes back 
 
 **Recall on Stay.** A **Stay** order (left-click, §6) sends every homed pet to its post to settle, instead of sitting it where it stands. A pet that is un-homed, or whose post is in another dimension, sits in place exactly as before. A recalled pet stands and paths home; on arrival it sits, and a post it cannot reach (walled off, too far) is given up at a deadline so a recalled pet always settles rather than pathing forever. A post mined out from under a homed pet degrades to sitting in place. Any other whistle order (attack, guard, round-up, Follow) clears an in-progress recall.
 
-**Recovery.** A downed **pets-set** pet (§7) within `kennelRecoveryRadiusBlocks` (default 4) of *any* kennel post recovers on its own, over `kennelRecoverySeconds` (default 300 — five minutes) of real time, **without an item and without losing a veterancy rank**. The golden apple and Vet Kit remain the instant, one-rank-cost path in the field; the post is the patient, no-cost path at home. Recovery accrues only while the pet is beside a post — a downed pet cannot move itself, so it simply waits — and a small pet carried (§7) to a post recovers there. The recovered pet comes back exactly as an item revival does — `reviveHealthFraction` of max health, Regeneration II, the post-revive grace window, the Stay pose — minus the rank penalty. Its owner, online at any distance, gets one chat line: `✦ <name> recovered at their post.` A downed mount is not the pack's — only pets recover at a post.
+**Recovery.** A downed **pets-set** pet (§7) within `kennelRecoveryRadiusBlocks` (default 4) of *any* kennel post recovers on its own, over `kennelRecoverySeconds` (default 300 — five minutes) of real time, **without an item and without losing a veterancy rank**. The golden apple and Vet Kit remain the instant, one-rank-cost path in the field; the post is the patient, no-cost path at home. Recovery accrues only while the pet is beside a post — a downed pet cannot move itself, so it simply waits — and a small pet carried (§7) to a post recovers there. The recovered pet comes back exactly as an item revival does — `reviveHealthFraction` of max health, Regeneration II, the post-revive grace window, the Stay pose — minus the rank penalty. Its owner, online at any distance, gets one chat line: `✦ <name> recovered at their post.` Recovery fires `InstinctAnimalRevivedCallback` with a null reviver and an empty stack (§Public API), so a consumer sees every path back up. A downed mount is not the pack's — only pets recover at a post.
 
 ### Edge cases
 
@@ -835,8 +835,8 @@ Package **`com.rfizzle.instinct.api`** — the only stable package, per concord 
 | Event | Fires |
 |---|---|
 | `InstinctAnimalBredCallback(parentA, parentB, child, grade)` | after grade resolution at breeding (§3) |
-| `InstinctPetDownedCallback(pet, source)` | on entering downed (§7) |
-| `InstinctPetRevivedCallback(pet, reviver, item)` | on revival (§7) |
+| `InstinctAnimalDownedCallback(animal, source)` | on entering downed, pets and mounts alike (§7) |
+| `InstinctAnimalRevivedCallback(animal, reviver, item)` | on every path back up: item revival (§7) and kennel-post recovery (§9). `reviver` is null and `item` empty on the recovery path — consumers must null-check. |
 
 No HUD accessors — Instinct has no HUD slot (`design/DESIGN.md` §2); the accessor convention applies to HUD-bearing mods only.
 
