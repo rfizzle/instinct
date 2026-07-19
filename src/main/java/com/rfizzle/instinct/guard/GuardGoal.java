@@ -178,7 +178,7 @@ public class GuardGoal extends Goal {
         if (pet.isOnFire() || pet.isInLava()) {
             return false;
         }
-        return AnimalCoverage.membershipOf(pet).pet();
+        return AnimalCoverage.isPet(pet);
     }
 
     private boolean creeperThreatNear(InstinctConfig config) {

@@ -167,7 +167,7 @@ public class PredatorWatchGoal extends Goal {
      */
     private void deter(Animal predator) {
         LivingEntity target = predator.getTarget();
-        if (target instanceof Animal prey && AnimalCoverage.membershipOf(prey).livestock()) {
+        if (target instanceof Animal prey && AnimalCoverage.isLivestock(prey)) {
             predator.setTarget(null);
         }
         double[] away = PredatorWatch.fleePoint(predator.getX(), predator.getZ(),
@@ -189,7 +189,7 @@ public class PredatorWatchGoal extends Goal {
         if (!pet.isOrderedToSit()) {
             return false;
         }
-        return AnimalCoverage.membershipOf(pet).pet();
+        return AnimalCoverage.isPet(pet);
     }
 
     private boolean creeperThreatNear() {
@@ -224,7 +224,7 @@ public class PredatorWatchGoal extends Goal {
         Animal nearest = null;
         double nearestSq = Double.MAX_VALUE;
         for (Animal animal : pet.level().getEntitiesOfClass(Animal.class, pet.getBoundingBox().inflate(radius),
-                candidate -> candidate.isAlive() && AnimalCoverage.membershipOf(candidate).livestock())) {
+                candidate -> candidate.isAlive() && AnimalCoverage.isLivestock(candidate))) {
             double distSq = predator.distanceToSqr(animal);
             if (distSq < nearestSq) {
                 nearestSq = distSq;

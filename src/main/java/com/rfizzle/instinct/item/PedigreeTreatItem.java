@@ -35,7 +35,7 @@ public class PedigreeTreatItem extends Item {
         if (!InstinctConfig.get().enableGenetics
                 || !(target instanceof Animal animal)
                 || animal.isBaby()
-                || !AnimalCoverage.membershipOf(animal).livestock()) {
+                || !AnimalCoverage.isLivestock(animal)) {
             return InteractionResult.PASS;
         }
         Level level = animal.level();

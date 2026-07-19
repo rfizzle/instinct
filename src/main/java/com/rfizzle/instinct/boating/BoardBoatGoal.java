@@ -89,7 +89,7 @@ public class BoardBoatGoal extends Goal {
         }
         // Membership and the sibling scan are the costly checks; they run only once every cheaper
         // gate has passed (owner boating, a seat open), which is rare.
-        if (!AnimalCoverage.membershipOf(pet).pet()
+        if (!AnimalCoverage.isPet(pet)
                 || pet.distanceToSqr(boat) > BOARD_RADIUS * BOARD_RADIUS
                 || !winsSeat(owner, boat)) {
             return false;
@@ -177,7 +177,7 @@ public class BoardBoatGoal extends Goal {
                 candidate -> candidate.isTame() && !candidate.isOrderedToSit()
                         && !candidate.isPassenger() && candidate.getOwner() == owner
                         && !InstinctAPI.isDowned(candidate)
-                        && AnimalCoverage.membershipOf(candidate).pet())) {
+                        && AnimalCoverage.isPet(candidate))) {
             double distSq = other.distanceToSqr(boat);
             if (distSq <= reachSq) {
                 candidates.put(other.getUUID(), distSq);

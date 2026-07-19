@@ -43,7 +43,7 @@ public final class AnimalProbeTooltip {
         InstinctConfig config = InstinctConfig.get();
         boolean any = false;
 
-        if (config.enableGenetics && AnimalCoverage.membershipOf(animal).livestock()) {
+        if (config.enableGenetics && AnimalCoverage.isLivestock(animal)) {
             Grade grade = InstinctAPI.getGrade(animal);
             if (grade != Grade.ORDINARY) {
                 tag.putString(KEY_GRADE, grade.getSerializedName());
@@ -52,7 +52,7 @@ public final class AnimalProbeTooltip {
             }
         }
         if (config.enableVeterancy && animal instanceof TamableAnimal pet && pet.isTame()
-                && AnimalCoverage.membershipOf(pet).pet()) {
+                && AnimalCoverage.isPet(pet)) {
             tag.putLong(KEY_VET_DAYS, (long) InstinctAPI.getVeterancyDays(pet));
             tag.putInt(KEY_VET_RANK, InstinctAPI.getVeterancyRank(pet));
             any = true;

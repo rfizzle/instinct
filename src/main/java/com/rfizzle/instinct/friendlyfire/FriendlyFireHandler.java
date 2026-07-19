@@ -60,6 +60,6 @@ public final class FriendlyFireHandler {
                 || !(source.getEntity() instanceof Player attacker) || !pet.isOwnedBy(attacker)) {
             return false;
         }
-        return AnimalCoverage.membershipOf(pet).pet();
+        return AnimalCoverage.isPet(pet);
     }
 }

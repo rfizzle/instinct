@@ -42,72 +42,60 @@ public final class CoverageResolver {
     }
 
     public static Membership resolve(Layers layers) {
-        boolean pet;
-        MembershipRule petRule;
-        if (layers.configPetsExclude()) {
-            pet = false;
-            petRule = MembershipRule.CONFIG;
-        } else if (layers.configPetsInclude()) {
-            pet = true;
-            petRule = MembershipRule.CONFIG;
-        } else if (layers.tagPetsExclude()) {
-            pet = false;
-            petRule = MembershipRule.TAG;
-        } else if (layers.tagPetsInclude()) {
-            pet = true;
-            petRule = MembershipRule.TAG;
-        } else if (layers.autoDetect() && layers.capability() == AnimalCapability.TAMABLE) {
-            pet = true;
-            petRule = MembershipRule.HEURISTIC;
-        } else {
-            pet = false;
-            petRule = MembershipRule.NONE;
-        }
+        boolean petHeuristic = layers.autoDetect() && layers.capability() == AnimalCapability.TAMABLE;
+        boolean livestockHeuristic =
+                layers.autoDetect() && layers.capability() == AnimalCapability.BREEDABLE;
+        boolean mountHeuristic = layers.autoDetect() && layers.capability() == AnimalCapability.MOUNT;
 
-        boolean livestock;
-        MembershipRule livestockRule;
-        if (layers.configLivestockExclude()) {
-            livestock = false;
-            livestockRule = MembershipRule.CONFIG;
-        } else if (layers.configLivestockInclude()) {
-            livestock = true;
-            livestockRule = MembershipRule.CONFIG;
-        } else if (layers.tagLivestockExclude()) {
-            livestock = false;
-            livestockRule = MembershipRule.TAG;
-        } else if (layers.tagLivestockInclude()) {
-            livestock = true;
-            livestockRule = MembershipRule.TAG;
-        } else if (layers.autoDetect() && layers.capability() == AnimalCapability.BREEDABLE) {
-            livestock = true;
-            livestockRule = MembershipRule.HEURISTIC;
-        } else {
-            livestock = false;
-            livestockRule = MembershipRule.NONE;
-        }
+        return new Membership(
+                inSet(layers.configPetsExclude(), layers.configPetsInclude(),
+                        layers.tagPetsExclude(), layers.tagPetsInclude(), petHeuristic),
+                ruleFor(layers.configPetsExclude(), layers.configPetsInclude(),
+                        layers.tagPetsExclude(), layers.tagPetsInclude(), petHeuristic),
+                inSet(layers.configLivestockExclude(), layers.configLivestockInclude(),
+                        layers.tagLivestockExclude(), layers.tagLivestockInclude(), livestockHeuristic),
+                ruleFor(layers.configLivestockExclude(), layers.configLivestockInclude(),
+                        layers.tagLivestockExclude(), layers.tagLivestockInclude(), livestockHeuristic),
+                inSet(layers.configMountsExclude(), layers.configMountsInclude(),
+                        layers.tagMountsExclude(), layers.tagMountsInclude(), mountHeuristic),
+                ruleFor(layers.configMountsExclude(), layers.configMountsInclude(),
+                        layers.tagMountsExclude(), layers.tagMountsInclude(), mountHeuristic));
+    }
 
-        boolean mount;
-        MembershipRule mountRule;
-        if (layers.configMountsExclude()) {
-            mount = false;
-            mountRule = MembershipRule.CONFIG;
-        } else if (layers.configMountsInclude()) {
-            mount = true;
-            mountRule = MembershipRule.CONFIG;
-        } else if (layers.tagMountsExclude()) {
-            mount = false;
-            mountRule = MembershipRule.TAG;
-        } else if (layers.tagMountsInclude()) {
-            mount = true;
-            mountRule = MembershipRule.TAG;
-        } else if (layers.autoDetect() && layers.capability() == AnimalCapability.MOUNT) {
-            mount = true;
-            mountRule = MembershipRule.HEURISTIC;
-        } else {
-            mount = false;
-            mountRule = MembershipRule.NONE;
+    /**
+     * The precedence ladder for one set: config excludes, then config includes, then tag excludes,
+     * then tag includes, then the heuristic. First match wins; nothing matching means out of the set.
+     *
+     * <p>This is the single definition of the ladder — {@link #resolve} runs it three times to build
+     * the full record, and the boolean fast path in {@code AnimalCoverage} runs it once for the one
+     * set a caller asked about, so the two can never answer differently.
+     */
+    public static boolean inSet(boolean configExclude, boolean configInclude,
+                                boolean tagExclude, boolean tagInclude, boolean heuristic) {
+        if (configExclude) {
+            return false;
         }
+        if (configInclude) {
+            return true;
+        }
+        if (tagExclude) {
+            return false;
+        }
+        if (tagInclude) {
+            return true;
+        }
+        return heuristic;
+    }
 
-        return new Membership(pet, petRule, livestock, livestockRule, mount, mountRule);
+    /** Which layer of {@link #inSet}'s ladder decided the answer. */
+    public static MembershipRule ruleFor(boolean configExclude, boolean configInclude,
+                                         boolean tagExclude, boolean tagInclude, boolean heuristic) {
+        if (configExclude || configInclude) {
+            return MembershipRule.CONFIG;
+        }
+        if (tagExclude || tagInclude) {
+            return MembershipRule.TAG;
+        }
+        return heuristic ? MembershipRule.HEURISTIC : MembershipRule.NONE;
     }
 }

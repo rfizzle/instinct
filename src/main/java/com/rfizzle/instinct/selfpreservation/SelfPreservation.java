@@ -3,7 +3,6 @@ package com.rfizzle.instinct.selfpreservation;
 import com.rfizzle.instinct.Instinct;
 import com.rfizzle.instinct.config.InstinctConfig;
 import com.rfizzle.instinct.coverage.AnimalCoverage;
-import com.rfizzle.instinct.coverage.CoverageResolver;
 import com.rfizzle.instinct.coverage.OwnedAnimals;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.minecraft.world.entity.LivingEntity;
@@ -32,8 +31,7 @@ public final class SelfPreservation {
                     || !InstinctConfig.get().enableSelfPreservation) {
                 return;
             }
-            CoverageResolver.Membership membership = AnimalCoverage.membershipOf(animal);
-            if (!membership.pet() && !membership.mount()) {
+            if (!AnimalCoverage.isPet(animal) && !AnimalCoverage.isMount(animal)) {
                 return;
             }
             try {

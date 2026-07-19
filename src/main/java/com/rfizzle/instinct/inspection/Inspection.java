@@ -102,7 +102,7 @@ public final class Inspection {
         if (!InstinctConfig.get().enableVeterancy
                 || !(animal instanceof TamableAnimal pet)
                 || !pet.isTame() || !pet.isOwnedBy(player)
-                || !AnimalCoverage.membershipOf(pet).pet()) {
+                || !AnimalCoverage.isPet(pet)) {
             return false;
         }
         long days = (long) InstinctAPI.getVeterancyDays(pet);
@@ -120,7 +120,7 @@ public final class Inspection {
      * player — livestock have no owner. Ordinary animals stay silent; silence is the baseline.
      */
     private static boolean emitLivestockLine(ServerPlayer player, Animal animal) {
-        if (!InstinctConfig.get().enableGenetics || !AnimalCoverage.membershipOf(animal).livestock()) {
+        if (!InstinctConfig.get().enableGenetics || !AnimalCoverage.isLivestock(animal)) {
             return false;
         }
         Grade grade = InstinctAPI.getGrade(animal);
