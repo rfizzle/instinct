@@ -69,6 +69,31 @@ public class SteadyShoulderGameTest implements FabricGameTest {
     }
 
     @GameTest(template = EMPTY_STRUCTURE)
+    public void unresolvableShoulderRiderKeepsVanilla(GameTestHelper helper) {
+        buildFloor(helper);
+        ServerPlayer owner = placeOwner(helper, new BlockPos(2, 2, 2));
+        try {
+            // A hand-edited save can carry a shoulder tag naming a type that no longer exists —
+            // an uninstalled mod's animal, or outright junk. Neither may resolve: the entity-type
+            // registry answers an unknown id with minecraft:pig unless the lookup bypasses its
+            // default, and ResourceLocation.parse throws on a malformed id rather than rejecting
+            // it, which would carry the failure straight into vanilla's aiStep.
+            for (String id : new String[]{"instinct:no_such_entity_type", "not a valid id!"}) {
+                mountShoulder(helper, owner, id);
+                helper.assertFalse(SteadyShoulders.holdsInstinctPet(owner),
+                        "an unresolvable shoulder rider is not covered: " + id);
+                helper.assertFalse(SteadyShoulders.keepsThroughFall(owner),
+                        "no fall suppression for an unresolvable rider: " + id);
+                helper.assertFalse(SteadyShoulders.keepsThroughHit(owner, 1.0f),
+                        "no hit suppression for an unresolvable rider: " + id);
+            }
+            helper.succeed();
+        } finally {
+            owner.discard();
+        }
+    }
+
+    @GameTest(template = EMPTY_STRUCTURE)
     public void minorHitKeepsPerchedParrot(GameTestHelper helper) {
         buildFloor(helper);
         ServerPlayer owner = placeOwner(helper, new BlockPos(2, 2, 2));

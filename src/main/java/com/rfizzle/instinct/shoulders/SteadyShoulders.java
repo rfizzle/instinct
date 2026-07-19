@@ -71,9 +71,8 @@ public final class SteadyShoulders {
         if (shoulder == null || shoulder.isEmpty()) {
             return false;
         }
-        return EntityType.by(shoulder)
-                .map(AnimalCoverage::isPet)
-                .orElse(false);
+        EntityType<?> type = AnimalCoverage.typeById(shoulder.getString("id"));
+        return type != null && AnimalCoverage.isPet(type);
     }
 
     /**

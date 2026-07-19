@@ -6,6 +6,7 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.Entity;
@@ -13,6 +14,7 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.animal.horse.AbstractHorse;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;
 import java.util.Set;
@@ -54,13 +56,17 @@ public final class AnimalCoverage {
     public static final TagKey<EntityType<?>> CARRYABLE_TAG = tag("carryable");
 
     private static final Map<EntityType<?>, AnimalCapability> CAPABILITIES = new ConcurrentHashMap<>();
+    private static final Map<String, EntityType<?>> TYPES_BY_ID = new ConcurrentHashMap<>();
 
     private AnimalCoverage() {
     }
 
     public static void register() {
         ServerLifecycleEvents.SERVER_STARTED.register(AnimalCoverage::seedCapabilities);
-        ServerLifecycleEvents.SERVER_STOPPED.register(server -> CAPABILITIES.clear());
+        ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
+            CAPABILITIES.clear();
+            clearTypeMemo();
+        });
         ServerEntityEvents.ENTITY_LOAD.register((entity, level) -> {
             try {
                 learn(entity);
@@ -158,6 +164,49 @@ public final class AnimalCoverage {
     public static CoverageResolver.Membership membershipOf(Entity entity) {
         learn(entity);
         return membershipOf(entity.getType());
+    }
+
+    /**
+     * Resolves a stored entity-type id (the {@code "id"} of a serialized entity tag) to its
+     * registered type, or {@code null} when the id is absent, malformed, or names no registered
+     * type. Memoized: the id → type mapping is fixed for the life of the process, since the
+     * entity-type registry is populated at bootstrap and is not datapack-reloadable. Only ids that
+     * actually resolve are stored, so a save-edited tag carrying junk cannot grow the map.
+     *
+     * <p>Deliberately routed through {@code getOptional}: {@code BuiltInRegistries.ENTITY_TYPE} is
+     * a defaulted registry, so plain {@code get} answers an unknown id with {@code minecraft:pig}
+     * rather than nothing, which would silently resolve a bogus tag into a real animal.
+     *
+     * <p>The memo keys on the stored id string rather than the parsed {@link ResourceLocation},
+     * so the probe comes before the parse — which is the whole point, since parsing is what the
+     * hot path is here to avoid. A hand-edited tag spelling an id non-canonically therefore takes
+     * its own entry; both entries resolve to the same type, and the registry bounds the total.
+     */
+    @Nullable
+    public static EntityType<?> typeById(String id) {
+        EntityType<?> memoized = TYPES_BY_ID.get(id);
+        if (memoized != null) {
+            return memoized;
+        }
+        ResourceLocation key = ResourceLocation.tryParse(id);
+        if (key == null) {
+            return null;
+        }
+        EntityType<?> resolved = BuiltInRegistries.ENTITY_TYPE.getOptional(key).orElse(null);
+        if (resolved != null) {
+            TYPES_BY_ID.put(id, resolved);
+        }
+        return resolved;
+    }
+
+    /** How many ids the type memo currently holds — the growth guard's test seam. */
+    static int memoizedTypeCount() {
+        return TYPES_BY_ID.size();
+    }
+
+    /** Drops every memoized id, so nothing carries across worlds in the same JVM. */
+    static void clearTypeMemo() {
+        TYPES_BY_ID.clear();
     }
 
     /** Records an observed instance's capability, correcting a failed or missing probe result. */
