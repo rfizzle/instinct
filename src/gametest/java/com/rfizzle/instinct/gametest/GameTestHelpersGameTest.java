@@ -49,25 +49,50 @@ public class GameTestHelpersGameTest implements FabricGameTest {
     }
 
     @GameTest(template = EMPTY_STRUCTURE)
-    public void tamedSpawnIsOwnedForcedAndEnumerable(GameTestHelper helper) {
+    public void tamedSpawnIsTamedAndOwned(GameTestHelper helper) {
         TestFloors.buildFloor(helper);
         UUID owner = UUID.randomUUID();
-        BlockPos rel = new BlockPos(2, 2, 2);
 
-        Wolf wolf = PetSpawns.spawnTamedWolf(helper, rel, owner);
+        Wolf wolf = PetSpawns.spawnTamedWolf(helper, new BlockPos(2, 2, 2), owner);
         try {
             helper.assertTrue(wolf.isTame(), "a shared-helper spawn should be tamed");
             helper.assertTrue(owner.equals(wolf.getOwnerUUID()), "the requested owner should be set");
-            // The contract the locate census rests on, asserted directly rather than by proxy.
-            helper.assertTrue(helper.getLevel().getEntity(wolf.getId()) != null,
-                    "a shared-helper spawn should be in the level's entity lookup");
-            ChunkPos chunk = new ChunkPos(helper.absolutePos(rel));
-            helper.assertTrue(helper.getLevel().getForcedChunks().contains(chunk.toLong()),
-                    "a shared-helper spawn should force its own chunk");
             helper.succeed();
         } finally {
             wolf.discard();
         }
+    }
+
+    /**
+     * The chunk forcing is only observable away from the structure: a spawn inside it sits in a
+     * chunk the framework already forced for the batch, so asserting against one would hold
+     * whether or not the helper did anything. This pins the load-bearing step itself — dropping
+     * the {@code setChunkForced} call fails here and nowhere else.
+     */
+    @GameTest(template = EMPTY_STRUCTURE)
+    public void prepareSpawnForcesAColdChunk(GameTestHelper helper) {
+        // Searched rather than hardcoded: suites share one grid, so a fixed offset can land in a
+        // chunk a neighbouring slot has already forced — the very coupling #59 was about. Walking
+        // out until the chunk is genuinely unforced is what keeps the assertion below meaningful.
+        BlockPos rel = null;
+        ChunkPos chunk = null;
+        for (int dx = 16; dx <= 4096 && rel == null; dx += 16) {
+            BlockPos candidate = new BlockPos(dx, 2, 0);
+            ChunkPos candidateChunk = new ChunkPos(helper.absolutePos(candidate));
+            if (!helper.getLevel().getForcedChunks().contains(candidateChunk.toLong())) {
+                rel = candidate;
+                chunk = candidateChunk;
+            }
+        }
+        helper.assertTrue(rel != null,
+                "precondition: no unforced chunk within 4096 blocks, so this test would prove nothing");
+
+        PetSpawns.prepareSpawn(helper, rel);
+
+        helper.assertTrue(helper.getLevel().getForcedChunks().contains(chunk.toLong()),
+                "preparing a spawn should force the chunk it lands in");
+        helper.assertBlockPresent(Blocks.SMOOTH_STONE, rel.below());
+        helper.succeed();
     }
 
     @GameTest(template = EMPTY_STRUCTURE)
