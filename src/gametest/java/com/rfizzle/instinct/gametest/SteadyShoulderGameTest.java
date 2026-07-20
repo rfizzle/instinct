@@ -2,6 +2,7 @@ package com.rfizzle.instinct.gametest;
 
 import com.rfizzle.instinct.config.InstinctConfig;
 import com.rfizzle.instinct.gametest.util.MockPlayers;
+import com.rfizzle.instinct.gametest.util.TestFloors;
 import com.rfizzle.instinct.shoulders.SteadyShoulders;
 import net.fabricmc.fabric.api.gametest.v1.FabricGameTest;
 import net.minecraft.core.BlockPos;
@@ -9,7 +10,6 @@ import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.level.block.Blocks;
 
 /**
  * SPEC §1 Shoulder riding: a perched pets-set animal rides through jumps, short falls, and
@@ -21,11 +21,9 @@ import net.minecraft.world.level.block.Blocks;
  */
 public class SteadyShoulderGameTest implements FabricGameTest {
 
-    private static final int SIZE = 8;
-
     @GameTest(template = EMPTY_STRUCTURE)
     public void perchedParrotResolvesAndGates(GameTestHelper helper) {
-        buildFloor(helper);
+        TestFloors.buildFloor(helper);
         ServerPlayer owner = placeOwner(helper, new BlockPos(2, 2, 2));
         try {
             mountShoulder(helper, owner, "minecraft:parrot");
@@ -50,7 +48,7 @@ public class SteadyShoulderGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE)
     public void nonPetShoulderRiderKeepsVanilla(GameTestHelper helper) {
-        buildFloor(helper);
+        TestFloors.buildFloor(helper);
         ServerPlayer owner = placeOwner(helper, new BlockPos(2, 2, 2));
         try {
             // A shoulder rider outside the pets set (a cow resolves as livestock) is left to vanilla.
@@ -70,7 +68,7 @@ public class SteadyShoulderGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE)
     public void unresolvableShoulderRiderKeepsVanilla(GameTestHelper helper) {
-        buildFloor(helper);
+        TestFloors.buildFloor(helper);
         ServerPlayer owner = placeOwner(helper, new BlockPos(2, 2, 2));
         try {
             // A hand-edited save can carry a shoulder tag naming a type that no longer exists —
@@ -95,7 +93,7 @@ public class SteadyShoulderGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE)
     public void minorHitKeepsPerchedParrot(GameTestHelper helper) {
-        buildFloor(helper);
+        TestFloors.buildFloor(helper);
         ServerPlayer owner = placeOwner(helper, new BlockPos(2, 2, 2));
         mountShoulder(helper, owner, "minecraft:parrot");
         helper.startSequence()
@@ -113,7 +111,7 @@ public class SteadyShoulderGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE)
     public void seriousHitDropsPerchedParrot(GameTestHelper helper) {
-        buildFloor(helper);
+        TestFloors.buildFloor(helper);
         ServerPlayer owner = placeOwner(helper, new BlockPos(2, 2, 2));
         mountShoulder(helper, owner, "minecraft:parrot");
         helper.startSequence()
@@ -131,7 +129,7 @@ public class SteadyShoulderGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE)
     public void fallKeepsPerchedParrot(GameTestHelper helper) {
-        buildFloor(helper);
+        TestFloors.buildFloor(helper);
         ServerPlayer owner = placeOwner(helper, new BlockPos(2, 2, 2));
         mountShoulder(helper, owner, "minecraft:parrot");
         helper.startSequence()
@@ -155,7 +153,7 @@ public class SteadyShoulderGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE)
     public void sneakDropsPerchedParrot(GameTestHelper helper) {
-        buildFloor(helper);
+        TestFloors.buildFloor(helper);
         ServerPlayer owner = placeOwner(helper, new BlockPos(2, 2, 2));
         mountShoulder(helper, owner, "minecraft:parrot");
         helper.startSequence()
@@ -191,16 +189,6 @@ public class SteadyShoulderGameTest implements FabricGameTest {
         } finally {
             InstinctConfig.get().enableSteadyShoulders = saved;
             owner.discard();
-        }
-    }
-
-    /** Two-layer stone floor at y=0..1; the owner stands on the y=2 surface. */
-    private static void buildFloor(GameTestHelper helper) {
-        for (int x = 0; x < SIZE; x++) {
-            for (int z = 0; z < SIZE; z++) {
-                helper.setBlock(new BlockPos(x, 0, z), Blocks.SMOOTH_STONE.defaultBlockState());
-                helper.setBlock(new BlockPos(x, 1, z), Blocks.SMOOTH_STONE.defaultBlockState());
-            }
         }
     }
 

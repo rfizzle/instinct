@@ -4,6 +4,7 @@ import com.rfizzle.instinct.api.InstinctAPI;
 import com.rfizzle.instinct.config.InstinctConfig;
 import com.rfizzle.instinct.downed.CarryHandler;
 import com.rfizzle.instinct.gametest.util.MockPlayers;
+import com.rfizzle.instinct.gametest.util.PetSpawns;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.fabric.api.gametest.v1.FabricGameTest;
@@ -202,16 +203,7 @@ public class CarryGameTest implements FabricGameTest {
     // --- helpers ----------------------------------------------------------------------------
 
     private static <T extends TamableAnimal> T spawnTamed(GameTestHelper helper, EntityType<T> type, BlockPos rel) {
-        T animal = type.create(helper.getLevel());
-        if (animal == null) {
-            throw new IllegalStateException("could not create " + type);
-        }
-        BlockPos abs = helper.absolutePos(rel);
-        animal.moveTo(abs.getX() + 0.5, abs.getY(), abs.getZ() + 0.5, 0.0f, 0.0f);
-        animal.setTame(true, false);
-        animal.setOwnerUUID(UUID.randomUUID());
-        helper.getLevel().addFreshEntity(animal);
-        return animal;
+        return PetSpawns.spawnTamed(helper, type, rel, UUID.randomUUID());
     }
 
     /** Applies a lethal arrow hit (not beyond saving), downing a healthy tamed pet. */

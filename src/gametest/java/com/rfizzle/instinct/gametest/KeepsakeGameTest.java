@@ -1,6 +1,7 @@
 package com.rfizzle.instinct.gametest;
 
 import com.rfizzle.instinct.config.InstinctConfig;
+import com.rfizzle.instinct.gametest.util.PetSpawns;
 import com.rfizzle.instinct.item.KeepsakeEngraving;
 import com.rfizzle.instinct.keepsake.KeepsakeHandler;
 import com.rfizzle.instinct.registry.InstinctDataComponents;
@@ -11,17 +12,14 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.animal.Cow;
 import net.minecraft.world.entity.animal.Wolf;
 import net.minecraft.world.entity.animal.horse.Horse;
 import net.minecraft.world.entity.item.ItemEntity;
-import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.AABB;
 
 import java.util.List;
-import java.util.UUID;
 
 /**
  * SPEC §7 keepsake collar: a tamed pet lost beyond saving — to fire, lava, or the void — leaves an
@@ -35,7 +33,7 @@ public class KeepsakeGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE)
     public void lavaLossLeavesAnEngravedCollar(GameTestHelper helper) {
-        Wolf wolf = spawnTamedWolf(helper, new BlockPos(3, 2, 3));
+        Wolf wolf = PetSpawns.spawnTamedWolf(helper, new BlockPos(3, 2, 3));
         wolf.setCustomName(Component.literal("Rex"));
         VeterancyHandler.setAccruedDays(wolf, 60.0); // rank 3 at default thresholds
 
@@ -54,7 +52,7 @@ public class KeepsakeGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE)
     public void unrankedPetStillLeavesACollarWithNoRank(GameTestHelper helper) {
-        Wolf wolf = spawnTamedWolf(helper, new BlockPos(3, 2, 3)); // fresh tame — 0 days, rank 0
+        Wolf wolf = PetSpawns.spawnTamedWolf(helper, new BlockPos(3, 2, 3)); // fresh tame — 0 days, rank 0
 
         wolf.hurt(helper.getLevel().damageSources().lava(), 1000.0F);
 
@@ -70,16 +68,16 @@ public class KeepsakeGameTest implements FabricGameTest {
     @GameTest(template = EMPTY_STRUCTURE)
     public void mountUntamedAndLivestockLeaveNoCollar(GameTestHelper helper) {
         // A tamed mount (horse family) is not a TamableAnimal pet — the AFTER_DEATH gate rejects it.
-        Horse horse = create(helper, EntityType.HORSE, new BlockPos(1, 2, 1));
+        Horse horse = PetSpawns.spawnAt(helper, EntityType.HORSE, new BlockPos(1, 2, 1));
         horse.setTamed(true);
         horse.hurt(helper.getLevel().damageSources().lava(), 1000.0F);
 
         // An untamed wolf is a pet species but not owned — dropKeepsake rejects the un-tamed pet.
-        Wolf untamed = create(helper, EntityType.WOLF, new BlockPos(3, 2, 3));
+        Wolf untamed = PetSpawns.spawnAt(helper, EntityType.WOLF, new BlockPos(3, 2, 3));
         untamed.hurt(helper.getLevel().damageSources().lava(), 1000.0F);
 
         // Livestock is not a TamableAnimal at all.
-        Cow cow = create(helper, EntityType.COW, new BlockPos(5, 2, 5));
+        Cow cow = PetSpawns.spawnAt(helper, EntityType.COW, new BlockPos(5, 2, 5));
         cow.hurt(helper.getLevel().damageSources().lava(), 1000.0F);
 
         helper.assertTrue(collarsIn(helper).isEmpty(),
@@ -89,8 +87,7 @@ public class KeepsakeGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE)
     public void voidLossLaysTheCollarOnSafeGround(GameTestHelper helper) {
-        helper.setBlock(new BlockPos(3, 1, 3), Blocks.STONE);
-        Wolf wolf = spawnTamedWolf(helper, new BlockPos(3, 2, 3));
+        Wolf wolf = PetSpawns.spawnTamedWolf(helper, new BlockPos(3, 2, 3));
 
         KeepsakeHandler.dropKeepsake(wolf, helper.getLevel().damageSources().fellOutOfWorld());
 
@@ -107,7 +104,7 @@ public class KeepsakeGameTest implements FabricGameTest {
         boolean saved = InstinctConfig.get().enableKeepsakeCollar;
         try {
             InstinctConfig.get().enableKeepsakeCollar = false;
-            Wolf wolf = spawnTamedWolf(helper, new BlockPos(3, 2, 3));
+            Wolf wolf = PetSpawns.spawnTamedWolf(helper, new BlockPos(3, 2, 3));
             wolf.hurt(helper.getLevel().damageSources().lava(), 1000.0F);
             helper.assertFalse(wolf.isAlive(), "the pet still dies to lava");
             helper.assertTrue(collarsIn(helper).isEmpty(), "with the feature off, no collar drops");
@@ -118,17 +115,6 @@ public class KeepsakeGameTest implements FabricGameTest {
     }
 
     // --- helpers ----------------------------------------------------------------------------
-
-    private static <T extends Entity> T create(GameTestHelper helper, EntityType<T> type, BlockPos rel) {
-        T entity = type.create(helper.getLevel());
-        if (entity == null) {
-            throw new IllegalStateException("could not create " + type);
-        }
-        BlockPos abs = helper.absolutePos(rel);
-        entity.moveTo(abs.getX() + 0.5, abs.getY(), abs.getZ() + 0.5, 0.0f, 0.0f);
-        helper.getLevel().addFreshEntity(entity);
-        return entity;
-    }
 
     private static List<ItemEntity> collarsIn(GameTestHelper helper) {
         BlockPos origin = helper.absolutePos(new BlockPos(0, 0, 0));
@@ -141,12 +127,5 @@ public class KeepsakeGameTest implements FabricGameTest {
         List<ItemEntity> collars = collarsIn(helper);
         helper.assertTrue(collars.size() == 1, "exactly one keepsake collar dropped, found " + collars.size());
         return collars.get(0);
-    }
-
-    private static Wolf spawnTamedWolf(GameTestHelper helper, BlockPos rel) {
-        Wolf wolf = create(helper, EntityType.WOLF, rel);
-        wolf.setTame(true, false);
-        wolf.setOwnerUUID(UUID.randomUUID());
-        return wolf;
     }
 }

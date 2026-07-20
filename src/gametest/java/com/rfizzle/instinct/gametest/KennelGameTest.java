@@ -6,6 +6,8 @@ import com.rfizzle.instinct.config.InstinctConfig;
 import com.rfizzle.instinct.data.HomeData;
 import com.rfizzle.instinct.data.InstinctAttachments;
 import com.rfizzle.instinct.gametest.util.MockPlayers;
+import com.rfizzle.instinct.gametest.util.PetSpawns;
+import com.rfizzle.instinct.gametest.util.TestFloors;
 import com.rfizzle.instinct.kennel.KennelHandler;
 import com.rfizzle.instinct.registry.InstinctBlocks;
 import com.rfizzle.instinct.veterancy.VeterancyHandler;
@@ -18,7 +20,6 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.animal.Wolf;
 import net.minecraft.world.entity.projectile.AbstractArrow;
-import net.minecraft.world.level.block.Blocks;
 
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -34,12 +35,12 @@ public class KennelGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE)
     public void assignHomeWritesHomeAndRecalls(GameTestHelper helper) {
-        buildFloor(helper, 8, 8);
+        TestFloors.buildFloor(helper, 8, 8);
         ServerPlayer owner = mockPlayer(helper, new BlockPos(4, 2, 4));
         BlockPos postRel = new BlockPos(4, 2, 4);
         helper.setBlock(postRel, InstinctBlocks.KENNEL_POST.defaultBlockState());
         BlockPos postAbs = helper.absolutePos(postRel);
-        Wolf wolf = spawnTamedWolf(helper, new BlockPos(3, 2, 3), owner.getUUID());
+        Wolf wolf = PetSpawns.spawnTamedWolf(helper, new BlockPos(3, 2, 3), owner.getUUID());
 
         WhistleActions.WhistleResult result = WhistleActions.assignHome(owner, postAbs);
         helper.assertValueEqual(result.outcome(), WhistleActions.WhistleResult.Outcome.ASSIGN_HOME, "an assign-home order is issued");
@@ -61,12 +62,12 @@ public class KennelGameTest implements FabricGameTest {
     // a structure-bound artifact, not a behavior; real worlds repath and advance over any distance).
     @GameTest(template = EMPTY_STRUCTURE, timeoutTicks = 400)
     public void stayRecallsHomedPetToItsPost(GameTestHelper helper) {
-        buildFloor(helper, 10, 8);
+        TestFloors.buildFloor(helper, 10, 8);
         ServerPlayer owner = mockPlayer(helper, new BlockPos(2, 2, 4));
         BlockPos postRel = new BlockPos(7, 2, 4);
         helper.setBlock(postRel, InstinctBlocks.KENNEL_POST.defaultBlockState());
         BlockPos postAbs = helper.absolutePos(postRel);
-        Wolf wolf = spawnTamedWolf(helper, new BlockPos(3, 2, 4), owner.getUUID());
+        Wolf wolf = PetSpawns.spawnTamedWolf(helper, new BlockPos(3, 2, 4), owner.getUUID());
         wolf.setAttached(InstinctAttachments.HOME, new HomeData(postAbs, helper.getLevel().dimension()));
 
         WhistleActions.WhistleResult result = WhistleActions.toggle(owner);
@@ -85,9 +86,9 @@ public class KennelGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE)
     public void unhomedPetOnStaySitsInPlace(GameTestHelper helper) {
-        buildFloor(helper, 8, 8);
+        TestFloors.buildFloor(helper, 8, 8);
         ServerPlayer owner = mockPlayer(helper, new BlockPos(4, 2, 4));
-        Wolf wolf = spawnTamedWolf(helper, new BlockPos(3, 2, 3), owner.getUUID());
+        Wolf wolf = PetSpawns.spawnTamedWolf(helper, new BlockPos(3, 2, 3), owner.getUUID());
 
         WhistleActions.toggle(owner);
         helper.assertTrue(wolf.isOrderedToSit(), "an un-homed pet sits where it stands, exactly as before");
@@ -101,11 +102,11 @@ public class KennelGameTest implements FabricGameTest {
     // A pet homed to a post that no longer stands settles where it is rather than trekking to nothing.
     @GameTest(template = EMPTY_STRUCTURE, timeoutTicks = 100)
     public void staleHomeSettlesInPlace(GameTestHelper helper) {
-        buildFloor(helper, 12, 8);
+        TestFloors.buildFloor(helper, 12, 8);
         ServerPlayer owner = mockPlayer(helper, new BlockPos(2, 2, 4));
         // A home whose post block was never placed — its chunk is loaded, so the goal can see it is gone.
         BlockPos ghostHome = helper.absolutePos(new BlockPos(8, 2, 4));
-        Wolf wolf = spawnTamedWolf(helper, new BlockPos(4, 2, 4), owner.getUUID());
+        Wolf wolf = PetSpawns.spawnTamedWolf(helper, new BlockPos(4, 2, 4), owner.getUUID());
         BlockPos start = wolf.blockPosition();
         wolf.setAttached(InstinctAttachments.HOME, new HomeData(ghostHome, helper.getLevel().dimension()));
 
@@ -129,9 +130,9 @@ public class KennelGameTest implements FabricGameTest {
         InstinctConfig.get().kennelRecoverySeconds = 1; // 20-tick threshold for a fast test
         InstinctConfig.get().enableKennelPost = true;
         try {
-            buildFloor(helper, 8, 8);
+            TestFloors.buildFloor(helper, 8, 8);
             helper.setBlock(new BlockPos(5, 2, 4), InstinctBlocks.KENNEL_POST.defaultBlockState());
-            Wolf wolf = spawnTamedWolf(helper, new BlockPos(4, 2, 4), UUID.randomUUID());
+            Wolf wolf = PetSpawns.spawnTamedWolf(helper, new BlockPos(4, 2, 4), UUID.randomUUID());
             VeterancyHandler.setAccruedDays(wolf, 60.0); // rank 3 at default thresholds
             helper.assertValueEqual(InstinctAPI.getVeterancyRank(wolf), 3, "precondition: rank 3");
             downWithArrow(helper, wolf);
@@ -160,9 +161,9 @@ public class KennelGameTest implements FabricGameTest {
         InstinctConfig.get().kennelRecoverySeconds = 1;
         InstinctConfig.get().enableKennelPost = true;
         try {
-            buildFloor(helper, 8, 8);
+            TestFloors.buildFloor(helper, 8, 8);
             helper.setBlock(new BlockPos(5, 2, 4), InstinctBlocks.KENNEL_POST.defaultBlockState());
-            Wolf wolf = spawnTamedWolf(helper, new BlockPos(4, 2, 4), UUID.randomUUID());
+            Wolf wolf = PetSpawns.spawnTamedWolf(helper, new BlockPos(4, 2, 4), UUID.randomUUID());
             AtomicBoolean revivedFired = new AtomicBoolean(false);
             AtomicBoolean noReviverOrItem = new AtomicBoolean(false);
             // Match on UUID, not the entity: a registered listener can never be unregistered, so
@@ -198,8 +199,8 @@ public class KennelGameTest implements FabricGameTest {
         int savedSeconds = InstinctConfig.get().kennelRecoverySeconds;
         InstinctConfig.get().kennelRecoverySeconds = 1; // would recover fast IF a post were near
         try {
-            buildFloor(helper, 8, 8);
-            Wolf wolf = spawnTamedWolf(helper, new BlockPos(4, 2, 4), UUID.randomUUID());
+            TestFloors.buildFloor(helper, 8, 8);
+            Wolf wolf = PetSpawns.spawnTamedWolf(helper, new BlockPos(4, 2, 4), UUID.randomUUID());
             downWithArrow(helper, wolf);
             helper.assertTrue(InstinctAPI.isDowned(wolf), "precondition: downed with no post nearby");
 
@@ -224,9 +225,9 @@ public class KennelGameTest implements FabricGameTest {
         InstinctConfig.get().enableKennelPost = false;
         InstinctConfig.get().kennelRecoverySeconds = 1;
         try {
-            buildFloor(helper, 8, 8);
+            TestFloors.buildFloor(helper, 8, 8);
             helper.setBlock(new BlockPos(5, 2, 4), InstinctBlocks.KENNEL_POST.defaultBlockState());
-            Wolf wolf = spawnTamedWolf(helper, new BlockPos(4, 2, 4), UUID.randomUUID());
+            Wolf wolf = PetSpawns.spawnTamedWolf(helper, new BlockPos(4, 2, 4), UUID.randomUUID());
             downWithArrow(helper, wolf);
 
             helper.startSequence()
@@ -255,19 +256,6 @@ public class KennelGameTest implements FabricGameTest {
         return player;
     }
 
-    private static Wolf spawnTamedWolf(GameTestHelper helper, BlockPos rel, UUID owner) {
-        Wolf wolf = EntityType.WOLF.create(helper.getLevel());
-        if (wolf == null) {
-            throw new IllegalStateException("could not create a wolf");
-        }
-        BlockPos abs = helper.absolutePos(rel);
-        wolf.moveTo(abs.getX() + 0.5, abs.getY(), abs.getZ() + 0.5, 0.0f, 0.0f);
-        wolf.setTame(true, false);
-        wolf.setOwnerUUID(owner);
-        helper.getLevel().addFreshEntity(wolf);
-        return wolf;
-    }
-
     /** Applies a lethal arrow hit (not beyond saving), downing a healthy tamed pet. */
     private static void downWithArrow(GameTestHelper helper, Wolf wolf) {
         AbstractArrow arrow = EntityType.ARROW.create(helper.getLevel());
@@ -276,14 +264,5 @@ public class KennelGameTest implements FabricGameTest {
         }
         wolf.hurt(helper.getLevel().damageSources().arrow(arrow, null), 1000.0F);
         arrow.discard();
-    }
-
-    private static void buildFloor(GameTestHelper helper, int width, int depth) {
-        for (int x = 0; x < width; x++) {
-            for (int z = 0; z < depth; z++) {
-                helper.setBlock(new BlockPos(x, 0, z), Blocks.SMOOTH_STONE.defaultBlockState());
-                helper.setBlock(new BlockPos(x, 1, z), Blocks.SMOOTH_STONE.defaultBlockState());
-            }
-        }
     }
 }

@@ -5,6 +5,7 @@ import com.rfizzle.instinct.config.InstinctConfig;
 import com.rfizzle.instinct.data.InstinctAttachments;
 import com.rfizzle.instinct.data.VeterancyData;
 import com.rfizzle.instinct.gametest.util.MockPlayers;
+import com.rfizzle.instinct.gametest.util.PetSpawns;
 import com.rfizzle.instinct.veterancy.Veterancy;
 import com.rfizzle.instinct.veterancy.VeterancyHandler;
 import net.fabricmc.fabric.api.gametest.v1.FabricGameTest;
@@ -240,16 +241,13 @@ public class VeterancyGameTest implements FabricGameTest {
         }
     }
 
+    /**
+     * A tamed wolf frozen in place, shared with {@code RankBehaviorsGameTest} and
+     * {@code FriendlyFireGameTest}. NoAi lands after the load so the wolf still receives the
+     * tamed-only goal injection these suites assert against; it only stops it wandering after.
+     */
     static Wolf spawnTamedWolf(GameTestHelper helper, BlockPos rel) {
-        Wolf wolf = EntityType.WOLF.create(helper.getLevel());
-        if (wolf == null) {
-            throw new IllegalStateException("could not create a wolf");
-        }
-        BlockPos abs = helper.absolutePos(rel);
-        wolf.moveTo(abs.getX() + 0.5, abs.getY(), abs.getZ() + 0.5, 0.0f, 0.0f);
-        wolf.setTame(true, false);
-        wolf.setOwnerUUID(UUID.randomUUID());
-        helper.getLevel().addFreshEntity(wolf);
+        Wolf wolf = PetSpawns.spawnTamedWolf(helper, rel);
         wolf.setNoAi(true);
         return wolf;
     }

@@ -2,6 +2,7 @@ package com.rfizzle.instinct.gametest;
 
 import com.rfizzle.instinct.block.FeedingTroughBlockEntity;
 import com.rfizzle.instinct.config.InstinctConfig;
+import com.rfizzle.instinct.gametest.util.TestFloors;
 import com.rfizzle.instinct.registry.InstinctBlocks;
 import net.fabricmc.fabric.api.gametest.v1.FabricGameTest;
 import net.fabricmc.fabric.api.registry.FlammableBlockRegistry;
@@ -28,11 +29,9 @@ import net.minecraft.world.phys.AABB;
  */
 public class FeedingTroughGameTest implements FabricGameTest {
 
-    private static final int SIZE = 8;
-
     @GameTest(template = EMPTY_STRUCTURE, timeoutTicks = 300)
     public void troughFeedsAdultsIntoLoveAndTheyBreed(GameTestHelper helper) {
-        buildFloor(helper);
+        TestFloors.buildFloor(helper);
         FeedingTroughBlockEntity trough = placeFilledTrough(helper, new BlockPos(3, 2, 3),
                 new ItemStack(Items.WHEAT, 64));
         Cow a = pinnedCow(helper, new BlockPos(2, 2, 3));
@@ -54,7 +53,7 @@ public class FeedingTroughGameTest implements FabricGameTest {
         // callback — not in a finally, which would run the instant the callback is scheduled.
         int saved = InstinctConfig.get().troughPopulationCap;
         InstinctConfig.get().troughPopulationCap = 2;
-        buildFloor(helper);
+        TestFloors.buildFloor(helper);
         placeFilledTrough(helper, new BlockPos(3, 2, 3), new ItemStack(Items.WHEAT, 64));
         Cow a = pinnedCow(helper, new BlockPos(2, 2, 3));
         Cow b = pinnedCow(helper, new BlockPos(4, 2, 3));
@@ -69,7 +68,7 @@ public class FeedingTroughGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE, timeoutTicks = 200)
     public void hopperFillsTheTroughButCannotExtract(GameTestHelper helper) {
-        buildFloor(helper);
+        TestFloors.buildFloor(helper);
         FeedingTroughBlockEntity trough = placeFilledTrough(helper, new BlockPos(3, 2, 3),
                 new ItemStack(Items.WHEAT, 10));
 
@@ -91,7 +90,7 @@ public class FeedingTroughGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE)
     public void storageAcceptsWithdrawsAndConvertsHay(GameTestHelper helper) {
-        buildFloor(helper);
+        TestFloors.buildFloor(helper);
         FeedingTroughBlockEntity trough = placeFilledTrough(helper, new BlockPos(3, 2, 3), ItemStack.EMPTY);
 
         helper.assertValueEqual(trough.insertHay(), 9, "an empty trough converts a hay bale to 9 wheat");
@@ -110,7 +109,7 @@ public class FeedingTroughGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE)
     public void storedStackSyncsToClients(GameTestHelper helper) {
-        buildFloor(helper);
+        TestFloors.buildFloor(helper);
         BlockPos rel = new BlockPos(3, 2, 3);
         FeedingTroughBlockEntity trough = placeFilledTrough(helper, rel, new ItemStack(Items.WHEAT, 20));
 
@@ -127,7 +126,7 @@ public class FeedingTroughGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE)
     public void comparatorReadsFillLevel(GameTestHelper helper) {
-        buildFloor(helper);
+        TestFloors.buildFloor(helper);
         BlockPos rel = new BlockPos(3, 2, 3);
         FeedingTroughBlockEntity trough = placeFilledTrough(helper, rel, ItemStack.EMPTY);
         BlockPos abs = helper.absolutePos(rel);
@@ -143,7 +142,7 @@ public class FeedingTroughGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE)
     public void breakingDropsTheStoredStack(GameTestHelper helper) {
-        buildFloor(helper);
+        TestFloors.buildFloor(helper);
         BlockPos rel = new BlockPos(3, 2, 3);
         placeFilledTrough(helper, rel, new ItemStack(Items.WHEAT, 40));
         BlockPos abs = helper.absolutePos(rel);
@@ -175,7 +174,7 @@ public class FeedingTroughGameTest implements FabricGameTest {
     public void disabledTroughKeepsStorageButStopsFeeding(GameTestHelper helper) {
         boolean saved = InstinctConfig.get().enableTrough;
         InstinctConfig.get().enableTrough = false;
-        buildFloor(helper);
+        TestFloors.buildFloor(helper);
         BlockPos rel = new BlockPos(3, 2, 3);
         FeedingTroughBlockEntity trough = placeFilledTrough(helper, rel, new ItemStack(Items.WHEAT, 64));
         Cow a = pinnedCow(helper, new BlockPos(2, 2, 3));
@@ -192,7 +191,7 @@ public class FeedingTroughGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE, timeoutTicks = 300)
     public void troughGrowsABabyWithoutBreedingIt(GameTestHelper helper) {
-        buildFloor(helper);
+        TestFloors.buildFloor(helper);
         placeFilledTrough(helper, new BlockPos(3, 2, 3), new ItemStack(Items.WHEAT, 64));
         Cow calf = pinnedCow(helper, new BlockPos(2, 2, 3));
         calf.setBaby(true);
@@ -226,15 +225,5 @@ public class FeedingTroughGameTest implements FabricGameTest {
         cow.setNoAi(true);
         cow.setOnGround(true);
         return cow;
-    }
-
-    /** Two-layer stone floor at y=0..1; the trough and animals sit on the y=2 surface. */
-    private static void buildFloor(GameTestHelper helper) {
-        for (int x = 0; x < SIZE; x++) {
-            for (int z = 0; z < SIZE; z++) {
-                helper.setBlock(new BlockPos(x, 0, z), Blocks.SMOOTH_STONE.defaultBlockState());
-                helper.setBlock(new BlockPos(x, 1, z), Blocks.SMOOTH_STONE.defaultBlockState());
-            }
-        }
     }
 }

@@ -2,6 +2,8 @@ package com.rfizzle.instinct.gametest;
 
 import com.rfizzle.instinct.config.InstinctConfig;
 import com.rfizzle.instinct.gametest.util.MockPlayers;
+import com.rfizzle.instinct.gametest.util.PetSpawns;
+import com.rfizzle.instinct.gametest.util.TestFloors;
 import com.rfizzle.instinct.herding.FlockingTemptGoal;
 import com.rfizzle.instinct.herding.HerdWorkGoal;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
@@ -24,7 +26,6 @@ import net.minecraft.world.level.pathfinder.PathType;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * SPEC §4 Flocking &amp; Herding: the exact-class tempt-goal swap (including a pig's two tempt goals)
@@ -39,7 +40,7 @@ public class HerdingGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE)
     public void livestockGetsFlockingTemptGoal(GameTestHelper helper) {
-        buildFloor(helper, 8, 8);
+        TestFloors.buildFloor(helper, 8, 8);
         Cow cow = helper.spawn(EntityType.COW, new BlockPos(3, 2, 3));
         helper.assertValueEqual(countFlocking(cow), 1L, "cow's food tempt goal is swapped for flocking");
         helper.assertValueEqual(countVanillaTempt(cow), 0L, "no exact-class TemptGoal remains");
@@ -49,7 +50,7 @@ public class HerdingGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE)
     public void pigSwapsBothTemptGoals(GameTestHelper helper) {
-        buildFloor(helper, 8, 8);
+        TestFloors.buildFloor(helper, 8, 8);
         Pig pig = helper.spawn(EntityType.PIG, new BlockPos(3, 2, 3));
         // A pig registers two exact-class TemptGoals (food, carrot-on-a-stick); both must swap.
         helper.assertValueEqual(countFlocking(pig), 2L, "both of the pig's tempt goals are swapped");
@@ -60,7 +61,7 @@ public class HerdingGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE)
     public void reloadNeverStacksASecondFlockingGoal(GameTestHelper helper) {
-        buildFloor(helper, 8, 8);
+        TestFloors.buildFloor(helper, 8, 8);
         Cow cow = helper.spawn(EntityType.COW, new BlockPos(3, 2, 3));
         helper.assertValueEqual(countFlocking(cow), 1L, "flocking goal after first load");
         ServerEntityEvents.ENTITY_LOAD.invoker().onLoad(cow, helper.getLevel());
@@ -75,7 +76,7 @@ public class HerdingGameTest implements FabricGameTest {
     // in SelfPreservationGameTest.)
     @GameTest(template = LANE, timeoutTicks = 200, batch = "instinctFlockRange")
     public void flockTemptsBeyondVanillaRange(GameTestHelper helper) {
-        buildFloor(helper, 16, 6);
+        TestFloors.buildFloor(helper, 16, 6);
         // The driver is discarded inside the success callback, not a finally: succeedWhen returns
         // immediately after scheduling its poll, so a finally would remove the driver before the cow
         // ever ticks. (Cf. the creeper tests, which likewise clean up inside the callback.)
@@ -97,7 +98,7 @@ public class HerdingGameTest implements FabricGameTest {
         boolean saved = InstinctConfig.get().enableFlocking;
         InstinctConfig.get().enableFlocking = false;
         try {
-            buildFloor(helper, 16, 6);
+            TestFloors.buildFloor(helper, 16, 6);
             ServerPlayer driver = wheatHolder(helper, new BlockPos(1, 2, 3));
             Cow cow = helper.spawn(EntityType.COW, new BlockPos(14, 2, 3)); // 13 blocks: outside vanilla's 10
             helper.runAfterDelay(30, () -> {
@@ -119,7 +120,7 @@ public class HerdingGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE, timeoutTicks = 300, batch = "instinctSpacing")
     public void temptedCowsHoldSpacing(GameTestHelper helper) {
-        buildFloor(helper, 8, 8);
+        TestFloors.buildFloor(helper, 8, 8);
         ServerPlayer driver = wheatHolder(helper, new BlockPos(4, 2, 4));
         List<Cow> cows = new ArrayList<>();
         int[][] spots = {{2, 2}, {2, 6}, {6, 2}, {6, 6}, {4, 2}, {4, 6}};
@@ -139,9 +140,9 @@ public class HerdingGameTest implements FabricGameTest {
 
     @GameTest(template = LANE, timeoutTicks = 600, batch = "instinctDrive")
     public void driveConvergesStragglerWithoutDamage(GameTestHelper helper) {
-        buildFloor(helper, 16, 6);
+        TestFloors.buildFloor(helper, 16, 6);
         ServerPlayer driver = wheatHolder(helper, new BlockPos(1, 2, 3));
-        Wolf wolf = spawnTamedWolf(helper, new BlockPos(2, 2, 3), driver.getUUID());
+        Wolf wolf = PetSpawns.spawnTamedWolf(helper, new BlockPos(2, 2, 3), driver.getUUID());
         List<Cow> cows = new ArrayList<>();
         int[][] spots = {{3, 2}, {3, 4}, {6, 2}, {6, 4}, {9, 3}, {13, 3}}; // last two are stragglers (>8)
         for (int[] spot : spots) {
@@ -168,9 +169,9 @@ public class HerdingGameTest implements FabricGameTest {
         InstinctConfig.get().enableFlocking = false;
         InstinctConfig.get().enableHerding = true;
         try {
-            buildFloor(helper, 16, 6);
+            TestFloors.buildFloor(helper, 16, 6);
             ServerPlayer driver = wheatHolder(helper, new BlockPos(1, 2, 3));
-            Wolf wolf = spawnTamedWolf(helper, new BlockPos(2, 2, 3), driver.getUUID());
+            Wolf wolf = PetSpawns.spawnTamedWolf(helper, new BlockPos(2, 2, 3), driver.getUUID());
             for (int[] spot : new int[][]{{3, 2}, {3, 4}, {6, 3}, {9, 3}}) {
                 helper.spawn(EntityType.COW, new BlockPos(spot[0], 2, spot[1]));
             }
@@ -198,9 +199,9 @@ public class HerdingGameTest implements FabricGameTest {
         boolean saved = InstinctConfig.get().enableHerding;
         InstinctConfig.get().enableHerding = false; // flocking stays on: cows flock, but no pet works
         try {
-            buildFloor(helper, 16, 6);
+            TestFloors.buildFloor(helper, 16, 6);
             ServerPlayer driver = wheatHolder(helper, new BlockPos(1, 2, 3));
-            Wolf wolf = spawnTamedWolf(helper, new BlockPos(2, 2, 3), driver.getUUID());
+            Wolf wolf = PetSpawns.spawnTamedWolf(helper, new BlockPos(2, 2, 3), driver.getUUID());
             for (int[] spot : new int[][]{{3, 2}, {3, 4}, {6, 3}, {9, 3}}) {
                 helper.spawn(EntityType.COW, new BlockPos(spot[0], 2, spot[1]));
             }
@@ -223,7 +224,7 @@ public class HerdingGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE, timeoutTicks = 120)
     public void flockingLowersWaterMalusWhileTempted(GameTestHelper helper) {
-        buildFloor(helper, 8, 8);
+        TestFloors.buildFloor(helper, 8, 8);
         Cow cow = helper.spawn(EntityType.COW, new BlockPos(4, 2, 3));
         float defaultMalus = cow.getPathfindingMalus(PathType.WATER);
         ServerPlayer driver = wheatHolder(helper, new BlockPos(3, 2, 3));
@@ -248,7 +249,7 @@ public class HerdingGameTest implements FabricGameTest {
         boolean saved = InstinctConfig.get().enableFlocking;
         InstinctConfig.get().enableFlocking = false;
         try {
-            buildFloor(helper, 8, 8);
+            TestFloors.buildFloor(helper, 8, 8);
             Cow cow = helper.spawn(EntityType.COW, new BlockPos(4, 2, 3));
             float defaultMalus = cow.getPathfindingMalus(PathType.WATER);
             wheatHolder(helper, new BlockPos(3, 2, 3)); // the vanilla tempt goal still runs on held food
@@ -290,7 +291,7 @@ public class HerdingGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE, timeoutTicks = 160, batch = "instinctFlockToggle")
     public void disablingFlockingMidDriveRestoresWaterMalus(GameTestHelper helper) {
-        buildFloor(helper, 8, 8);
+        TestFloors.buildFloor(helper, 8, 8);
         Cow cow = helper.spawn(EntityType.COW, new BlockPos(4, 2, 3));
         float defaultMalus = cow.getPathfindingMalus(PathType.WATER);
         ServerPlayer driver = wheatHolder(helper, new BlockPos(3, 2, 3));
@@ -360,28 +361,6 @@ public class HerdingGameTest implements FabricGameTest {
         player.teleportTo(abs.getX() + 0.5, abs.getY(), abs.getZ() + 0.5);
         player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Items.WHEAT));
         return player;
-    }
-
-    private static Wolf spawnTamedWolf(GameTestHelper helper, BlockPos rel, UUID owner) {
-        Wolf wolf = EntityType.WOLF.create(helper.getLevel());
-        if (wolf == null) {
-            throw new IllegalStateException("could not create a wolf");
-        }
-        BlockPos abs = helper.absolutePos(rel);
-        wolf.moveTo(abs.getX() + 0.5, abs.getY(), abs.getZ() + 0.5, 0.0f, 0.0f);
-        wolf.setTame(true, false);
-        wolf.setOwnerUUID(owner);
-        helper.getLevel().addFreshEntity(wolf);
-        return wolf;
-    }
-
-    private static void buildFloor(GameTestHelper helper, int width, int depth) {
-        for (int x = 0; x < width; x++) {
-            for (int z = 0; z < depth; z++) {
-                helper.setBlock(new BlockPos(x, 0, z), Blocks.SMOOTH_STONE.defaultBlockState());
-                helper.setBlock(new BlockPos(x, 1, z), Blocks.SMOOTH_STONE.defaultBlockState());
-            }
-        }
     }
 
     /**

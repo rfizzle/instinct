@@ -6,6 +6,8 @@ import com.rfizzle.instinct.data.DownedData;
 import com.rfizzle.instinct.data.GuardData;
 import com.rfizzle.instinct.data.InstinctAttachments;
 import com.rfizzle.instinct.gametest.util.MockPlayers;
+import com.rfizzle.instinct.gametest.util.PetSpawns;
+import com.rfizzle.instinct.gametest.util.TestFloors;
 import com.rfizzle.instinct.registry.InstinctItems;
 import com.rfizzle.instinct.whistle.WhistleActions;
 import com.rfizzle.instinct.whistle.WhistleLocator;
@@ -15,22 +17,18 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.animal.Cow;
 import net.minecraft.world.entity.animal.Parrot;
 import net.minecraft.world.entity.animal.Wolf;
 import net.minecraft.world.entity.monster.Zombie;
-import net.minecraft.world.level.ChunkPos;
-import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.UUID;
 
 /**
  * SPEC §6 command whistle. The core commands assert outcome and state directly (deterministic, no
@@ -49,12 +47,12 @@ public class WhistleGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE)
     public void toggleSitsThenStandsMixedPack(GameTestHelper helper) {
-        buildFloor(helper, 8, 8);
+        TestFloors.buildFloor(helper, 8, 8);
         ServerPlayer owner = mockPlayer(helper, new BlockPos(4, 2, 4));
         List<Wolf> wolves = new ArrayList<>();
-        wolves.add(spawnTamedWolf(helper, new BlockPos(3, 2, 3), owner.getUUID()));
-        wolves.add(spawnTamedWolf(helper, new BlockPos(5, 2, 3), owner.getUUID()));
-        wolves.add(spawnTamedWolf(helper, new BlockPos(4, 2, 5), owner.getUUID()));
+        wolves.add(PetSpawns.spawnTamedWolf(helper, new BlockPos(3, 2, 3), owner.getUUID()));
+        wolves.add(PetSpawns.spawnTamedWolf(helper, new BlockPos(5, 2, 3), owner.getUUID()));
+        wolves.add(PetSpawns.spawnTamedWolf(helper, new BlockPos(4, 2, 5), owner.getUUID()));
         // Mixed states: two standing, one sitting — the any-standing rule sits the whole pack.
         wolves.get(1).setOrderedToSit(true);
 
@@ -78,11 +76,11 @@ public class WhistleGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE)
     public void attackOrderTargetsCombatPetsAndSkipsTheDowned(GameTestHelper helper) {
-        buildFloor(helper, 10, 10);
+        TestFloors.buildFloor(helper, 10, 10);
         ServerPlayer owner = mockPlayer(helper, new BlockPos(5, 2, 5));
-        Wolf a = spawnTamedWolf(helper, new BlockPos(3, 2, 3), owner.getUUID());
-        Wolf b = spawnTamedWolf(helper, new BlockPos(7, 2, 3), owner.getUUID());
-        Wolf downed = spawnTamedWolf(helper, new BlockPos(3, 2, 7), owner.getUUID());
+        Wolf a = PetSpawns.spawnTamedWolf(helper, new BlockPos(3, 2, 3), owner.getUUID());
+        Wolf b = PetSpawns.spawnTamedWolf(helper, new BlockPos(7, 2, 3), owner.getUUID());
+        Wolf downed = PetSpawns.spawnTamedWolf(helper, new BlockPos(3, 2, 7), owner.getUUID());
         downed.setAttached(InstinctAttachments.DOWNED, new DownedData(helper.getLevel().getGameTime()));
         Zombie zombie = helper.spawn(EntityType.ZOMBIE, new BlockPos(6, 2, 6));
 
@@ -104,10 +102,10 @@ public class WhistleGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE)
     public void downedPetDoesNotRespondOrCount(GameTestHelper helper) {
-        buildFloor(helper, 8, 8);
+        TestFloors.buildFloor(helper, 8, 8);
         ServerPlayer owner = mockPlayer(helper, new BlockPos(4, 2, 4));
-        Wolf standing = spawnTamedWolf(helper, new BlockPos(3, 2, 3), owner.getUUID());
-        Wolf downed = spawnTamedWolf(helper, new BlockPos(5, 2, 3), owner.getUUID());
+        Wolf standing = PetSpawns.spawnTamedWolf(helper, new BlockPos(3, 2, 3), owner.getUUID());
+        Wolf downed = PetSpawns.spawnTamedWolf(helper, new BlockPos(5, 2, 3), owner.getUUID());
         downed.setOrderedToSit(false);
         downed.setAttached(InstinctAttachments.DOWNED, new DownedData(helper.getLevel().getGameTime()));
 
@@ -135,11 +133,11 @@ public class WhistleGameTest implements FabricGameTest {
         InstinctConfig.get().enableFlocking = true;
         InstinctConfig.get().enableHerding = true;
         try {
-            buildFloor(helper, 16, 6);
+            TestFloors.buildFloor(helper, 16, 6);
             ServerPlayer owner = mockPlayer(helper, new BlockPos(2, 2, 3));
             // A following pet drives the herd home — the §6 promise (and what pushes the last straggler
             // through the animals already gathered at the player, exactly as in the §4 drive).
-            Wolf wolf = spawnTamedWolf(helper, new BlockPos(3, 2, 3), owner.getUUID());
+            Wolf wolf = PetSpawns.spawnTamedWolf(helper, new BlockPos(3, 2, 3), owner.getUUID());
             List<Cow> cows = spawnHerd(helper);
 
             WhistleActions.WhistleResult result = WhistleActions.roundUp(owner, cows.get(0));
@@ -179,7 +177,7 @@ public class WhistleGameTest implements FabricGameTest {
         InstinctConfig.get().enableFlocking = false;
         InstinctConfig.get().enableHerding = true;
         try {
-            buildFloor(helper, 16, 6);
+            TestFloors.buildFloor(helper, 16, 6);
             ServerPlayer owner = mockPlayer(helper, new BlockPos(2, 2, 3));
             List<Cow> cows = spawnHerd(helper);
 
@@ -211,7 +209,7 @@ public class WhistleGameTest implements FabricGameTest {
         boolean saved = InstinctConfig.get().enableHerding;
         InstinctConfig.get().enableHerding = false;
         try {
-            buildFloor(helper, 10, 8);
+            TestFloors.buildFloor(helper, 10, 8);
             ServerPlayer owner = mockPlayer(helper, new BlockPos(2, 2, 4));
             Cow cow = helper.spawn(EntityType.COW, new BlockPos(5, 2, 4));
             aimAt(owner, cow);
@@ -231,10 +229,10 @@ public class WhistleGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE)
     public void guardOrderPostsCombatPetsAndSkipsNonCombat(GameTestHelper helper) {
-        buildFloor(helper, 10, 10);
+        TestFloors.buildFloor(helper, 10, 10);
         ServerPlayer owner = mockPlayer(helper, new BlockPos(5, 2, 5));
-        Wolf wolf = spawnTamedWolf(helper, new BlockPos(4, 2, 4), owner.getUUID());
-        Parrot parrot = spawnTamedParrot(helper, new BlockPos(6, 2, 4), owner.getUUID());
+        Wolf wolf = PetSpawns.spawnTamedWolf(helper, new BlockPos(4, 2, 4), owner.getUUID());
+        Parrot parrot = PetSpawns.spawnTamedParrot(helper, new BlockPos(6, 2, 4), owner.getUUID());
         BlockPos anchor = helper.absolutePos(new BlockPos(5, 2, 5));
 
         WhistleActions.WhistleResult result = WhistleActions.guardOrder(owner, anchor);
@@ -258,9 +256,9 @@ public class WhistleGameTest implements FabricGameTest {
     // the nearest body would pick it — proving the monsters-only filter, not mere proximity.
     @GameTest(template = EMPTY_STRUCTURE, timeoutTicks = 200)
     public void guardingWolfEngagesTheHostileAndIgnoresLivestock(GameTestHelper helper) {
-        buildFloor(helper, 12, 12);
+        TestFloors.buildFloor(helper, 12, 12);
         ServerPlayer owner = mockPlayer(helper, new BlockPos(2, 2, 2));
-        Wolf wolf = spawnTamedWolf(helper, new BlockPos(6, 2, 6), owner.getUUID());
+        Wolf wolf = PetSpawns.spawnTamedWolf(helper, new BlockPos(6, 2, 6), owner.getUUID());
         BlockPos anchor = helper.absolutePos(new BlockPos(6, 2, 6));
         wolf.setAttached(InstinctAttachments.GUARD, new GuardData(anchor));
         Cow cow = helper.spawn(EntityType.COW, new BlockPos(7, 2, 6));
@@ -281,9 +279,9 @@ public class WhistleGameTest implements FabricGameTest {
     // first hostile, remove it, then assert the guard picks up a second one that enters the post.
     @GameTest(template = EMPTY_STRUCTURE, timeoutTicks = 400)
     public void guardResumesAfterItsHostileDies(GameTestHelper helper) {
-        buildFloor(helper, 12, 12);
+        TestFloors.buildFloor(helper, 12, 12);
         ServerPlayer owner = mockPlayer(helper, new BlockPos(2, 2, 2));
-        Wolf wolf = spawnTamedWolf(helper, new BlockPos(6, 2, 6), owner.getUUID());
+        Wolf wolf = PetSpawns.spawnTamedWolf(helper, new BlockPos(6, 2, 6), owner.getUUID());
         wolf.setAttached(InstinctAttachments.GUARD, new GuardData(helper.absolutePos(new BlockPos(6, 2, 6))));
         Zombie first = helper.spawn(EntityType.ZOMBIE, new BlockPos(8, 2, 6));
         Zombie[] second = new Zombie[1];
@@ -306,9 +304,9 @@ public class WhistleGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE)
     public void aNewOrderClearsTheGuardPost(GameTestHelper helper) {
-        buildFloor(helper, 8, 8);
+        TestFloors.buildFloor(helper, 8, 8);
         ServerPlayer owner = mockPlayer(helper, new BlockPos(4, 2, 4));
-        Wolf wolf = spawnTamedWolf(helper, new BlockPos(3, 2, 3), owner.getUUID());
+        Wolf wolf = PetSpawns.spawnTamedWolf(helper, new BlockPos(3, 2, 3), owner.getUUID());
         BlockPos anchor = helper.absolutePos(new BlockPos(4, 2, 4));
 
         WhistleActions.guardOrder(owner, anchor);
@@ -334,10 +332,10 @@ public class WhistleGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE, batch = "instinctLocate")
     public void locateReportsDistantPetAndSkipsNearOne(GameTestHelper helper) {
-        buildFloor(helper, 8, 8);
+        TestFloors.buildFloor(helper, 8, 8);
         ServerPlayer owner = mockPlayer(helper, new BlockPos(4, 2, 4));
-        Wolf near = spawnTamedWolf(helper, new BlockPos(6, 2, 4), owner.getUUID()); // ~2 blocks — within voice
-        Wolf far = spawnTamedWolf(helper, new BlockPos(30, 2, 4), owner.getUUID()); // ~26 blocks east — beyond voice
+        Wolf near = PetSpawns.spawnTamedWolf(helper, new BlockPos(6, 2, 4), owner.getUUID()); // ~2 blocks — within voice
+        Wolf far = PetSpawns.spawnTamedWolf(helper, new BlockPos(30, 2, 4), owner.getUUID()); // ~26 blocks east — beyond voice
         far.setOrderedToSit(true);
 
         WhistleActions.LocateResult result = WhistleActions.locate(owner);
@@ -358,9 +356,9 @@ public class WhistleGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE, batch = "instinctLocate")
     public void locateIncludesTheDownedPatient(GameTestHelper helper) {
-        buildFloor(helper, 8, 8);
+        TestFloors.buildFloor(helper, 8, 8);
         ServerPlayer owner = mockPlayer(helper, new BlockPos(4, 2, 4));
-        Wolf downed = spawnTamedWolf(helper, new BlockPos(4, 2, 30), owner.getUUID()); // ~26 blocks south
+        Wolf downed = PetSpawns.spawnTamedWolf(helper, new BlockPos(4, 2, 30), owner.getUUID()); // ~26 blocks south
         downed.setAttached(InstinctAttachments.DOWNED, new DownedData(helper.getLevel().getGameTime()));
 
         WhistleActions.LocateResult result = WhistleActions.locate(owner);
@@ -377,9 +375,9 @@ public class WhistleGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE, batch = "instinctLocate")
     public void locateReportsNothingWhenEveryPetIsNear(GameTestHelper helper) {
-        buildFloor(helper, 8, 8);
+        TestFloors.buildFloor(helper, 8, 8);
         ServerPlayer owner = mockPlayer(helper, new BlockPos(4, 2, 4));
-        Wolf near = spawnTamedWolf(helper, new BlockPos(6, 2, 4), owner.getUUID()); // within voice
+        Wolf near = PetSpawns.spawnTamedWolf(helper, new BlockPos(6, 2, 4), owner.getUUID()); // within voice
 
         WhistleActions.LocateResult result = WhistleActions.locate(owner);
         helper.assertValueEqual(result.sightings().size(), 0, "a pet within the whistle's voice is never a locator line");
@@ -392,14 +390,14 @@ public class WhistleGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE, batch = "instinctLocate")
     public void locateCapsTheListAndCountsTheOverflow(GameTestHelper helper) {
-        buildFloor(helper, 10, 8);
+        TestFloors.buildFloor(helper, 10, 8);
         ServerPlayer owner = mockPlayer(helper, new BlockPos(4, 2, 4));
         List<Wolf> pack = new ArrayList<>();
         // Twelve pets fanned south of the player, each 22..27 blocks away — well past
         // the 20-block voice, so all twelve count as sightings, two of them as overflow past the cap.
         for (int z = 26; z <= 30; z += 2) {
             for (int x = 2; x <= 8; x += 2) {
-                pack.add(spawnTamedWolf(helper, new BlockPos(x, 2, z), owner.getUUID()));
+                pack.add(PetSpawns.spawnTamedWolf(helper, new BlockPos(x, 2, z), owner.getUUID()));
             }
         }
 
@@ -414,11 +412,11 @@ public class WhistleGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE, batch = "instinctLocate")
     public void locateReportsAGuardingPetsPosture(GameTestHelper helper) {
-        buildFloor(helper, 8, 8);
+        TestFloors.buildFloor(helper, 8, 8);
         ServerPlayer owner = mockPlayer(helper, new BlockPos(4, 2, 4));
         // A pet posted to guard (order stands it and writes the GUARD attachment), then left behind
         // beyond the whistle's voice — its posture reads "guarding", not "following".
-        Wolf posted = spawnTamedWolf(helper, new BlockPos(30, 2, 4), owner.getUUID());
+        Wolf posted = PetSpawns.spawnTamedWolf(helper, new BlockPos(30, 2, 4), owner.getUUID());
         posted.setOrderedToSit(false);
         posted.setAttached(InstinctAttachments.GUARD,
                 new GuardData(helper.absolutePos(new BlockPos(30, 2, 4))));
@@ -442,7 +440,7 @@ public class WhistleGameTest implements FabricGameTest {
         InstinctConfig.get().enableWhistle = true;
         InstinctConfig.get().whistleCooldownTicks = 0;
         try {
-            buildFloor(helper, 8, 8);
+            TestFloors.buildFloor(helper, 8, 8);
             ServerPlayer owner = mockPlayer(helper, new BlockPos(4, 2, 4));
             helper.assertFalse(owner.getCooldowns().isOnCooldown(InstinctItems.COMMAND_WHISTLE),
                     "the whistle starts off cooldown");
@@ -466,9 +464,9 @@ public class WhistleGameTest implements FabricGameTest {
         try {
             // The distant pet is genuinely enumerable, so the empty result reflects the disabled flag
             // rather than a pet the census could never have seen.
-            buildFloor(helper, 8, 8);
+            TestFloors.buildFloor(helper, 8, 8);
             ServerPlayer owner = mockPlayer(helper, new BlockPos(4, 2, 4));
-            Wolf far = spawnTamedWolf(helper, new BlockPos(30, 2, 4), owner.getUUID());
+            Wolf far = PetSpawns.spawnTamedWolf(helper, new BlockPos(30, 2, 4), owner.getUUID());
 
             WhistleActions.LocateResult result = WhistleActions.locate(owner);
             helper.assertValueEqual(result.sightings().size(), 0,
@@ -486,11 +484,11 @@ public class WhistleGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE)
     public void togglingTenPetsGrantsPackLeader(GameTestHelper helper) {
-        buildFloor(helper, 12, 12);
+        TestFloors.buildFloor(helper, 12, 12);
         ServerPlayer owner = listeningPlayer(helper, new BlockPos(5, 2, 5));
         ServerPlayer bystander = listeningPlayer(helper, new BlockPos(6, 2, 5));
         for (int i = 0; i < 10; i++) {
-            spawnTamedWolf(helper, new BlockPos(3 + (i % 5), 2, 3 + (i / 5)), owner.getUUID());
+            PetSpawns.spawnTamedWolf(helper, new BlockPos(3 + (i % 5), 2, 3 + (i / 5)), owner.getUUID());
         }
 
         WhistleActions.performToggle(owner);
@@ -537,37 +535,6 @@ public class WhistleGameTest implements FabricGameTest {
         return cows;
     }
 
-    private static Wolf spawnTamedWolf(GameTestHelper helper, BlockPos rel, UUID owner) {
-        prepareSpawn(helper, rel);
-        Wolf wolf = EntityType.WOLF.create(helper.getLevel());
-        if (wolf == null) {
-            throw new IllegalStateException("could not create a wolf");
-        }
-        BlockPos abs = helper.absolutePos(rel);
-        wolf.moveTo(abs.getX() + 0.5, abs.getY(), abs.getZ() + 0.5, 0.0f, 0.0f);
-        wolf.setTame(true, false);
-        wolf.setOwnerUUID(owner);
-        helper.getLevel().addFreshEntity(wolf);
-        assertEnumerable(helper, wolf);
-        return wolf;
-    }
-
-    /** A tamed parrot — a pets-set animal with no attack-damage attribute, so never combat-capable. */
-    private static Parrot spawnTamedParrot(GameTestHelper helper, BlockPos rel, UUID owner) {
-        prepareSpawn(helper, rel);
-        Parrot parrot = EntityType.PARROT.create(helper.getLevel());
-        if (parrot == null) {
-            throw new IllegalStateException("could not create a parrot");
-        }
-        BlockPos abs = helper.absolutePos(rel);
-        parrot.moveTo(abs.getX() + 0.5, abs.getY(), abs.getZ() + 0.5, 0.0f, 0.0f);
-        parrot.setTame(true, false);
-        parrot.setOwnerUUID(owner);
-        helper.getLevel().addFreshEntity(parrot);
-        assertEnumerable(helper, parrot);
-        return parrot;
-    }
-
     /** Points the player's view at the target's centre, so the whistle raycast clips it. */
     private static void aimAt(ServerPlayer player, Animal target) {
         Vec3 eye = player.getEyePosition(1.0f);
@@ -578,40 +545,5 @@ public class WhistleGameTest implements FabricGameTest {
         player.setYRot(yaw);
         player.setXRot(pitch);
         player.setYHeadRot(yaw);
-    }
-
-    /**
-     * Makes a spawn position one the locator can see a pet on. Forcing the chunk is the load-bearing
-     * step: a pet enters the level's entity lookup — the map a locate census iterates — only once its
-     * chunk is accessible, and that promotion is queued on the server executor rather than applied
-     * inline, so writing blocks nearby does not reliably bring it about. The framework releases every
-     * forced chunk when the batch ends, so this needs no teardown. The pad is what keeps a pet that
-     * outlives its spawn tick from falling.
-     */
-    private static void prepareSpawn(GameTestHelper helper, BlockPos rel) {
-        ChunkPos chunk = new ChunkPos(helper.absolutePos(rel));
-        helper.getLevel().setChunkForced(chunk.x, chunk.z, true);
-        for (int dx = -1; dx <= 1; dx++) {
-            for (int dz = -1; dz <= 1; dz++) {
-                helper.setBlock(rel.offset(dx, -1, dz), Blocks.SMOOTH_STONE.defaultBlockState());
-            }
-        }
-    }
-
-    /** Asserts the condition a census actually depends on, rather than a proxy for it. */
-    private static void assertEnumerable(GameTestHelper helper, Entity pet) {
-        helper.assertTrue(helper.getLevel().getEntity(pet.getId()) != null,
-                "a spawned pet is in the level's entity lookup, where a locate census finds it");
-    }
-
-    // Only the pet spawn helpers force their chunk. A raw helper.spawn stands its animal wherever the
-    // caller's floor reaches, which for every current caller is inside the force-loaded structure box.
-    private static void buildFloor(GameTestHelper helper, int width, int depth) {
-        for (int x = 0; x < width; x++) {
-            for (int z = 0; z < depth; z++) {
-                helper.setBlock(new BlockPos(x, 0, z), Blocks.SMOOTH_STONE.defaultBlockState());
-                helper.setBlock(new BlockPos(x, 1, z), Blocks.SMOOTH_STONE.defaultBlockState());
-            }
-        }
     }
 }

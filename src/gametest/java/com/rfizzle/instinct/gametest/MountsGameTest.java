@@ -8,6 +8,8 @@ import com.rfizzle.instinct.coverage.AnimalCoverage;
 import com.rfizzle.instinct.coverage.CoverageResolver;
 import com.rfizzle.instinct.coverage.MembershipRule;
 import com.rfizzle.instinct.gametest.util.MockPlayers;
+import com.rfizzle.instinct.gametest.util.PetSpawns;
+import com.rfizzle.instinct.gametest.util.TestFloors;
 import com.rfizzle.instinct.registry.InstinctItems;
 import com.rfizzle.instinct.selfpreservation.CreeperBerthGoal;
 import net.fabricmc.fabric.api.gametest.v1.FabricGameTest;
@@ -44,12 +46,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * dying, revivable by the same golden apple / vet kit path as pets — but with no sit pose and no
  * veterancy rank penalty, and it ejects its rider on going down. The horse family resolves into
  * the mounts set (and stays out of pets and livestock). Structure region is Fabric's 8x8x8 empty
- * template; movement tests lay their own stone floor and work on the y=2 surface. Berth tests get
+ * template; movement tests build a stone floor via {@link TestFloors} and work on the y=2 surface. Berth tests get
  * their own {@code batch} so a live fuse never falls inside another test's awareness radius.
  */
 public class MountsGameTest implements FabricGameTest {
-
-    private static final int SIZE = 8;
 
     // --- Coverage ---------------------------------------------------------------------------
 
@@ -80,7 +80,7 @@ public class MountsGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE)
     public void tamedHorsePathsAroundLava(GameTestHelper helper) {
-        buildFloor(helper);
+        TestFloors.buildFloor(helper);
         // Lava strip across z=3 at x=0..3, carved into the walking layer; the x=4..7 gap is the
         // only safe route. Wider than the wolf test's gap so a horse's ~1.4-block footprint fits
         // through without sampling a lava column (its 2x2 pathfinding footprint needs two clear
@@ -88,7 +88,7 @@ public class MountsGameTest implements FabricGameTest {
         for (int x = 0; x <= 3; x++) {
             helper.setBlock(new BlockPos(x, 1, 3), Blocks.LAVA.defaultBlockState());
         }
-        Horse horse = spawnTamedHorse(helper, new BlockPos(1, 2, 1));
+        Horse horse = PetSpawns.spawnTamedHorse(helper, new BlockPos(1, 2, 1));
         horse.setNoAi(true);
         horse.setOnGround(true);
         BlockPos target = helper.absolutePos(new BlockPos(1, 2, 6));
@@ -108,9 +108,9 @@ public class MountsGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE, timeoutTicks = 200, batch = "instinctMountBerth1")
     public void riderlessHorseFleesSwellingCreeper(GameTestHelper helper) {
-        buildFloor(helper);
-        Horse horse = spawnTamedHorse(helper, new BlockPos(2, 2, 2));
-        Creeper creeper = spawnFuseOnlyCreeper(helper, new BlockPos(2, 2, 5));
+        TestFloors.buildFloor(helper);
+        Horse horse = PetSpawns.spawnTamedHorse(helper, new BlockPos(2, 2, 2));
+        Creeper creeper = PetSpawns.spawnFuseOnlyCreeper(helper, new BlockPos(2, 2, 5));
         Vec3 creeperPos = creeper.position();
         creeper.ignite();
         helper.succeedWhen(() -> {
@@ -123,9 +123,9 @@ public class MountsGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE, timeoutTicks = 100, batch = "instinctMountBerth2")
     public void riddenHorseIgnoresCreeperBerth(GameTestHelper helper) {
-        buildFloor(helper);
-        Horse horse = spawnTamedHorse(helper, new BlockPos(3, 2, 3));
-        Creeper creeper = spawnFuseOnlyCreeper(helper, new BlockPos(3, 2, 4));
+        TestFloors.buildFloor(helper);
+        Horse horse = PetSpawns.spawnTamedHorse(helper, new BlockPos(3, 2, 3));
+        Creeper creeper = PetSpawns.spawnFuseOnlyCreeper(helper, new BlockPos(3, 2, 4));
         ServerPlayer rider = MockPlayers.serverPlayerInLevel(helper);
         rider.startRiding(horse, true);
         helper.assertTrue(horse.isVehicle(), "precondition: the horse is being ridden");
@@ -175,7 +175,7 @@ public class MountsGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE)
     public void lethalBlowDownsTamedHorseAndClearsAttackers(GameTestHelper helper) {
-        Horse horse = spawnTamedHorse(helper, new BlockPos(3, 2, 3));
+        Horse horse = PetSpawns.spawnTamedHorse(helper, new BlockPos(3, 2, 3));
         Zombie zombie = helper.spawn(EntityType.ZOMBIE, new BlockPos(4, 2, 3));
         zombie.setTarget(horse);
 
@@ -196,7 +196,7 @@ public class MountsGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE)
     public void downingEjectsTheRider(GameTestHelper helper) {
-        Horse horse = spawnTamedHorse(helper, new BlockPos(3, 2, 3));
+        Horse horse = PetSpawns.spawnTamedHorse(helper, new BlockPos(3, 2, 3));
         ServerPlayer rider = MockPlayers.serverPlayerInLevel(helper);
         try {
             rider.startRiding(horse, true);
@@ -214,7 +214,7 @@ public class MountsGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE)
     public void goldenAppleRevivesHorseWithNoRankPenalty(GameTestHelper helper) {
-        Horse horse = spawnTamedHorse(helper, new BlockPos(3, 2, 3));
+        Horse horse = PetSpawns.spawnTamedHorse(helper, new BlockPos(3, 2, 3));
         downWithArrow(helper, horse);
         ServerPlayer reviver = MockPlayers.serverPlayerInLevel(helper);
         try {
@@ -238,7 +238,7 @@ public class MountsGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE)
     public void vetKitRevivesHorseToo(GameTestHelper helper) {
-        Horse horse = spawnTamedHorse(helper, new BlockPos(3, 2, 3));
+        Horse horse = PetSpawns.spawnTamedHorse(helper, new BlockPos(3, 2, 3));
         downWithArrow(helper, horse);
         ServerPlayer reviver = MockPlayers.serverPlayerInLevel(helper);
         try {
@@ -258,7 +258,7 @@ public class MountsGameTest implements FabricGameTest {
     public void mountTransitionsFireThePublicCallbacks(GameTestHelper helper) {
         AtomicBoolean downedFired = new AtomicBoolean(false);
         AtomicBoolean revivedFired = new AtomicBoolean(false);
-        Horse horse = spawnTamedHorse(helper, new BlockPos(3, 2, 3));
+        Horse horse = PetSpawns.spawnTamedHorse(helper, new BlockPos(3, 2, 3));
         // Match on UUID, not the entity: a registered listener can never be unregistered, so
         // capturing the entity would pin it and its level for the rest of the run.
         UUID horseId = horse.getUUID();
@@ -292,7 +292,7 @@ public class MountsGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE)
     public void lavaDeathKillsHorseForReal(GameTestHelper helper) {
-        Horse horse = spawnTamedHorse(helper, new BlockPos(3, 2, 3));
+        Horse horse = PetSpawns.spawnTamedHorse(helper, new BlockPos(3, 2, 3));
         horse.hurt(helper.getLevel().damageSources().lava(), 1000.0F);
         helper.assertFalse(horse.isAlive(), "lava is beyond saving — a real death, no down");
         helper.assertFalse(InstinctAPI.isDowned(horse), "no downed attachment for a lava death");
@@ -318,7 +318,7 @@ public class MountsGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE)
     public void downedStateSurvivesNbtRoundTrip(GameTestHelper helper) {
-        Horse horse = spawnTamedHorse(helper, new BlockPos(3, 2, 3));
+        Horse horse = PetSpawns.spawnTamedHorse(helper, new BlockPos(3, 2, 3));
         downWithArrow(helper, horse);
 
         CompoundTag saved = new CompoundTag();
@@ -341,7 +341,7 @@ public class MountsGameTest implements FabricGameTest {
         boolean saved = InstinctConfig.get().enableDownedState;
         try {
             InstinctConfig.get().enableDownedState = false;
-            Horse horse = spawnTamedHorse(helper, new BlockPos(3, 2, 3));
+            Horse horse = PetSpawns.spawnTamedHorse(helper, new BlockPos(3, 2, 3));
             horse.hurt(helper.getLevel().damageSources().generic(), 1000.0F);
             helper.assertFalse(horse.isAlive(), "with the feature off, a lethal blow kills vanilla-style");
             helper.assertFalse(InstinctAPI.isDowned(horse), "no new downs occur while disabled");
@@ -371,48 +371,5 @@ public class MountsGameTest implements FabricGameTest {
     private static InteractionResult revive(GameTestHelper helper, ServerPlayer reviver, Horse horse) {
         return UseEntityCallback.EVENT.invoker()
                 .interact(reviver, helper.getLevel(), InteractionHand.MAIN_HAND, horse, null);
-    }
-
-    /**
-     * Spawns a horse that is already tamed when {@code addFreshEntity} fires ENTITY_LOAD — the
-     * production path for a tamed mount loading in, which applies maluses and injects the berth
-     * goal.
-     */
-    private static Horse spawnTamedHorse(GameTestHelper helper, BlockPos rel) {
-        Horse horse = EntityType.HORSE.create(helper.getLevel());
-        if (horse == null) {
-            throw new IllegalStateException("could not create a horse");
-        }
-        BlockPos abs = helper.absolutePos(rel);
-        horse.moveTo(abs.getX() + 0.5, abs.getY(), abs.getZ() + 0.5, 0.0f, 0.0f);
-        horse.setTamed(true);
-        horse.setOwnerUUID(UUID.randomUUID());
-        helper.getLevel().addFreshEntity(horse);
-        return horse;
-    }
-
-    /** Two-layer stone floor filling the region at y=0..1; mobs walk on the y=2 surface. */
-    private static void buildFloor(GameTestHelper helper) {
-        for (int x = 0; x < SIZE; x++) {
-            for (int z = 0; z < SIZE; z++) {
-                helper.setBlock(new BlockPos(x, 0, z), Blocks.SMOOTH_STONE.defaultBlockState());
-                helper.setBlock(new BlockPos(x, 1, z), Blocks.SMOOTH_STONE.defaultBlockState());
-            }
-        }
-    }
-
-    /**
-     * A creeper that can fuse but not hurt the test: NoAI keeps it in place, ExplosionRadius 0
-     * makes any detonation harmless, and a 400-tick fuse outlives the test so the fuse never ends
-     * (and stops the berth early) before the assertions are met. Tests must discard it.
-     */
-    private static Creeper spawnFuseOnlyCreeper(GameTestHelper helper, BlockPos rel) {
-        Creeper creeper = helper.spawn(EntityType.CREEPER, rel);
-        creeper.setNoAi(true);
-        CompoundTag tag = creeper.saveWithoutId(new CompoundTag());
-        tag.putByte("ExplosionRadius", (byte) 0);
-        tag.putShort("Fuse", (short) 400);
-        creeper.load(tag);
-        return creeper;
     }
 }
