@@ -22,7 +22,7 @@ import net.minecraft.world.phys.Vec3;
  * SPEC §1 Pet Self-Preservation: hazard-aware pathing (enter blocked, escape allowed), the
  * creeper berth with re-sit and attack break-off, teleport refusal, load idempotency, and the
  * config-disabled vanilla path. Structure region is Fabric's 8x8x8 empty template; every test
- * lays its own two-layer stone floor (y=0..1) and works on the y=2 surface. The config-mutating
+ * builds a two-layer stone floor via {@link TestFloors} (y=0..1) and works on the y=2 surface. The config-mutating
  * test gets its own {@code batch} and restores the flag in {@code finally}, mirroring
  * {@link CoverageGameTest}.
  */

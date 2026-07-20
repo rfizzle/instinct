@@ -88,7 +88,6 @@ public class KeepsakeGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE)
     public void voidLossLaysTheCollarOnSafeGround(GameTestHelper helper) {
-        helper.setBlock(new BlockPos(3, 1, 3), Blocks.STONE);
         Wolf wolf = PetSpawns.spawnTamedWolf(helper, new BlockPos(3, 2, 3));
 
         KeepsakeHandler.dropKeepsake(wolf, helper.getLevel().damageSources().fellOutOfWorld());

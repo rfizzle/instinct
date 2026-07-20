@@ -46,7 +46,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * dying, revivable by the same golden apple / vet kit path as pets — but with no sit pose and no
  * veterancy rank penalty, and it ejects its rider on going down. The horse family resolves into
  * the mounts set (and stays out of pets and livestock). Structure region is Fabric's 8x8x8 empty
- * template; movement tests lay their own stone floor and work on the y=2 surface. Berth tests get
+ * template; movement tests build a stone floor via {@link TestFloors} and work on the y=2 surface. Berth tests get
  * their own {@code batch} so a live fuse never falls inside another test's awareness radius.
  */
 public class MountsGameTest implements FabricGameTest {

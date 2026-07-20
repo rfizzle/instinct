@@ -16,9 +16,9 @@ import java.util.UUID;
 
 /**
  * Faithfulness guard for the shared gametest helpers, the sibling of {@link MockPlayersGameTest}.
- * Every suite now rests on {@link PetSpawns} and {@link TestFloors}, so a regression in either
- * would otherwise surface as unexplained flakes scattered across unrelated suites rather than as
- * a failure here.
+ * Every suite rests on {@link PetSpawns} and {@link TestFloors}, so a regression in either would
+ * otherwise surface as unexplained flakes scattered across unrelated suites rather than as a
+ * failure here.
  */
 public class GameTestHelpersGameTest implements FabricGameTest {
 
@@ -71,28 +71,61 @@ public class GameTestHelpersGameTest implements FabricGameTest {
      */
     @GameTest(template = EMPTY_STRUCTURE)
     public void prepareSpawnForcesAColdChunk(GameTestHelper helper) {
-        // Searched rather than hardcoded: suites share one grid, so a fixed offset can land in a
-        // chunk a neighbouring slot has already forced — the very coupling #59 was about. Walking
-        // out until the chunk is genuinely unforced is what keeps the assertion below meaningful.
-        BlockPos rel = null;
-        ChunkPos chunk = null;
-        for (int dx = 16; dx <= 4096 && rel == null; dx += 16) {
-            BlockPos candidate = new BlockPos(dx, 2, 0);
-            ChunkPos candidateChunk = new ChunkPos(helper.absolutePos(candidate));
-            if (!helper.getLevel().getForcedChunks().contains(candidateChunk.toLong())) {
-                rel = candidate;
-                chunk = candidateChunk;
-            }
-        }
-        helper.assertTrue(rel != null,
-                "precondition: no unforced chunk within 4096 blocks, so this test would prove nothing");
+        BlockPos rel = coldChunkPos(helper);
+        ChunkPos chunk = new ChunkPos(helper.absolutePos(rel));
 
         PetSpawns.prepareSpawn(helper, rel);
+        // Released here rather than left to batch teardown: a test whose whole subject is
+        // cross-test chunk coupling should not itself leave forced chunks in the shared grid.
+        try {
+            helper.assertTrue(helper.getLevel().getForcedChunks().contains(chunk.toLong()),
+                    "preparing a spawn should force the chunk it lands in");
+            helper.assertBlockPresent(Blocks.SMOOTH_STONE, rel.below());
+            helper.succeed();
+        } finally {
+            helper.getLevel().setChunkForced(chunk.x, chunk.z, false);
+        }
+    }
 
-        helper.assertTrue(helper.getLevel().getForcedChunks().contains(chunk.toLong()),
-                "preparing a spawn should force the chunk it lands in");
-        helper.assertBlockPresent(Blocks.SMOOTH_STONE, rel.below());
-        helper.succeed();
+    /**
+     * Regression guard: {@code GameTestHelper#spawn} marks a mob persistence-required, so the
+     * shared primitive that replaced it at every call site has to as well. Without it vanilla
+     * despawns a mob whose nearest player is beyond its category distance, and a test holding one
+     * across ticks sees it vanish for no visible reason.
+     */
+    @GameTest(template = EMPTY_STRUCTURE)
+    public void spawnedMobsArePersistenceRequired(GameTestHelper helper) {
+        TestFloors.buildFloor(helper);
+
+        Wolf wolf = PetSpawns.spawnTamedWolf(helper, new BlockPos(2, 2, 2));
+        Creeper creeper = PetSpawns.spawnFuseOnlyCreeper(helper, new BlockPos(5, 2, 5));
+        try {
+            helper.assertTrue(wolf.isPersistenceRequired(),
+                    "a shared-helper pet should be persistence-required, as helper.spawn made it");
+            helper.assertTrue(creeper.isPersistenceRequired(),
+                    "a shared-helper creeper should be persistence-required");
+            helper.succeed();
+        } finally {
+            wolf.discard();
+            creeper.discard();
+        }
+    }
+
+    /**
+     * A relative position whose chunk no test has forced. Searched rather than hardcoded: suites
+     * share one grid, so a fixed offset can land in a chunk a neighbouring slot has already forced
+     * — the very coupling #59 was about.
+     */
+    private static BlockPos coldChunkPos(GameTestHelper helper) {
+        for (int dx = 16; dx <= 4096; dx += 16) {
+            BlockPos candidate = new BlockPos(dx, 2, 0);
+            ChunkPos chunk = new ChunkPos(helper.absolutePos(candidate));
+            if (!helper.getLevel().getForcedChunks().contains(chunk.toLong())) {
+                return candidate;
+            }
+        }
+        throw new IllegalStateException(
+                "no unforced chunk within 4096 blocks, so this test would prove nothing");
     }
 
     @GameTest(template = EMPTY_STRUCTURE)

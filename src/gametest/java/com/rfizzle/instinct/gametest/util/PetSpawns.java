@@ -5,6 +5,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.entity.animal.Parrot;
 import net.minecraft.world.entity.animal.Wolf;
@@ -23,10 +24,10 @@ import java.util.function.Consumer;
  * hardening fix lands once and reaches all of them. {@code GameTestHelpersGameTest} guards this.
  *
  * <p>This is the boundary: a raw {@code helper.spawn} stands its entity wherever the caller's
- * floor reaches, with no chunk forced. That is sound only while the position sits inside the
- * structure's own force-loaded box — true of every such call site today, and the reason they were
- * left alone. A spawn placed beyond that box, or one a test later enumerates rather than holding
- * a reference to, belongs here instead.
+ * floor reaches, with no chunk forced. That is sound while the position sits inside the
+ * structure's own force-loaded box, which is why a raw spawn is still correct there. A spawn
+ * placed beyond that box, or one a test later enumerates rather than holding a reference to,
+ * belongs here instead.
  */
 public final class PetSpawns {
 
@@ -40,6 +41,10 @@ public final class PetSpawns {
      * rather than applied inline, so writing blocks nearby does not reliably bring it about. The
      * framework releases every forced chunk when the batch ends, so this needs no teardown. The
      * pad is what keeps a pet that outlives its spawn tick from falling.
+     *
+     * <p>The pad extends one block out on each horizontal axis, so callers spawn at a relative x
+     * and z of at least 1. Below that it writes outside the structure, into the gap between grid
+     * slots where no floor exists and the write is not the no-op it is over a built floor.
      */
     public static void prepareSpawn(GameTestHelper helper, BlockPos rel) {
         ChunkPos chunk = new ChunkPos(helper.absolutePos(rel));
@@ -69,6 +74,10 @@ public final class PetSpawns {
      * than stylistic: {@code ENTITY_LOAD} injects Instinct's goals off the entity's state at load,
      * so anything a test needs the injection to see — tamed, owned, sitting — has to be set inside
      * the hook. State set after the call is invisible to it.
+     *
+     * <p>A mob is marked persistence-required, matching {@code GameTestHelper#spawn}: without it
+     * vanilla despawns a mob whose nearest player is beyond its category distance, which for a test
+     * holding one across ticks reads as the entity vanishing for no reason.
      */
     public static <T extends Entity> T spawnAt(GameTestHelper helper, EntityType<T> type, BlockPos rel,
                                                Consumer<T> beforeLoad) {
@@ -77,11 +86,22 @@ public final class PetSpawns {
         if (entity == null) {
             throw new IllegalStateException("could not create " + type);
         }
+        if (entity instanceof Mob mob) {
+            mob.setPersistenceRequired();
+        }
         BlockPos abs = helper.absolutePos(rel);
         entity.moveTo(abs.getX() + 0.5, abs.getY(), abs.getZ() + 0.5, 0.0f, 0.0f);
         beforeLoad.accept(entity);
         helper.getLevel().addFreshEntity(entity);
-        assertEnumerable(helper, entity);
+        // Discard before rethrowing: the entity is already in the level but the caller never
+        // receives it, so this is the only place that can still clean it up. A spawn outside every
+        // structure box would otherwise tick on unreferenced for the rest of the run.
+        try {
+            assertEnumerable(helper, entity);
+        } catch (RuntimeException e) {
+            entity.discard();
+            throw e;
+        }
         return entity;
     }
 

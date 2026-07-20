@@ -21,8 +21,8 @@ import java.util.UUID;
 /**
  * SPEC §8 Predator Watch: a tamed pet on Stay near livestock deters a hunting predator (clearing its
  * livestock target) and stands to intercept it, re-sitting once it is gone — plus the inert paths
- * (feature off, no pasture to guard) and load idempotency. Every test lays its own two-layer stone
- * floor (y=0..1) and works on the y=2 surface. The wild predator is spawned with {@code NoAI} so its
+ * (feature off, no pasture to guard) and load idempotency. Every test builds a two-layer stone
+ * floor (y=0..1) via {@link TestFloors} and works on the y=2 surface. The wild predator is spawned with {@code NoAI} so its
  * target selector never re-acquires the prey mid-assertion — the guardian's clear is what the test
  * observes, not a race with vanilla re-targeting.
  */
