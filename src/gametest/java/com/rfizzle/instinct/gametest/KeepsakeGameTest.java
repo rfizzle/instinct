@@ -17,7 +17,6 @@ import net.minecraft.world.entity.animal.Cow;
 import net.minecraft.world.entity.animal.Wolf;
 import net.minecraft.world.entity.animal.horse.Horse;
 import net.minecraft.world.entity.item.ItemEntity;
-import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.AABB;
 
 import java.util.List;
