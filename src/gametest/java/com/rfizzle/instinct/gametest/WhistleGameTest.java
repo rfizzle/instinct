@@ -15,12 +15,14 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.animal.Cow;
 import net.minecraft.world.entity.animal.Parrot;
 import net.minecraft.world.entity.animal.Wolf;
 import net.minecraft.world.entity.monster.Zombie;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
 
@@ -323,9 +325,12 @@ public class WhistleGameTest implements FabricGameTest {
 
     // ── lost-pet locator (SPEC §6) ────────────────────────────────────────────────────────────────
     // A world-wide owned-pet scan, so these run in their own batch (temporally isolated from the
-    // pathfinding batches) and each filters by its own mock owner. A pet placed far from the structure
-    // has no floor and would fall, so every test reads locate() synchronously in the spawn tick — the
-    // census is a snapshot, no ticks needed.
+    // pathfinding batches) and each filters by its own mock owner. The census is a snapshot, so every
+    // test reads locate() synchronously in the spawn tick, no ticks needed.
+    //
+    // These tests stand pets well outside the 8x8 box EMPTY_STRUCTURE force-loads, and a pet is
+    // enumerable only once its chunk is accessible. The spawn helpers force that chunk and then assert
+    // the pet reached the level's entity lookup — see prepareSpawn and assertEnumerable.
 
     @GameTest(template = EMPTY_STRUCTURE, batch = "instinctLocate")
     public void locateReportsDistantPetAndSkipsNearOne(GameTestHelper helper) {
@@ -387,13 +392,10 @@ public class WhistleGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE, batch = "instinctLocate")
     public void locateCapsTheListAndCountsTheOverflow(GameTestHelper helper) {
-        // The floor is deep enough to stand every pet on loaded ground: locate only enumerates pets in
-        // loaded chunks, and setBlock is what loads a chunk. Pets over the void beyond the structure's
-        // own force-loaded box are seen non-deterministically — that was the flake.
-        buildFloor(helper, 10, 31);
+        buildFloor(helper, 10, 8);
         ServerPlayer owner = mockPlayer(helper, new BlockPos(4, 2, 4));
         List<Wolf> pack = new ArrayList<>();
-        // Twelve pets fanned across the loaded floor, each 22..27 blocks south of the player — well past
+        // Twelve pets fanned south of the player, each 22..27 blocks away — well past
         // the 20-block voice, so all twelve count as sightings, two of them as overflow past the cap.
         for (int z = 26; z <= 30; z += 2) {
             for (int x = 2; x <= 8; x += 2) {
@@ -462,6 +464,8 @@ public class WhistleGameTest implements FabricGameTest {
         boolean saved = InstinctConfig.get().enableWhistle;
         InstinctConfig.get().enableWhistle = false;
         try {
+            // The distant pet is genuinely enumerable, so the empty result reflects the disabled flag
+            // rather than a pet the census could never have seen.
             buildFloor(helper, 8, 8);
             ServerPlayer owner = mockPlayer(helper, new BlockPos(4, 2, 4));
             Wolf far = spawnTamedWolf(helper, new BlockPos(30, 2, 4), owner.getUUID());
@@ -534,6 +538,7 @@ public class WhistleGameTest implements FabricGameTest {
     }
 
     private static Wolf spawnTamedWolf(GameTestHelper helper, BlockPos rel, UUID owner) {
+        prepareSpawn(helper, rel);
         Wolf wolf = EntityType.WOLF.create(helper.getLevel());
         if (wolf == null) {
             throw new IllegalStateException("could not create a wolf");
@@ -543,11 +548,13 @@ public class WhistleGameTest implements FabricGameTest {
         wolf.setTame(true, false);
         wolf.setOwnerUUID(owner);
         helper.getLevel().addFreshEntity(wolf);
+        assertEnumerable(helper, wolf);
         return wolf;
     }
 
     /** A tamed parrot — a pets-set animal with no attack-damage attribute, so never combat-capable. */
     private static Parrot spawnTamedParrot(GameTestHelper helper, BlockPos rel, UUID owner) {
+        prepareSpawn(helper, rel);
         Parrot parrot = EntityType.PARROT.create(helper.getLevel());
         if (parrot == null) {
             throw new IllegalStateException("could not create a parrot");
@@ -557,6 +564,7 @@ public class WhistleGameTest implements FabricGameTest {
         parrot.setTame(true, false);
         parrot.setOwnerUUID(owner);
         helper.getLevel().addFreshEntity(parrot);
+        assertEnumerable(helper, parrot);
         return parrot;
     }
 
@@ -572,6 +580,32 @@ public class WhistleGameTest implements FabricGameTest {
         player.setYHeadRot(yaw);
     }
 
+    /**
+     * Makes a spawn position one the locator can see a pet on. Forcing the chunk is the load-bearing
+     * step: a pet enters the level's entity lookup — the map a locate census iterates — only once its
+     * chunk is accessible, and that promotion is queued on the server executor rather than applied
+     * inline, so writing blocks nearby does not reliably bring it about. The framework releases every
+     * forced chunk when the batch ends, so this needs no teardown. The pad is what keeps a pet that
+     * outlives its spawn tick from falling.
+     */
+    private static void prepareSpawn(GameTestHelper helper, BlockPos rel) {
+        ChunkPos chunk = new ChunkPos(helper.absolutePos(rel));
+        helper.getLevel().setChunkForced(chunk.x, chunk.z, true);
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dz = -1; dz <= 1; dz++) {
+                helper.setBlock(rel.offset(dx, -1, dz), Blocks.SMOOTH_STONE.defaultBlockState());
+            }
+        }
+    }
+
+    /** Asserts the condition a census actually depends on, rather than a proxy for it. */
+    private static void assertEnumerable(GameTestHelper helper, Entity pet) {
+        helper.assertTrue(helper.getLevel().getEntity(pet.getId()) != null,
+                "a spawned pet is in the level's entity lookup, where a locate census finds it");
+    }
+
+    // Only the pet spawn helpers force their chunk. A raw helper.spawn stands its animal wherever the
+    // caller's floor reaches, which for every current caller is inside the force-loaded structure box.
     private static void buildFloor(GameTestHelper helper, int width, int depth) {
         for (int x = 0; x < width; x++) {
             for (int z = 0; z < depth; z++) {
