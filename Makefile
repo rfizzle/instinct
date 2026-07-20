@@ -2,13 +2,14 @@ GRADLE := ./gradlew
 BASE_VERSION := $(shell awk -F= '/^mod_version/ {gsub(/ /,"",$$2); print $$2}' gradle.properties)
 CONCORD_DIR ?= ../concord
 
-.PHONY: help build clean test jar run-client run-server gen-sources refresh-deps version release site site-serve sync
+.PHONY: help build clean test coverage jar run-client run-server gen-sources refresh-deps version release site site-serve sync
 
 help:
 	@echo "Targets:"
 	@echo "  build        Compile, test, and assemble the mod jar"
 	@echo "  jar          Print the path to the built primary jar"
 	@echo "  test         Run JUnit tests"
+	@echo "  coverage     Run unit tests + gametests and write the merged coverage report"
 	@echo "  run-client   Launch a dev Minecraft client with the mod loaded"
 	@echo "  run-server   Launch a dev Minecraft server with the mod loaded"
 	@echo "  gen-sources  Generate Minecraft sources for IDE navigation"
@@ -28,6 +29,13 @@ jar: build
 
 test:
 	$(GRADLE) test
+
+# Merged unit + gametest coverage — the mod's real coverage number. Report lands
+# in build/reports/jacoco/jacocoMergedReport/ (HTML + XML).
+coverage:
+	$(GRADLE) test runGametest jacocoMergedReport
+	@echo "report: build/reports/jacoco/jacocoMergedReport/html/index.html"
+	@echo "note:   build/reports/jacoco/test/ is unit-tests-only — not the mod's coverage number"
 
 run-client:
 	$(GRADLE) runClient

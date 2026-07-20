@@ -168,6 +168,16 @@ loom {
     }
 }
 
+// Attach the JaCoCo agent to the gametest server so code only exercised in-game
+// counts toward coverage. Loom's run task is a JavaExec, so the task extension
+// applies. The includes filter keeps the agent from instrumenting
+// Minecraft/Fabric classes.
+tasks.named('runGametest') {
+    jacoco.applyTo(it)
+    it.jacoco.destinationFile = layout.buildDirectory.file('jacoco/runGametest.exec').get().asFile
+    it.jacoco.includes = ['com.rfizzle.instinct.*']
+}
+
 // Expose client source set classes to JUnit tests (output only — no transitive deps).
 // Lets pure-math helpers on client-only classes be tested without enabling fabric-api at test runtime.
 sourceSets.test.compileClasspath += sourceSets.client.output
@@ -232,6 +242,48 @@ test {
 
 jacocoTestReport {
     dependsOn test
+    reports {
+        xml.required = true
+        html.required = true
+    }
+}
+
+// Single source of coverage truth: unit tests + gametests merged over src/main.
+// The unit-test-only jacocoTestReport reads 0% for everything a gametest drives
+// (event handlers, commands, registration), so per-package coverage is read from
+// this report, never from that one.
+tasks.register('jacocoMergedReport', JacocoReport) {
+    // The report reads compileJava/processResources output, so it must depend on
+    // them — without this, any invocation that compiles without also scheduling a
+    // test task (e.g. `gradlew jar jacocoMergedReport`) fails Gradle's
+    // implicit-dependency validation.
+    dependsOn tasks.named('classes')
+    // Ordering only — not dependsOn, so the report can run from existing exec
+    // data without forcing a gametest server spin-up.
+    mustRunAfter test, tasks.named('runGametest')
+    // fileTree only picks up exec files that exist, so the report still runs
+    // when one of the two sweeps hasn't.
+    executionData fileTree(layout.buildDirectory.dir('jacoco')) {
+        include 'test.exec', 'runGametest.exec'
+    }
+    // A sweep that never ran leaves its exec file absent, which would otherwise
+    // yield a partial number under the "merged" label with no indication.
+    doFirst {
+        ['test.exec', 'runGametest.exec'].each { name ->
+            def execFile = layout.buildDirectory.file("jacoco/${name}").get().asFile
+            if (!execFile.exists() || execFile.length() == 0) {
+                logger.warn("jacocoMergedReport: ${name} is missing or empty — this report is NOT merged coverage")
+            }
+        }
+    }
+    sourceSets sourceSets.main
+    // Mixin bodies execute inside the transformed vanilla classes, so the agent
+    // can never attribute coverage to the mixin class files — excluding them
+    // keeps the denominator honest. Mixins stay thin (delegate to handlers), so
+    // nothing measurable hides here.
+    classDirectories.setFrom(files(classDirectories.files.collect {
+        fileTree(dir: it, exclude: ['com/rfizzle/instinct/mixin/**'])
+    }))
     reports {
         xml.required = true
         html.required = true
