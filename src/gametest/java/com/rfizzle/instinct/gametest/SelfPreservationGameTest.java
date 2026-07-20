@@ -2,23 +2,21 @@ package com.rfizzle.instinct.gametest;
 
 import com.rfizzle.instinct.config.InstinctConfig;
 import com.rfizzle.instinct.gametest.util.MockPlayers;
+import com.rfizzle.instinct.gametest.util.PetSpawns;
+import com.rfizzle.instinct.gametest.util.TestFloors;
 import com.rfizzle.instinct.selfpreservation.CreeperBerthGoal;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.gametest.v1.FabricGameTest;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.animal.Wolf;
 import net.minecraft.world.entity.monster.Creeper;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.pathfinder.Path;
 import net.minecraft.world.level.pathfinder.PathType;
 import net.minecraft.world.phys.Vec3;
-
-import java.util.UUID;
 
 /**
  * SPEC §1 Pet Self-Preservation: hazard-aware pathing (enter blocked, escape allowed), the
@@ -30,17 +28,15 @@ import java.util.UUID;
  */
 public class SelfPreservationGameTest implements FabricGameTest {
 
-    private static final int SIZE = 8;
-
     @GameTest(template = EMPTY_STRUCTURE)
     public void tamedWolfPathsAroundLava(GameTestHelper helper) {
-        buildFloor(helper);
+        TestFloors.buildFloor(helper);
         // Lava strip across z=3 at x=0..5, carved into the walking layer; the x=6..7 gap is the
         // only safe route between the two sides.
         for (int x = 0; x <= 5; x++) {
             helper.setBlock(new BlockPos(x, 1, 3), Blocks.LAVA.defaultBlockState());
         }
-        Wolf wolf = spawnTamedWolf(helper, new BlockPos(1, 2, 1));
+        Wolf wolf = PetSpawns.spawnTamedWolf(helper, new BlockPos(1, 2, 1));
         // NoAI keeps the wolf at its spawn cell so the computed path, not wandering, is what the
         // test observes. NoAI also skips travel(), so gravity never raises the onGround flag that
         // GroundPathNavigation#canUpdatePath requires — force it; nothing recomputes it while AI
@@ -64,13 +60,13 @@ public class SelfPreservationGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE)
     public void tamedWolfPathsAroundFire(GameTestHelper helper) {
-        buildFloor(helper);
+        TestFloors.buildFloor(helper);
         // Fire strip on the walking surface at z=3, x=0..5; the x=6..7 gap is the only safe
         // route. Mirrors tamedWolfPathsAroundLava for the DAMAGE_FIRE malus.
         for (int x = 0; x <= 5; x++) {
             helper.setBlock(new BlockPos(x, 2, 3), Blocks.FIRE.defaultBlockState());
         }
-        Wolf wolf = spawnTamedWolf(helper, new BlockPos(1, 2, 1));
+        Wolf wolf = PetSpawns.spawnTamedWolf(helper, new BlockPos(1, 2, 1));
         wolf.setNoAi(true);
         wolf.setOnGround(true);
         BlockPos target = helper.absolutePos(new BlockPos(1, 2, 6));
@@ -90,9 +86,9 @@ public class SelfPreservationGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE)
     public void wolfStandingInHazardMayEscape(GameTestHelper helper) {
-        buildFloor(helper);
+        TestFloors.buildFloor(helper);
         helper.setBlock(new BlockPos(3, 2, 3), Blocks.FIRE.defaultBlockState());
-        Wolf wolf = spawnTamedWolf(helper, new BlockPos(3, 2, 3));
+        Wolf wolf = PetSpawns.spawnTamedWolf(helper, new BlockPos(3, 2, 3));
         // NoAI: the wolf must still be standing in the fire when the path is computed —
         // panicking out of it would test nothing. NoAI also skips travel(), so force the
         // onGround flag that GroundPathNavigation#canUpdatePath requires.
@@ -113,10 +109,10 @@ public class SelfPreservationGameTest implements FabricGameTest {
     // fuse must never be within another test's berth awareness radius.
     @GameTest(template = EMPTY_STRUCTURE, timeoutTicks = 200, batch = "instinctBerth1")
     public void sittingWolfStepsClearOfSwellingCreeperAndResits(GameTestHelper helper) {
-        buildFloor(helper);
-        Wolf wolf = spawnTamedWolf(helper, new BlockPos(2, 2, 2));
+        TestFloors.buildFloor(helper);
+        Wolf wolf = PetSpawns.spawnTamedWolf(helper, new BlockPos(2, 2, 2));
         wolf.setOrderedToSit(true);
-        Creeper creeper = spawnFuseOnlyCreeper(helper, new BlockPos(2, 2, 5));
+        Creeper creeper = PetSpawns.spawnFuseOnlyCreeper(helper, new BlockPos(2, 2, 5));
         Vec3 creeperPos = creeper.position();
         creeper.ignite();
         helper.succeedWhen(() -> {
@@ -131,9 +127,9 @@ public class SelfPreservationGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE, timeoutTicks = 200, batch = "instinctBerth2")
     public void attackingWolfBreaksOffDuringFuse(GameTestHelper helper) {
-        buildFloor(helper);
-        Wolf wolf = spawnTamedWolf(helper, new BlockPos(1, 2, 1));
-        Creeper creeper = spawnFuseOnlyCreeper(helper, new BlockPos(5, 2, 5));
+        TestFloors.buildFloor(helper);
+        Wolf wolf = PetSpawns.spawnTamedWolf(helper, new BlockPos(1, 2, 1));
+        Creeper creeper = PetSpawns.spawnFuseOnlyCreeper(helper, new BlockPos(5, 2, 5));
         wolf.setTarget(creeper);
         creeper.ignite();
         helper.succeedWhen(() -> {
@@ -148,10 +144,10 @@ public class SelfPreservationGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE)
     public void teleportRefusedWhileOwnerUnsafe(GameTestHelper helper) {
-        buildFloor(helper);
+        TestFloors.buildFloor(helper);
         ServerPlayer owner = MockPlayers.serverPlayerInLevel(helper);
         try {
-            Wolf wolf = spawnTamedWolf(helper, new BlockPos(3, 2, 3));
+            Wolf wolf = PetSpawns.spawnTamedWolf(helper, new BlockPos(3, 2, 3));
             wolf.setOwnerUUID(owner.getUUID());
             // The mock owner spawns at world spawn, far outside the structure — beyond the
             // vanilla 12-block teleport threshold, so the vanilla predicate wants to teleport.
@@ -179,8 +175,8 @@ public class SelfPreservationGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE)
     public void reloadNeverStacksASecondBerthGoal(GameTestHelper helper) {
-        buildFloor(helper);
-        Wolf wolf = spawnTamedWolf(helper, new BlockPos(3, 2, 3));
+        TestFloors.buildFloor(helper);
+        Wolf wolf = PetSpawns.spawnTamedWolf(helper, new BlockPos(3, 2, 3));
         helper.assertValueEqual(countBerthGoals(wolf), 1L, "berth goals after first load");
         helper.assertTrue(wolf.getPathfindingMalus(PathType.LAVA) < 0.0f, "lava malus applied");
         helper.assertTrue(wolf.getPathfindingMalus(PathType.DAMAGE_FIRE) < 0.0f, "fire malus applied");
@@ -199,8 +195,8 @@ public class SelfPreservationGameTest implements FabricGameTest {
         ServerPlayer owner = null;
         try {
             InstinctConfig.get().enableSelfPreservation = false;
-            buildFloor(helper);
-            Wolf wolf = spawnTamedWolf(helper, new BlockPos(3, 2, 3));
+            TestFloors.buildFloor(helper);
+            Wolf wolf = PetSpawns.spawnTamedWolf(helper, new BlockPos(3, 2, 3));
             helper.assertValueEqual(countBerthGoals(wolf), 0L, "no berth goal when disabled");
 
             owner = MockPlayers.serverPlayerInLevel(helper);
@@ -222,48 +218,5 @@ public class SelfPreservationGameTest implements FabricGameTest {
         return wolf.goalSelector.getAvailableGoals().stream()
                 .filter(wrapped -> wrapped.getGoal() instanceof CreeperBerthGoal)
                 .count();
-    }
-
-    /** Two-layer stone floor filling the region at y=0..1; mobs walk on the y=2 surface. */
-    private static void buildFloor(GameTestHelper helper) {
-        for (int x = 0; x < SIZE; x++) {
-            for (int z = 0; z < SIZE; z++) {
-                helper.setBlock(new BlockPos(x, 0, z), Blocks.SMOOTH_STONE.defaultBlockState());
-                helper.setBlock(new BlockPos(x, 1, z), Blocks.SMOOTH_STONE.defaultBlockState());
-            }
-        }
-    }
-
-    /**
-     * Spawns a wolf that is already tamed when {@code addFreshEntity} fires ENTITY_LOAD — the
-     * production path for a tamed pet loading in, which applies maluses and injects the goal.
-     */
-    private static Wolf spawnTamedWolf(GameTestHelper helper, BlockPos rel) {
-        Wolf wolf = EntityType.WOLF.create(helper.getLevel());
-        if (wolf == null) {
-            throw new IllegalStateException("could not create a wolf");
-        }
-        BlockPos abs = helper.absolutePos(rel);
-        wolf.moveTo(abs.getX() + 0.5, abs.getY(), abs.getZ() + 0.5, 0.0f, 0.0f);
-        wolf.setTame(true, false);
-        wolf.setOwnerUUID(UUID.randomUUID());
-        helper.getLevel().addFreshEntity(wolf);
-        return wolf;
-    }
-
-    /**
-     * A creeper that can fuse but not hurt the test: NoAI keeps it in place (the swell counter
-     * runs in {@code Creeper#tick()}, not its AI), ExplosionRadius 0 makes any detonation
-     * harmless, and a 400-tick fuse outlives the test timeout so the fuse can never end (and
-     * stop the berth goal early) before the assertions are met. Tests must discard it.
-     */
-    private static Creeper spawnFuseOnlyCreeper(GameTestHelper helper, BlockPos rel) {
-        Creeper creeper = helper.spawn(EntityType.CREEPER, rel);
-        creeper.setNoAi(true);
-        CompoundTag tag = creeper.saveWithoutId(new CompoundTag());
-        tag.putByte("ExplosionRadius", (byte) 0);
-        tag.putShort("Fuse", (short) 400);
-        creeper.load(tag);
-        return creeper;
     }
 }

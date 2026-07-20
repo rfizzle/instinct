@@ -3,6 +3,8 @@ package com.rfizzle.instinct.gametest;
 import com.rfizzle.instinct.boating.BoardBoatGoal;
 import com.rfizzle.instinct.config.InstinctConfig;
 import com.rfizzle.instinct.gametest.util.MockPlayers;
+import com.rfizzle.instinct.gametest.util.PetSpawns;
+import com.rfizzle.instinct.gametest.util.TestFloors;
 import net.fabricmc.fabric.api.gametest.v1.FabricGameTest;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTest;
@@ -13,9 +15,6 @@ import net.minecraft.world.entity.ai.goal.WrappedGoal;
 import net.minecraft.world.entity.animal.Cow;
 import net.minecraft.world.entity.animal.Wolf;
 import net.minecraft.world.entity.vehicle.Boat;
-import net.minecraft.world.level.block.Blocks;
-
-import java.util.UUID;
 
 /**
  * SPEC §4 "Water crossings", the boat-boarding half: a following pet takes the boat's single spare
@@ -27,10 +26,10 @@ public class BoatBoardGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE, timeoutTicks = 200)
     public void petBoardsOwnersBoat(GameTestHelper helper) {
-        buildFloor(helper, 10, 8);
+        TestFloors.buildFloor(helper, 10, 8);
         ServerPlayer driver = driverInBoat(helper, new BlockPos(6, 2, 4));
         Boat boat = (Boat) driver.getVehicle();
-        Wolf wolf = spawnTamedWolf(helper, new BlockPos(2, 2, 4), driver.getUUID());
+        Wolf wolf = PetSpawns.spawnTamedWolf(helper, new BlockPos(2, 2, 4), driver.getUUID());
         helper.succeedWhen(() -> {
             helper.assertTrue(wolf.getVehicle() == boat, "the following pet takes the boat's spare seat");
             wolf.discard();
@@ -41,11 +40,11 @@ public class BoatBoardGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE, timeoutTicks = 200)
     public void onlyOnePetTakesTheSpareSeat(GameTestHelper helper) {
-        buildFloor(helper, 10, 8);
+        TestFloors.buildFloor(helper, 10, 8);
         ServerPlayer driver = driverInBoat(helper, new BlockPos(6, 2, 4));
         Boat boat = (Boat) driver.getVehicle();
-        Wolf near = spawnTamedWolf(helper, new BlockPos(4, 2, 4), driver.getUUID());
-        Wolf far = spawnTamedWolf(helper, new BlockPos(2, 2, 4), driver.getUUID());
+        Wolf near = PetSpawns.spawnTamedWolf(helper, new BlockPos(4, 2, 4), driver.getUUID());
+        Wolf far = PetSpawns.spawnTamedWolf(helper, new BlockPos(2, 2, 4), driver.getUUID());
         // The boat seats two; the driver fills one, so exactly one wolf can ever board — the vanilla
         // seat cap enforces it even though both pets are eligible.
         helper.succeedWhen(() -> {
@@ -63,10 +62,10 @@ public class BoatBoardGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE, timeoutTicks = 300)
     public void petDisembarksWhenOwnerLands(GameTestHelper helper) {
-        buildFloor(helper, 10, 8);
+        TestFloors.buildFloor(helper, 10, 8);
         ServerPlayer driver = driverInBoat(helper, new BlockPos(6, 2, 4));
         Boat boat = (Boat) driver.getVehicle();
-        Wolf wolf = spawnTamedWolf(helper, new BlockPos(2, 2, 4), driver.getUUID());
+        Wolf wolf = PetSpawns.spawnTamedWolf(helper, new BlockPos(2, 2, 4), driver.getUUID());
         helper.startSequence()
                 .thenWaitUntil(() -> helper.assertTrue(wolf.getVehicle() == boat, "the pet boards first"))
                 .thenExecute(driver::stopRiding) // the owner steps ashore
@@ -85,10 +84,10 @@ public class BoatBoardGameTest implements FabricGameTest {
         boolean saved = InstinctConfig.get().enablePetBoating;
         InstinctConfig.get().enablePetBoating = false;
         try {
-            buildFloor(helper, 10, 8);
+            TestFloors.buildFloor(helper, 10, 8);
             ServerPlayer driver = driverInBoat(helper, new BlockPos(6, 2, 4));
             Boat boat = (Boat) driver.getVehicle();
-            Wolf wolf = spawnTamedWolf(helper, new BlockPos(4, 2, 4), driver.getUUID());
+            Wolf wolf = PetSpawns.spawnTamedWolf(helper, new BlockPos(4, 2, 4), driver.getUUID());
             helper.runAfterDelay(60, () -> {
                 try {
                     helper.assertTrue(wolf.getVehicle() == null, "a pet never boards while the feature is off");
@@ -108,10 +107,10 @@ public class BoatBoardGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE, timeoutTicks = 100)
     public void sittingPetDoesNotBoard(GameTestHelper helper) {
-        buildFloor(helper, 10, 8);
+        TestFloors.buildFloor(helper, 10, 8);
         ServerPlayer driver = driverInBoat(helper, new BlockPos(6, 2, 4));
         Boat boat = (Boat) driver.getVehicle();
-        Wolf wolf = spawnTamedWolf(helper, new BlockPos(4, 2, 4), driver.getUUID());
+        Wolf wolf = PetSpawns.spawnTamedWolf(helper, new BlockPos(4, 2, 4), driver.getUUID());
         wolf.setOrderedToSit(true); // on Stay — it holds its ground, it does not chase the boat
         helper.runAfterDelay(60, () -> {
             helper.assertTrue(wolf.getVehicle() == null, "a pet on Stay never boards");
@@ -124,10 +123,10 @@ public class BoatBoardGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE, timeoutTicks = 100)
     public void petWithCombatTargetDoesNotBoard(GameTestHelper helper) {
-        buildFloor(helper, 10, 8);
+        TestFloors.buildFloor(helper, 10, 8);
         ServerPlayer driver = driverInBoat(helper, new BlockPos(6, 2, 4));
         Boat boat = (Boat) driver.getVehicle();
-        Wolf wolf = spawnTamedWolf(helper, new BlockPos(4, 2, 4), driver.getUUID());
+        Wolf wolf = PetSpawns.spawnTamedWolf(helper, new BlockPos(4, 2, 4), driver.getUUID());
         // An invulnerable cow the wolf can never kill: the combat target holds for the whole window, so
         // it never clears mid-test and frees the boarding goal to start (the old flake).
         Cow prey = helper.spawn(EntityType.COW, new BlockPos(4, 2, 7));
@@ -152,10 +151,10 @@ public class BoatBoardGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE, timeoutTicks = 300)
     public void adoptsAndDisembarksAPetSeatedBeforeTheGoalRuns(GameTestHelper helper) {
-        buildFloor(helper, 10, 8);
+        TestFloors.buildFloor(helper, 10, 8);
         ServerPlayer driver = driverInBoat(helper, new BlockPos(6, 2, 4));
         Boat boat = (Boat) driver.getVehicle();
-        Wolf wolf = spawnTamedWolf(helper, new BlockPos(5, 2, 4), driver.getUUID());
+        Wolf wolf = PetSpawns.spawnTamedWolf(helper, new BlockPos(5, 2, 4), driver.getUUID());
         wolf.startRiding(boat); // pre-seated, standing in for a world reloaded mid-voyage
         helper.startSequence()
                 .thenWaitUntil(() -> helper.assertTrue(wolf.getVehicle() == boat && isBoardGoalRunning(wolf),
@@ -189,27 +188,5 @@ public class BoatBoardGameTest implements FabricGameTest {
         Boat boat = helper.spawn(EntityType.BOAT, rel);
         player.startRiding(boat, true); // force the driver into the controlling seat
         return player;
-    }
-
-    private static Wolf spawnTamedWolf(GameTestHelper helper, BlockPos rel, UUID owner) {
-        Wolf wolf = EntityType.WOLF.create(helper.getLevel());
-        if (wolf == null) {
-            throw new IllegalStateException("could not create a wolf");
-        }
-        BlockPos abs = helper.absolutePos(rel);
-        wolf.moveTo(abs.getX() + 0.5, abs.getY(), abs.getZ() + 0.5, 0.0f, 0.0f);
-        wolf.setTame(true, false);
-        wolf.setOwnerUUID(owner);
-        helper.getLevel().addFreshEntity(wolf);
-        return wolf;
-    }
-
-    private static void buildFloor(GameTestHelper helper, int width, int depth) {
-        for (int x = 0; x < width; x++) {
-            for (int z = 0; z < depth; z++) {
-                helper.setBlock(new BlockPos(x, 0, z), Blocks.SMOOTH_STONE.defaultBlockState());
-                helper.setBlock(new BlockPos(x, 1, z), Blocks.SMOOTH_STONE.defaultBlockState());
-            }
-        }
     }
 }

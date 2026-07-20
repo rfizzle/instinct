@@ -2,19 +2,19 @@ package com.rfizzle.instinct.gametest;
 
 import com.rfizzle.instinct.config.InstinctConfig;
 import com.rfizzle.instinct.gametest.util.MockPlayers;
+import com.rfizzle.instinct.gametest.util.PetSpawns;
+import com.rfizzle.instinct.gametest.util.TestFloors;
 import com.rfizzle.instinct.predatorwatch.PredatorWatchGoal;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.gametest.v1.FabricGameTest;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.animal.Sheep;
 import net.minecraft.world.entity.animal.Wolf;
 import net.minecraft.world.entity.monster.Creeper;
-import net.minecraft.world.level.block.Blocks;
 
 import java.util.UUID;
 
@@ -28,11 +28,9 @@ import java.util.UUID;
  */
 public class PredatorWatchGameTest implements FabricGameTest {
 
-    private static final int SIZE = 8;
-
     @GameTest(template = EMPTY_STRUCTURE, timeoutTicks = 200, batch = "instinctPredatorWatch")
     public void guardianClearsAHuntingPredatorsTarget(GameTestHelper helper) {
-        buildFloor(helper);
+        TestFloors.buildFloor(helper);
         Sheep sheep = helper.spawn(EntityType.SHEEP, new BlockPos(3, 2, 2));
         Wolf predator = spawnWildWolf(helper, new BlockPos(5, 2, 5));
         predator.setTarget(sheep);
@@ -49,7 +47,7 @@ public class PredatorWatchGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE, timeoutTicks = 200, batch = "instinctPredatorWatch")
     public void guardianStandsToInterceptThenReSits(GameTestHelper helper) {
-        buildFloor(helper);
+        TestFloors.buildFloor(helper);
         Sheep sheep = helper.spawn(EntityType.SHEEP, new BlockPos(3, 2, 2));
         Wolf predator = spawnWildWolf(helper, new BlockPos(5, 2, 5));
         predator.setTarget(sheep);
@@ -73,7 +71,7 @@ public class PredatorWatchGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE, timeoutTicks = 200, batch = "instinctPredatorWatch")
     public void followCommandEndsTheWatch(GameTestHelper helper) {
-        buildFloor(helper);
+        TestFloors.buildFloor(helper);
         // A real online owner: vanilla SitWhenOrderedToGoal auto-sits a tamed pet whose owner is
         // absent (getOwner() == null), so an ownerless pet would re-sit regardless of the order —
         // the meaningful test needs the pet's owner present, as it is when a player whistles Follow.
@@ -112,12 +110,12 @@ public class PredatorWatchGameTest implements FabricGameTest {
     // Own batch: a live fuse must never sit within another test's berth awareness radius.
     @GameTest(template = EMPTY_STRUCTURE, timeoutTicks = 200, batch = "instinctPredatorWatchCreeper")
     public void swellingCreeperBeatsTheWatch(GameTestHelper helper) {
-        buildFloor(helper);
+        TestFloors.buildFloor(helper);
         Sheep sheep = helper.spawn(EntityType.SHEEP, new BlockPos(3, 2, 2));
         Wolf predator = spawnWildWolf(helper, new BlockPos(5, 2, 5));
         predator.setTarget(sheep);
         Wolf guardian = spawnGuardianWolf(helper, new BlockPos(2, 2, 2));
-        Creeper creeper = spawnFuseOnlyCreeper(helper, new BlockPos(2, 2, 5));
+        Creeper creeper = PetSpawns.spawnFuseOnlyCreeper(helper, new BlockPos(2, 2, 5));
         var creeperPos = creeper.position();
         creeper.ignite();
         // Self-preservation trumps the watch: with a predator right there, the guardian still breaks
@@ -137,7 +135,7 @@ public class PredatorWatchGameTest implements FabricGameTest {
         boolean saved = InstinctConfig.get().enablePredatorWatch;
         InstinctConfig.get().enablePredatorWatch = false;
         try {
-            buildFloor(helper);
+            TestFloors.buildFloor(helper);
             Sheep sheep = helper.spawn(EntityType.SHEEP, new BlockPos(3, 2, 2));
             Wolf predator = spawnWildWolf(helper, new BlockPos(5, 2, 5));
             predator.setTarget(sheep);
@@ -162,7 +160,7 @@ public class PredatorWatchGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE, timeoutTicks = 120, batch = "instinctPredatorWatchNoStock")
     public void noLivestockMeansNoWatch(GameTestHelper helper) {
-        buildFloor(helper);
+        TestFloors.buildFloor(helper);
         // A predator by a lone stationed pet, no pasture in sight: nothing to guard, so the guardian
         // stays seated and the predator is left alone.
         Wolf predator = spawnWildWolf(helper, new BlockPos(5, 2, 5));
@@ -177,7 +175,7 @@ public class PredatorWatchGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE)
     public void reloadNeverStacksASecondWatchGoal(GameTestHelper helper) {
-        buildFloor(helper);
+        TestFloors.buildFloor(helper);
         Wolf guardian = spawnGuardianWolf(helper, new BlockPos(3, 2, 3));
         helper.assertValueEqual(countWatchGoals(guardian), 1L, "watch goals after first load");
         // A chunk re-load re-fires ENTITY_LOAD on the same entity; simulate it directly.
@@ -193,55 +191,23 @@ public class PredatorWatchGameTest implements FabricGameTest {
                 .count();
     }
 
-    /** Two-layer stone floor filling the region at y=0..1; mobs walk on the y=2 surface. */
-    private static void buildFloor(GameTestHelper helper) {
-        for (int x = 0; x < SIZE; x++) {
-            for (int z = 0; z < SIZE; z++) {
-                helper.setBlock(new BlockPos(x, 0, z), Blocks.SMOOTH_STONE.defaultBlockState());
-                helper.setBlock(new BlockPos(x, 1, z), Blocks.SMOOTH_STONE.defaultBlockState());
-            }
-        }
-    }
-
     /** A tamed wolf, ordered to sit (Stay), tamed before {@code addFreshEntity} fires ENTITY_LOAD —
      *  the production path for a stationed guardian loading in. */
     private static Wolf spawnGuardianWolf(GameTestHelper helper, BlockPos rel) {
-        Wolf wolf = EntityType.WOLF.create(helper.getLevel());
-        if (wolf == null) {
-            throw new IllegalStateException("could not create a wolf");
-        }
-        BlockPos abs = helper.absolutePos(rel);
-        wolf.moveTo(abs.getX() + 0.5, abs.getY(), abs.getZ() + 0.5, 0.0f, 0.0f);
-        wolf.setTame(true, false);
-        wolf.setOwnerUUID(UUID.randomUUID());
-        wolf.setOrderedToSit(true);
-        helper.getLevel().addFreshEntity(wolf);
-        return wolf;
+        return PetSpawns.spawnAt(helper, EntityType.WOLF, rel, wolf -> {
+            wolf.setTame(true, false);
+            wolf.setOwnerUUID(UUID.randomUUID());
+            wolf.setOrderedToSit(true);
+        });
     }
 
     /** An untamed wolf with its AI off so it stays put and never re-acquires a target the guardian
      *  clears — a stable stand-in for a wild predator stalking the pasture. */
     private static Wolf spawnWildWolf(GameTestHelper helper, BlockPos rel) {
-        Wolf wolf = EntityType.WOLF.create(helper.getLevel());
-        if (wolf == null) {
-            throw new IllegalStateException("could not create a wolf");
-        }
-        BlockPos abs = helper.absolutePos(rel);
-        wolf.moveTo(abs.getX() + 0.5, abs.getY(), abs.getZ() + 0.5, 0.0f, 0.0f);
-        helper.getLevel().addFreshEntity(wolf);
+        // NoAi lands after the load on purpose: the wolf must load as a live wild predator so the
+        // guardian's watch goal acquires it, and only then be frozen so it holds still.
+        Wolf wolf = PetSpawns.spawnAt(helper, EntityType.WOLF, rel);
         wolf.setNoAi(true);
         return wolf;
-    }
-
-    /** A creeper that can fuse but not hurt the test: NoAI keeps it in place, ExplosionRadius 0 makes
-     *  any detonation harmless, and a 400-tick fuse outlives the timeout. Tests must discard it. */
-    private static Creeper spawnFuseOnlyCreeper(GameTestHelper helper, BlockPos rel) {
-        Creeper creeper = helper.spawn(EntityType.CREEPER, rel);
-        creeper.setNoAi(true);
-        CompoundTag tag = creeper.saveWithoutId(new CompoundTag());
-        tag.putByte("ExplosionRadius", (byte) 0);
-        tag.putShort("Fuse", (short) 400);
-        creeper.load(tag);
-        return creeper;
     }
 }

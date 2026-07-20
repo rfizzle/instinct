@@ -7,6 +7,7 @@ import com.rfizzle.instinct.api.InstinctAnimalRevivedCallback;
 import com.rfizzle.instinct.config.InstinctConfig;
 import com.rfizzle.instinct.data.InstinctAttachments;
 import com.rfizzle.instinct.gametest.util.MockPlayers;
+import com.rfizzle.instinct.gametest.util.PetSpawns;
 import com.rfizzle.instinct.veterancy.VeterancyHandler;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
@@ -43,7 +44,7 @@ public class DownedGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE)
     public void lethalBlowDownsWolfAndClearsAttackers(GameTestHelper helper) {
-        Wolf wolf = spawnTamedWolf(helper, new BlockPos(3, 2, 3));
+        Wolf wolf = PetSpawns.spawnTamedWolf(helper, new BlockPos(3, 2, 3));
         Zombie zombie = helper.spawn(EntityType.ZOMBIE, new BlockPos(4, 2, 3));
         zombie.setTarget(wolf);
 
@@ -65,7 +66,7 @@ public class DownedGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE)
     public void goldenAppleRevivesAtHalfHealthAndDropsOneRank(GameTestHelper helper) {
-        Wolf wolf = spawnTamedWolf(helper, new BlockPos(3, 2, 3));
+        Wolf wolf = PetSpawns.spawnTamedWolf(helper, new BlockPos(3, 2, 3));
         VeterancyHandler.setAccruedDays(wolf, 60.0); // rank 3 at default thresholds
         helper.assertValueEqual(InstinctAPI.getVeterancyRank(wolf), 3, "precondition: rank 3");
         downWithArrow(helper, wolf);
@@ -93,7 +94,7 @@ public class DownedGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE)
     public void revivedPetDoesNotPersistInvulnerability(GameTestHelper helper) {
-        Wolf wolf = spawnTamedWolf(helper, new BlockPos(3, 2, 3));
+        Wolf wolf = PetSpawns.spawnTamedWolf(helper, new BlockPos(3, 2, 3));
         downWithArrow(helper, wolf);
         ServerPlayer reviver = MockPlayers.serverPlayerInLevel(helper);
         try {
@@ -115,7 +116,7 @@ public class DownedGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE)
     public void vetKitRevivesToo(GameTestHelper helper) {
-        Wolf wolf = spawnTamedWolf(helper, new BlockPos(3, 2, 3));
+        Wolf wolf = PetSpawns.spawnTamedWolf(helper, new BlockPos(3, 2, 3));
         downWithArrow(helper, wolf);
         ServerPlayer reviver = MockPlayers.serverPlayerInLevel(helper);
         try {
@@ -134,18 +135,18 @@ public class DownedGameTest implements FabricGameTest {
     @GameTest(template = EMPTY_STRUCTURE)
     public void fireLavaVoidAndKillProduceRealDeaths(GameTestHelper helper) {
         // A healthy pet dies outright to lava (beyond saving) — never downs.
-        Wolf lava = spawnTamedWolf(helper, new BlockPos(1, 2, 1));
+        Wolf lava = PetSpawns.spawnTamedWolf(helper, new BlockPos(1, 2, 1));
         lava.hurt(helper.getLevel().damageSources().lava(), 1000.0F);
         helper.assertFalse(lava.isAlive(), "lava is beyond saving — a real death, no down");
         helper.assertFalse(InstinctAPI.isDowned(lava), "no downed attachment for a lava death");
 
         // /kill kills a healthy pet outright.
-        Wolf killed = spawnTamedWolf(helper, new BlockPos(2, 2, 1));
+        Wolf killed = PetSpawns.spawnTamedWolf(helper, new BlockPos(2, 2, 1));
         killed.kill();
         helper.assertFalse(killed.isAlive(), "/kill is beyond saving");
 
         // An already-downed pet still dies to /kill...
-        Wolf downedThenKilled = spawnTamedWolf(helper, new BlockPos(3, 2, 1));
+        Wolf downedThenKilled = PetSpawns.spawnTamedWolf(helper, new BlockPos(3, 2, 1));
         downWithArrow(helper, downedThenKilled);
         helper.assertTrue(InstinctAPI.isDowned(downedThenKilled), "precondition: downed");
         // Clear the transient hurt-cooldown the downing blow left, as it would have elapsed by the
@@ -155,7 +156,7 @@ public class DownedGameTest implements FabricGameTest {
         helper.assertFalse(downedThenKilled.isAlive(), "/kill kills even a downed pet");
 
         // ...and to the void.
-        Wolf downedThenVoid = spawnTamedWolf(helper, new BlockPos(4, 2, 1));
+        Wolf downedThenVoid = PetSpawns.spawnTamedWolf(helper, new BlockPos(4, 2, 1));
         downWithArrow(helper, downedThenVoid);
         downedThenVoid.invulnerableTime = 0;
         downedThenVoid.hurt(helper.getLevel().damageSources().fellOutOfWorld(), 1000.0F);
@@ -166,7 +167,7 @@ public class DownedGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE)
     public void downedStateSurvivesNbtRoundTrip(GameTestHelper helper) {
-        Wolf wolf = spawnTamedWolf(helper, new BlockPos(3, 2, 3));
+        Wolf wolf = PetSpawns.spawnTamedWolf(helper, new BlockPos(3, 2, 3));
         downWithArrow(helper, wolf);
 
         CompoundTag saved = new CompoundTag();
@@ -187,8 +188,8 @@ public class DownedGameTest implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE)
     public void interactionsAreSuppressedWhileDowned(GameTestHelper helper) {
-        Wolf healthy = spawnTamedWolf(helper, new BlockPos(1, 2, 1));
-        Wolf downed = spawnTamedWolf(helper, new BlockPos(3, 2, 3));
+        Wolf healthy = PetSpawns.spawnTamedWolf(helper, new BlockPos(1, 2, 1));
+        Wolf downed = PetSpawns.spawnTamedWolf(helper, new BlockPos(3, 2, 3));
         downWithArrow(helper, downed);
         ServerPlayer player = MockPlayers.serverPlayerInLevel(helper);
         try {
@@ -219,7 +220,7 @@ public class DownedGameTest implements FabricGameTest {
     public void transitionsFireThePublicCallbacks(GameTestHelper helper) {
         AtomicBoolean downedFired = new AtomicBoolean(false);
         AtomicBoolean revivedFired = new AtomicBoolean(false);
-        Wolf wolf = spawnTamedWolf(helper, new BlockPos(3, 2, 3));
+        Wolf wolf = PetSpawns.spawnTamedWolf(helper, new BlockPos(3, 2, 3));
         AtomicBoolean revivedCarriedPlayerAndItem = new AtomicBoolean(false);
         // Match on UUID, not the entity: a registered listener can never be unregistered, so
         // capturing the entity would pin it and its level for the rest of the run.
@@ -260,7 +261,7 @@ public class DownedGameTest implements FabricGameTest {
         ServerPlayer reviver = spawnListeningPlayer(helper);
         ServerPlayer bystander = spawnListeningPlayer(helper);
         try {
-            Wolf wolf = spawnTamedWolf(helper, new BlockPos(3, 2, 3));
+            Wolf wolf = PetSpawns.spawnTamedWolf(helper, new BlockPos(3, 2, 3));
             downWithArrow(helper, wolf);
             reviver.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Items.GOLDEN_APPLE));
             revive(helper, reviver, wolf);
@@ -280,7 +281,7 @@ public class DownedGameTest implements FabricGameTest {
         boolean saved = InstinctConfig.get().enableDownedState;
         try {
             InstinctConfig.get().enableDownedState = false;
-            Wolf wolf = spawnTamedWolf(helper, new BlockPos(3, 2, 3));
+            Wolf wolf = PetSpawns.spawnTamedWolf(helper, new BlockPos(3, 2, 3));
             wolf.hurt(helper.getLevel().damageSources().generic(), 1000.0F);
             helper.assertFalse(wolf.isAlive(), "with the feature off, a lethal blow kills vanilla-style");
             helper.assertFalse(InstinctAPI.isDowned(wolf), "no new downs occur while disabled");
@@ -322,18 +323,5 @@ public class DownedGameTest implements FabricGameTest {
                 .get(Instinct.id("back_from_the_brink"));
         helper.assertTrue(holder != null, "back_from_the_brink advancement is loaded (datagen output present)");
         return player.getAdvancements().getOrStartProgress(holder).isDone();
-    }
-
-    private static Wolf spawnTamedWolf(GameTestHelper helper, BlockPos rel) {
-        Wolf wolf = EntityType.WOLF.create(helper.getLevel());
-        if (wolf == null) {
-            throw new IllegalStateException("could not create a wolf");
-        }
-        BlockPos abs = helper.absolutePos(rel);
-        wolf.moveTo(abs.getX() + 0.5, abs.getY(), abs.getZ() + 0.5, 0.0f, 0.0f);
-        wolf.setTame(true, false);
-        wolf.setOwnerUUID(UUID.randomUUID());
-        helper.getLevel().addFreshEntity(wolf);
-        return wolf;
     }
 }

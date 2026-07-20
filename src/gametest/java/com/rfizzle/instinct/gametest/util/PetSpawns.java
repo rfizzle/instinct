@@ -14,12 +14,19 @@ import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.Blocks;
 
 import java.util.UUID;
+import java.util.function.Consumer;
 
 /**
  * Introduces an entity into a gametest structure under the conditions the assertions about it
  * actually depend on. Every spawn here forces its chunk and asserts the result is enumerable;
- * suites compose their own variants on {@link #spawnTamed} rather than reimplementing it, so a
+ * suites compose their own variants on {@link #spawnAt} rather than reimplementing it, so a
  * hardening fix lands once and reaches all of them. {@code GameTestHelpersGameTest} guards this.
+ *
+ * <p>This is the boundary: a raw {@code helper.spawn} stands its entity wherever the caller's
+ * floor reaches, with no chunk forced. That is sound only while the position sits inside the
+ * structure's own force-loaded box — true of every such call site today, and the reason they were
+ * left alone. A spawn placed beyond that box, or one a test later enumerates rather than holding
+ * a reference to, belongs here instead.
  */
 public final class PetSpawns {
 
@@ -50,26 +57,46 @@ public final class PetSpawns {
                 "a spawned pet is in the level's entity lookup, where a locate census finds it");
     }
 
+    /** An entity introduced at {@code rel} with no state set beyond its position. */
+    public static <T extends Entity> T spawnAt(GameTestHelper helper, EntityType<T> type, BlockPos rel) {
+        return spawnAt(helper, type, rel, entity -> {
+        });
+    }
+
     /**
-     * The tamed-pet spawn every suite builds on. Taming before {@code addFreshEntity} is the
-     * production path and is load-bearing: {@code ENTITY_LOAD} injects the tamed-only goals
-     * (flocking swap, berth, predator watch) off the entity's state at load, so a pet tamed
-     * afterwards loads as a wild animal and never receives them.
+     * The spawn every other helper here builds on. {@code beforeLoad} runs after the entity is
+     * positioned but before {@code addFreshEntity}, because that ordering is load-bearing rather
+     * than stylistic: {@code ENTITY_LOAD} injects Instinct's goals off the entity's state at load,
+     * so anything a test needs the injection to see — tamed, owned, sitting — has to be set inside
+     * the hook. State set after the call is invisible to it.
      */
-    public static <T extends TamableAnimal> T spawnTamed(GameTestHelper helper, EntityType<T> type,
-                                                        BlockPos rel, UUID owner) {
+    public static <T extends Entity> T spawnAt(GameTestHelper helper, EntityType<T> type, BlockPos rel,
+                                               Consumer<T> beforeLoad) {
         prepareSpawn(helper, rel);
-        T animal = type.create(helper.getLevel());
-        if (animal == null) {
+        T entity = type.create(helper.getLevel());
+        if (entity == null) {
             throw new IllegalStateException("could not create " + type);
         }
         BlockPos abs = helper.absolutePos(rel);
-        animal.moveTo(abs.getX() + 0.5, abs.getY(), abs.getZ() + 0.5, 0.0f, 0.0f);
-        animal.setTame(true, false);
-        animal.setOwnerUUID(owner);
-        helper.getLevel().addFreshEntity(animal);
-        assertEnumerable(helper, animal);
-        return animal;
+        entity.moveTo(abs.getX() + 0.5, abs.getY(), abs.getZ() + 0.5, 0.0f, 0.0f);
+        beforeLoad.accept(entity);
+        helper.getLevel().addFreshEntity(entity);
+        assertEnumerable(helper, entity);
+        return entity;
+    }
+
+    /**
+     * The tamed-pet spawn. Taming inside the before-load hook is the production path for a pet
+     * loading in, and is what makes {@code ENTITY_LOAD} inject the tamed-only goals (flocking
+     * swap, berth, predator watch) — a pet tamed afterwards loads as a wild animal and never
+     * receives them.
+     */
+    public static <T extends TamableAnimal> T spawnTamed(GameTestHelper helper, EntityType<T> type,
+                                                        BlockPos rel, UUID owner) {
+        return spawnAt(helper, type, rel, animal -> {
+            animal.setTame(true, false);
+            animal.setOwnerUUID(owner);
+        });
     }
 
     /** A tamed wolf owned by an arbitrary player, for suites that never inspect the owner. */
@@ -92,18 +119,10 @@ public final class PetSpawns {
      * needs the same chunk forcing and load ordering.
      */
     public static Horse spawnTamedHorse(GameTestHelper helper, BlockPos rel) {
-        prepareSpawn(helper, rel);
-        Horse horse = EntityType.HORSE.create(helper.getLevel());
-        if (horse == null) {
-            throw new IllegalStateException("could not create a horse");
-        }
-        BlockPos abs = helper.absolutePos(rel);
-        horse.moveTo(abs.getX() + 0.5, abs.getY(), abs.getZ() + 0.5, 0.0f, 0.0f);
-        horse.setTamed(true);
-        horse.setOwnerUUID(UUID.randomUUID());
-        helper.getLevel().addFreshEntity(horse);
-        assertEnumerable(helper, horse);
-        return horse;
+        return spawnAt(helper, EntityType.HORSE, rel, horse -> {
+            horse.setTamed(true);
+            horse.setOwnerUUID(UUID.randomUUID());
+        });
     }
 
     /**
@@ -113,14 +132,12 @@ public final class PetSpawns {
      * the berth goal early) before the assertions are met. Tests must discard it.
      */
     public static Creeper spawnFuseOnlyCreeper(GameTestHelper helper, BlockPos rel) {
-        prepareSpawn(helper, rel);
-        Creeper creeper = helper.spawn(EntityType.CREEPER, rel);
+        Creeper creeper = spawnAt(helper, EntityType.CREEPER, rel);
         creeper.setNoAi(true);
         CompoundTag tag = creeper.saveWithoutId(new CompoundTag());
         tag.putByte("ExplosionRadius", (byte) 0);
         tag.putShort("Fuse", (short) 400);
         creeper.load(tag);
-        assertEnumerable(helper, creeper);
         return creeper;
     }
 }
