@@ -14,6 +14,7 @@
             "com.rfizzle.instinct.gametest.AttachmentPersistenceGameTest",
             "com.rfizzle.instinct.gametest.InstinctCommandGameTest",
             "com.rfizzle.instinct.gametest.MockPlayersGameTest",
+            "com.rfizzle.instinct.gametest.GameTestHelpersGameTest",
             "com.rfizzle.instinct.gametest.SelfPreservationGameTest",
             "com.rfizzle.instinct.gametest.SteadyShoulderGameTest",
             "com.rfizzle.instinct.gametest.FriendlyFireGameTest",
