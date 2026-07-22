@@ -53,6 +53,12 @@ class ManifestContractTest {
         return manifest(GAMETEST_SOURCE);
     }
 
+    private static JsonObject depends(JsonObject manifest) {
+        assertTrue(manifest.has("depends"),
+                manifest.get("id").getAsString() + " manifest lost its depends block entirely");
+        return manifest.getAsJsonObject("depends");
+    }
+
     private static JsonObject entrypoints(JsonObject manifest) {
         return manifest.has("entrypoints") ? manifest.getAsJsonObject("entrypoints") : new JsonObject();
     }
@@ -74,8 +80,8 @@ class ManifestContractTest {
     void gametestManifestIsADistinctModDependingOnInstinct() {
         JsonObject gametest = gametestManifest();
         assertEquals("instinct-gametest", gametest.get("id").getAsString());
-        JsonObject depends = gametest.getAsJsonObject("depends");
-        assertTrue(depends.has("instinct"), "gametest manifest must depend on the main instinct mod");
+        assertTrue(depends(gametest).has("instinct"),
+                "gametest manifest must depend on the main instinct mod");
     }
 
     /**
@@ -87,10 +93,23 @@ class ManifestContractTest {
      */
     @Test
     void gametestManifestRestatesNoTransitiveFloors() {
-        JsonObject depends = gametestManifest().getAsJsonObject("depends");
-        assertEquals(Set.of("instinct"), depends.keySet(),
+        assertEquals(Set.of("instinct"), depends(gametestManifest()).keySet(),
                 "the gametest manifest depends only on the main mod; the loader/Minecraft/Java/"
                         + "fabric-api floors are enforced transitively through it");
+    }
+
+    /**
+     * The other half of {@link #gametestManifestRestatesNoTransitiveFloors()}: the floors the
+     * gametest manifest inherits have to actually be declared somewhere, and the shipped manifest is
+     * that somewhere. Without this, dropping a floor from the main manifest leaves the gametest mod
+     * silently unguarded while every other assertion here still reads green.
+     */
+    @Test
+    void mainManifestOwnsTheDependencyFloors() {
+        assertEquals(Set.of("fabricloader", "minecraft", "java", "fabric-api"),
+                depends(mainManifest()).keySet(),
+                "the shipped manifest declares the loader/Minecraft/Java/fabric-api floors that the "
+                        + "gametest manifest inherits transitively");
     }
 
     @Test
