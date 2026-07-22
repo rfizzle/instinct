@@ -12,6 +12,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -52,6 +53,12 @@ class ManifestContractTest {
         return manifest(GAMETEST_SOURCE);
     }
 
+    private static JsonObject depends(JsonObject manifest) {
+        assertTrue(manifest.has("depends"),
+                manifest.get("id").getAsString() + " manifest lost its depends block entirely");
+        return manifest.getAsJsonObject("depends");
+    }
+
     private static JsonObject entrypoints(JsonObject manifest) {
         return manifest.has("entrypoints") ? manifest.getAsJsonObject("entrypoints") : new JsonObject();
     }
@@ -73,8 +80,36 @@ class ManifestContractTest {
     void gametestManifestIsADistinctModDependingOnInstinct() {
         JsonObject gametest = gametestManifest();
         assertEquals("instinct-gametest", gametest.get("id").getAsString());
-        JsonObject depends = gametest.getAsJsonObject("depends");
-        assertTrue(depends.has("instinct"), "gametest manifest must depend on the main instinct mod");
+        assertTrue(depends(gametest).has("instinct"),
+                "gametest manifest must depend on the main instinct mod");
+    }
+
+    /**
+     * The loader, Minecraft, Java, and Fabric API floors belong only to the shipped manifest.
+     * {@code instinct-gametest} cannot load unless {@code instinct} did, and {@code instinct} cannot
+     * load without them, so restating the floors here only adds a second place to update on every
+     * Minecraft or Fabric API bump — where a missed edit surfaces as a confusing gametest load error
+     * rather than an obvious version mismatch.
+     */
+    @Test
+    void gametestManifestRestatesNoTransitiveFloors() {
+        assertEquals(Set.of("instinct"), depends(gametestManifest()).keySet(),
+                "the gametest manifest depends only on the main mod; the loader/Minecraft/Java/"
+                        + "fabric-api floors are enforced transitively through it");
+    }
+
+    /**
+     * The other half of {@link #gametestManifestRestatesNoTransitiveFloors()}: the floors the
+     * gametest manifest inherits have to actually be declared somewhere, and the shipped manifest is
+     * that somewhere. Without this, dropping a floor from the main manifest leaves the gametest mod
+     * silently unguarded while every other assertion here still reads green.
+     */
+    @Test
+    void mainManifestOwnsTheDependencyFloors() {
+        assertEquals(Set.of("fabricloader", "minecraft", "java", "fabric-api"),
+                depends(mainManifest()).keySet(),
+                "the shipped manifest declares the loader/Minecraft/Java/fabric-api floors that the "
+                        + "gametest manifest inherits transitively");
     }
 
     @Test
