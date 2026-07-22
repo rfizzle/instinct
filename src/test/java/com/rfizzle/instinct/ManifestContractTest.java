@@ -12,6 +12,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -75,6 +76,21 @@ class ManifestContractTest {
         assertEquals("instinct-gametest", gametest.get("id").getAsString());
         JsonObject depends = gametest.getAsJsonObject("depends");
         assertTrue(depends.has("instinct"), "gametest manifest must depend on the main instinct mod");
+    }
+
+    /**
+     * The loader, Minecraft, Java, and Fabric API floors belong only to the shipped manifest.
+     * {@code instinct-gametest} cannot load unless {@code instinct} did, and {@code instinct} cannot
+     * load without them, so restating the floors here only adds a second place to update on every
+     * Minecraft or Fabric API bump — where a missed edit surfaces as a confusing gametest load error
+     * rather than an obvious version mismatch.
+     */
+    @Test
+    void gametestManifestRestatesNoTransitiveFloors() {
+        JsonObject depends = gametestManifest().getAsJsonObject("depends");
+        assertEquals(Set.of("instinct"), depends.keySet(),
+                "the gametest manifest depends only on the main mod; the loader/Minecraft/Java/"
+                        + "fabric-api floors are enforced transitively through it");
     }
 
     @Test
