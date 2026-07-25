@@ -14,6 +14,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -231,6 +232,35 @@ class LangContractTest {
         assertTrue(missing.isEmpty(), "config lang keys missing or blank: " + missing);
     }
 
+    /**
+     * Every constant of an enum-valued config field has a {@code config.instinct.<field>.option.<constant>}
+     * label, so the Cloth selector never offers a raw Java constant name as a choice. Reflection over the
+     * POJO keeps this in step as enum fields and their constants are added.
+     *
+     * <p>Options carry a label only — the field's own tooltip explains the choice — so
+     * {@link #everyConfigLabelHasATooltip} exempts {@code .option.} keys from its sweep.
+     */
+    @Test
+    void everyEnumConfigOptionHasALabel() {
+        JsonObject lang = lang();
+        List<String> missing = new ArrayList<>();
+        for (Field field : InstinctConfig.class.getDeclaredFields()) {
+            int mods = field.getModifiers();
+            if (!Modifier.isPublic(mods) || Modifier.isStatic(mods) || Modifier.isTransient(mods)
+                    || !field.getType().isEnum()) {
+                continue;
+            }
+            for (Object constant : field.getType().getEnumConstants()) {
+                String key = "config.instinct." + field.getName() + ".option."
+                        + ((Enum<?>) constant).name().toLowerCase(Locale.ROOT);
+                if (!lang.has(key) || lang.get(key).getAsString().isBlank()) {
+                    missing.add(key);
+                }
+            }
+        }
+        assertTrue(missing.isEmpty(), "enum config option labels missing or blank: " + missing);
+    }
+
     /** No orphan {@code config.instinct.*} label without a matching non-blank {@code .tooltip}. */
     @Test
     void everyConfigLabelHasATooltip() {
@@ -238,7 +268,8 @@ class LangContractTest {
         List<String> missing = new ArrayList<>();
         for (String key : lang.keySet()) {
             if (!key.startsWith("config.instinct.") || key.endsWith(".tooltip")
-                    || key.equals("config.instinct.title") || key.startsWith("config.instinct.category.")) {
+                    || key.equals("config.instinct.title") || key.startsWith("config.instinct.category.")
+                    || key.contains(".option.")) {
                 continue;
             }
             String tooltip = key + ".tooltip";

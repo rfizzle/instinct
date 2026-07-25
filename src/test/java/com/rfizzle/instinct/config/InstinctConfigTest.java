@@ -2,6 +2,7 @@ package com.rfizzle.instinct.config;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.rfizzle.instinct.shoulders.ShoulderDismountGesture;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -22,6 +23,8 @@ class InstinctConfigTest {
             "mountsInclude", "mountsExclude",
             "enableSelfPreservation", "creeperBerthBlocks", "teleportSuppressFallDistance",
             "enableOwnerFriendlyFireProtection",
+            "enableSteadyShoulders", "steadyShoulderDismountDamage",
+            "shoulderDismountGesture", "shoulderDismountDoubleTapTicks",
             "enableVeterancy", "veterancyThresholdDays", "healthPerRank", "damagePerRank",
             "enableRankBehaviors", "warningRadiusBlocks", "mentorRadiusBlocks", "mentorRateBonus",
             "enableGenetics", "enableGenericDropMirror", "hayRadiusBlocks", "crowdingThreshold",
@@ -106,9 +109,52 @@ class InstinctConfigTest {
 
         assertEquals(16, config.troughPopulationCap);
         assertEquals(List.of(10, 30, 60), config.veterancyThresholdDays);
+        // A file written before the gesture key existed takes the current default with no migration
+        // entry of its own — an absent key leaves the field at its class initializer.
+        assertEquals(ShoulderDismountGesture.DOUBLE_TAP_SNEAK, config.shoulderDismountGesture);
+        assertEquals(12, config.shoulderDismountDoubleTapTicks);
         JsonObject written = JsonParser.parseString(Files.readString(configFile())).getAsJsonObject();
         assertEquals(1, written.get("configVersion").getAsInt(),
                 "a v0 file should be migrated and persisted back at v1");
+    }
+
+    @Test
+    void namedDismountGestureSurvivesLoad() throws IOException {
+        Files.writeString(configFile(), """
+                {
+                  "configVersion": 1,
+                  "shoulderDismountGesture": "SNEAK"
+                }
+                """);
+        assertEquals(ShoulderDismountGesture.SNEAK,
+                InstinctConfig.load(configFile()).shoulderDismountGesture);
+    }
+
+    @Test
+    void unreadableDismountGestureHealsToTheDefault() throws IOException {
+        // Gson answers a value outside an enum's constants by nulling the field rather than throwing,
+        // so without the null-heal a typo'd or retired value would reach the game as a null gesture.
+        Files.writeString(configFile(), """
+                {
+                  "configVersion": 1,
+                  "shoulderDismountGesture": "double_tap"
+                }
+                """);
+        assertEquals(ShoulderDismountGesture.DOUBLE_TAP_SNEAK,
+                InstinctConfig.load(configFile()).shoulderDismountGesture);
+    }
+
+    @Test
+    void doubleTapWindowClampsToItsRange() throws IOException {
+        Files.writeString(configFile(), """
+                { "configVersion": 1, "shoulderDismountDoubleTapTicks": 0 }
+                """);
+        assertEquals(2, InstinctConfig.load(configFile()).shoulderDismountDoubleTapTicks);
+
+        Files.writeString(configFile(), """
+                { "configVersion": 1, "shoulderDismountDoubleTapTicks": 99 }
+                """);
+        assertEquals(40, InstinctConfig.load(configFile()).shoulderDismountDoubleTapTicks);
     }
 
     @Test
