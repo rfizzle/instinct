@@ -146,20 +146,24 @@ public class GameTestHelpersGameTest implements FabricGameTest {
     }
 
     /**
-     * A relative position whose chunk no test has forced. Searched rather than hardcoded: suites
-     * share one grid, so a fixed offset can land in a chunk a neighbouring slot has already forced
-     * — the very coupling #59 was about.
+     * A relative position in a chunk that is neither forced nor resident. Searched rather than
+     * hardcoded: suites share one grid, so a fixed offset can land in a chunk a neighbouring slot
+     * has already forced — the very coupling #59 was about. Residency is the stricter half of the
+     * search and the one worth having: forcing is a bookkeeping entry a test can add and drop,
+     * while whether the chunk is loaded is what a claim about a cold chunk actually turns on, and
+     * a batch can leave a chunk loaded without ever having forced it.
      */
     private static BlockPos coldChunkPos(GameTestHelper helper) {
         for (int dx = 16; dx <= 4096; dx += 16) {
             BlockPos candidate = new BlockPos(dx, 2, 0);
             ChunkPos chunk = new ChunkPos(helper.absolutePos(candidate));
-            if (!helper.getLevel().getForcedChunks().contains(chunk.toLong())) {
+            if (!helper.getLevel().getForcedChunks().contains(chunk.toLong())
+                    && !helper.getLevel().getChunkSource().hasChunk(chunk.x, chunk.z)) {
                 return candidate;
             }
         }
         throw new IllegalStateException(
-                "no unforced chunk within 4096 blocks, so this test would prove nothing");
+                "no cold chunk within 4096 blocks, so this test would prove nothing");
     }
 
     @GameTest(template = EMPTY_STRUCTURE)
