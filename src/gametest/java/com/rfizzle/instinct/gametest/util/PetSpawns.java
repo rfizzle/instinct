@@ -23,11 +23,22 @@ import java.util.function.Consumer;
  * suites compose their own variants on {@link #spawnAt} rather than reimplementing it, so a
  * hardening fix lands once and reaches all of them. {@code GameTestHelpersGameTest} guards this.
  *
- * <p>This is the boundary: a raw {@code helper.spawn} stands its entity wherever the caller's
+ * <p>This is the near boundary: a raw {@code helper.spawn} stands its entity wherever the caller's
  * floor reaches, with no chunk forced. That is sound while the position sits inside the
  * structure's own force-loaded box, which is why a raw spawn is still correct there. A spawn
  * placed beyond that box, or one a test later enumerates rather than holding a reference to,
  * belongs here instead.
+ *
+ * <p>And this is the far one: enumerability is asserted for a spawn whose chunk is already
+ * accessible — inside the structure, or in the neighbourhood the batch has promoted around it,
+ * which covers every position a suite spawns at. A spawn into a chunk the server has never loaded
+ * fails that assertion even though the spawn itself was fine. A chunk turns enumerable only once
+ * it and its surrounding ring reach full status, and that promotion runs across tick boundaries —
+ * around forty of them for a chunk generated from scratch. Neither forcing the chunk nor blocking
+ * on a chunk load pulls it forward, so no synchronous helper can wait for it. A test that wants a
+ * pet that far out holds the reference {@link #spawnAt} returns and waits for the census itself,
+ * through {@code helper.succeedWhen}; these helpers stay synchronous so their hundred-odd call
+ * sites keep their straight-line shape rather than paying for a promise none of them need.
  */
 public final class PetSpawns {
 
@@ -38,9 +49,13 @@ public final class PetSpawns {
      * Makes a spawn position one a locate census can see a pet on. Forcing the chunk is the
      * load-bearing step: a pet enters the level's entity lookup — the map a census iterates —
      * only once its chunk is accessible, and that promotion is queued on the server executor
-     * rather than applied inline, so writing blocks nearby does not reliably bring it about. The
-     * framework releases every forced chunk when the batch ends, so this needs no teardown. The
-     * pad is what keeps a pet that outlives its spawn tick from falling.
+     * rather than applied inline, so writing blocks nearby does not reliably bring it about. That
+     * makes forcing necessary but not sufficient: it settles the bookkeeping in the same tick,
+     * while the accessibility the lookup keys off arrives ticks later. For a chunk the batch has
+     * already promoted the difference never shows, which is the case at every position a suite
+     * spawns at; for one the server has never loaded it is the whole story. The framework releases
+     * every forced chunk when the batch ends, so this needs no teardown. The pad is what keeps a
+     * pet that outlives its spawn tick from falling.
      *
      * <p>The pad extends one block out on each horizontal axis, so callers spawn at a relative x
      * and z of at least 1. Below that it writes outside the structure, into the gap between grid
@@ -56,10 +71,17 @@ public final class PetSpawns {
         }
     }
 
-    /** Asserts the condition a census actually depends on, rather than a proxy for it. */
+    /**
+     * Asserts the condition a census actually depends on, rather than a proxy for it. A failure
+     * for a spawn far from the structure reports a chunk that has not become accessible yet, not
+     * a spawn that went wrong — the message says so, because the two look identical from the
+     * caller's side and only one of them is a bug worth chasing.
+     */
     public static void assertEnumerable(GameTestHelper helper, Entity entity) {
         helper.assertTrue(helper.getLevel().getEntity(entity.getId()) != null,
-                "a spawned pet is in the level's entity lookup, where a locate census finds it");
+                "a spawned pet is in the level's entity lookup, where a locate census finds it "
+                        + "(far from the structure this reads as the chunk not being accessible "
+                        + "yet rather than as a failed spawn — see PetSpawns' class javadoc)");
     }
 
     /** An entity introduced at {@code rel} with no state set beyond its position. */
