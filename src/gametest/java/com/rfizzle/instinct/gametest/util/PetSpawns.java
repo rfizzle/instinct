@@ -37,9 +37,11 @@ import java.util.function.Consumer;
  * it and its surrounding ring reach full status, and that promotion runs across tick boundaries —
  * around forty of them for a chunk generated from scratch. Neither forcing the chunk nor blocking
  * on a chunk load pulls it forward, so no synchronous helper can wait for it. A test that wants a
- * pet that far out holds the reference {@link #spawnAt} returns and waits for the census itself,
- * through {@code helper.succeedWhen}; these helpers stay synchronous so their hundred-odd call
- * sites keep their straight-line shape rather than paying for a promise none of them need.
+ * pet that far out passes its own post-load check to the five-argument {@link #spawnAt} — the
+ * default check fails at that distance and discards the entity before the caller ever sees it —
+ * and then waits for the census itself, through {@code helper.succeedWhen}. These helpers stay
+ * synchronous so their hundred-odd call sites keep their straight-line shape rather than paying
+ * for a promise none of them need.
  */
 public final class PetSpawns {
 
@@ -51,8 +53,8 @@ public final class PetSpawns {
      * load-bearing step: a pet enters the level's entity lookup — the map a census iterates —
      * only once its chunk is accessible, and that promotion is queued on the server executor
      * rather than applied inline, so writing blocks nearby does not reliably bring it about. That
-     * makes forcing necessary but not sufficient: it settles the bookkeeping in the same tick,
-     * while the accessibility the lookup keys off arrives ticks later. For a chunk the batch has
+     * makes forcing insufficient on its own: it settles the bookkeeping in the same tick, while
+     * the accessibility the lookup keys off arrives ticks later. For a chunk the batch has
      * already promoted the difference never shows, which is the case at every position a suite
      * spawns at; for one the server has never loaded it is the whole story. The framework releases
      * every forced chunk when the batch ends, so this needs no teardown. The pad is what keeps a
@@ -108,11 +110,17 @@ public final class PetSpawns {
     }
 
     /**
-     * The same spawn with its post-load check as a parameter, which is how
-     * {@code GameTestHelpersGameTest} reaches the discard path below. Provoking the real check to
-     * fail needs a chunk the server has never loaded, and which chunks are still cold depends on
-     * what the rest of the batch touched first — a guard that racy is worth less than the path it
-     * guards. Suites take the four-argument form, which passes {@link #assertEnumerable}.
+     * The same spawn with its post-load check as a parameter. Suites take the four-argument form,
+     * which passes {@link #assertEnumerable}; this one serves the two cases that check cannot.
+     * {@code GameTestHelpersGameTest} substitutes a check that always fails, to reach the discard
+     * path below deterministically — provoking the real one needs a chunk the server has never
+     * loaded, and which chunks are still cold depends on what the rest of the batch touched first,
+     * so that guard would go quiet on exactly the runs it is meant to catch. A test spawning past
+     * the far boundary in the class javadoc substitutes a check that does not assert, since the
+     * default one would discard the pet it means to keep.
+     *
+     * <p>{@code verify} signals failure by throwing a {@link RuntimeException} — that is what the
+     * discard below catches, and a check throwing anything else leaks its entity into the batch.
      */
     public static <T extends Entity> T spawnAt(GameTestHelper helper, EntityType<T> type, BlockPos rel,
                                                Consumer<T> beforeLoad,
