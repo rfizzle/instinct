@@ -296,9 +296,12 @@ tasks.register('jacocoMergedReport', JacocoReport) {
     // can never attribute coverage to the mixin class files — excluding them
     // keeps the denominator honest. Mixins stay thin (delegate to handlers), so
     // nothing measurable hides here.
-    classDirectories.setFrom(files(classDirectories.files.collect {
-        fileTree(dir: it, exclude: ['com/rfizzle/instinct/mixin/**'])
-    }))
+    // Derive from sourceSets.main lazily: the eager
+    // `files(classDirectories.files.collect { … })` form resolves at
+    // configuration time and discards the task dependency on `classes`.
+    classDirectories.setFrom(files(sourceSets.main.output).asFileTree.matching {
+        exclude 'com/rfizzle/instinct/mixin/**'
+    })
     reports {
         xml.required = true
         html.required = true
