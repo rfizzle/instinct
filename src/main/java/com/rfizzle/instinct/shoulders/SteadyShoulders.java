@@ -9,14 +9,14 @@ import net.minecraft.world.entity.player.Player;
 /**
  * Steady shoulders ({@code design/SPEC.md} §1): a perched pets-set animal stays on the shoulder
  * through the incidental knocks that dislodge a vanilla parrot — jumps, sprint-jumps, short falls,
- * and minor damage. It comes off only when the owner drops it on purpose (sneak) or takes a serious
- * hit, and in vanilla's genuinely incompatible states (in water, flying, sleeping, powder snow),
- * which stay untouched.
+ * and minor damage. It comes off only when the owner drops it on purpose (the
+ * {@link ShoulderDismountGesture}) or takes a serious hit, and in vanilla's genuinely incompatible
+ * states (in water, flying, sleeping, powder snow), which stay untouched.
  *
  * <p>Vanilla funnels every dismount through the parameterless {@code Player#removeEntitiesOnShoulder},
  * called from {@code aiStep()} (fall/water/flying/sleeping/powder-snow) and {@code hurt()} (any damage).
- * {@code PlayerMixin} gates those two call sites through the pure predicates here and adds the sneak
- * drop; the riptide spin-attack call site is left alone. Everything is gated on the perched entity
+ * {@code PlayerMixin} gates those two call sites through the pure predicates here and adds the
+ * deliberate drop; the riptide spin-attack call site is left alone. Everything is gated on the perched entity
  * actually being an Instinct pets-set animal, resolved from the stored shoulder {@link CompoundTag},
  * so a non-pet modded shoulder-rider keeps exact vanilla behavior. Server-authoritative in effect:
  * the two suppressible call sites that matter run server-side, and the coverage resolve reads a
@@ -54,11 +54,28 @@ public final class SteadyShoulders {
         return !dismountsOnHit(amount, config.steadyShoulderDismountDamage);
     }
 
-    /** Whether a deliberate sneak should drop a perched pet this tick. */
-    public static boolean dropsOnSneak(Player player) {
-        return InstinctConfig.get().enableSteadyShoulders
-                && player.isShiftKeyDown()
-                && holdsInstinctPet(player);
+    /**
+     * Whether the configured dismount gesture completes for a perched pet on this tick. Called once
+     * per server tick per player with that player's own {@link SneakTapTracker}, which the ticks
+     * without a perched pet stand down so a gesture made with an empty shoulder never banks toward a
+     * later drop.
+     *
+     * <p>Vanilla's own 20-tick post-mount grace inside {@code removeEntitiesOnShoulder} still applies:
+     * a gesture completed within 20 ticks of the bird landing is spotted here but eaten there. Since
+     * completing clears the tracker, nothing carries over to fire once the grace lapses — the owner
+     * simply gestures again.
+     */
+    public static boolean dropsOnGesture(Player player, SneakTapTracker tracker) {
+        InstinctConfig config = InstinctConfig.get();
+        if (!config.enableSteadyShoulders || !holdsInstinctPet(player)) {
+            tracker.standDown(player.isShiftKeyDown());
+            return false;
+        }
+        return switch (config.shoulderDismountGesture) {
+            case SNEAK -> player.isShiftKeyDown();
+            case DOUBLE_TAP_SNEAK -> tracker.advance(player.isShiftKeyDown(),
+                    player.level().getGameTime(), config.shoulderDismountDoubleTapTicks);
+        };
     }
 
     /** True when either shoulder holds an Instinct pets-set animal. */

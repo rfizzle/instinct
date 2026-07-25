@@ -4,12 +4,15 @@ import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.WrapWithCondition;
 import com.llamalad7.mixinextras.sugar.Local;
 import com.rfizzle.instinct.config.InstinctConfig;
+import com.rfizzle.instinct.shoulders.SneakTapTracker;
 import com.rfizzle.instinct.shoulders.SteadyShoulders;
 import com.rfizzle.instinct.veterancy.VeterancyHandler;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
+import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -29,8 +32,9 @@ import java.util.List;
  *   <li>Steady shoulders ({@code design/SPEC.md} §1): a perched pets-set animal rides through the
  *   incidental knocks that dislodge a vanilla parrot. The two vanilla dismount call sites that
  *   matter — {@code aiStep()} (fall) and {@code hurt()} (damage) — are conditionally skipped through
- *   {@link SteadyShoulders}, and a sneak drops the bird deliberately from {@code tick()}. The
- *   riptide spin-attack dismount is left alone.</li>
+ *   {@link SteadyShoulders}, and the configured dismount gesture drops the bird deliberately from
+ *   {@code tick()}, which is also where its per-player {@link SneakTapTracker} is fed. The riptide
+ *   spin-attack dismount is left alone.</li>
  * </ul>
  *
  * Server-authoritative in effect: the veterancy attachment never syncs to the client (every victim
@@ -77,10 +81,26 @@ abstract class PlayerMixin {
         return !SteadyShoulders.keepsThroughHit(self, amount);
     }
 
+    /**
+     * The dismount gesture's per-player state. It rides the player object rather than a static map
+     * because nothing outside this hook ever reads it — which makes a disconnect leak structurally
+     * impossible instead of merely handled. Created on the player's first server tick, seeded with the
+     * sneak state so that tick is not read as a press.
+     */
+    @Unique
+    @Nullable
+    private SneakTapTracker instinct$sneakTaps;
+
     @Inject(method = "tick", at = @At("TAIL"))
-    private void instinct$dropPerchedOnSneak(CallbackInfo ci) {
+    private void instinct$dropPerchedOnGesture(CallbackInfo ci) {
         Player self = (Player) (Object) this;
-        if (!self.level().isClientSide && SteadyShoulders.dropsOnSneak(self)) {
+        if (self.level().isClientSide) {
+            return;
+        }
+        if (instinct$sneakTaps == null) {
+            instinct$sneakTaps = new SneakTapTracker(self.isShiftKeyDown());
+        }
+        if (SteadyShoulders.dropsOnGesture(self, instinct$sneakTaps)) {
             removeEntitiesOnShoulder();
         }
     }
