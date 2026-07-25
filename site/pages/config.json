@@ -27,6 +27,8 @@
             ["<code>enableOwnerFriendlyFireProtection</code>", "bool", "<code>true</code>", "—", "Self-preservation"],
             ["<code>enableSteadyShoulders</code>", "bool", "<code>true</code>", "—", "Self-preservation"],
             ["<code>steadyShoulderDismountDamage</code>", "double", "<code>4.0</code>", "0.0–20.0", "Self-preservation"],
+            ["<code>shoulderDismountGesture</code>", "enum", "<code>DOUBLE_TAP_SNEAK</code>", "<code>DOUBLE_TAP_SNEAK</code>, <code>SNEAK</code>", "Self-preservation"],
+            ["<code>shoulderDismountDoubleTapTicks</code>", "int", "<code>12</code>", "2–40", "Self-preservation"],
             ["<code>enableVeterancy</code>", "bool", "<code>true</code>", "—", "Veterancy"],
             ["<code>veterancyThresholdDays</code>", "int list", "<code>[10, 30, 60]</code>", "ascending, 1–1000", "Veterancy"],
             ["<code>healthPerRank</code>", "double", "<code>2.0</code>", "0.0–20.0", "Veterancy"],

@@ -7,6 +7,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
 import com.rfizzle.instinct.Instinct;
+import com.rfizzle.instinct.shoulders.ShoulderDismountGesture;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.resources.ResourceLocation;
@@ -54,6 +55,8 @@ public class InstinctConfig {
     public boolean enableOwnerFriendlyFireProtection = true;
     public boolean enableSteadyShoulders = true;
     public double steadyShoulderDismountDamage = 4.0;
+    public ShoulderDismountGesture shoulderDismountGesture = ShoulderDismountGesture.DOUBLE_TAP_SNEAK;
+    public int shoulderDismountDoubleTapTicks = 12;
 
     // §2 Pet Veterancy
     public boolean enableVeterancy = true;
@@ -279,8 +282,18 @@ public class InstinctConfig {
         return FabricLoader.getInstance().getConfigDir().resolve(CONFIG_FILENAME);
     }
 
-    /** Null-heals every list a partial hand-edited file may have left absent. */
+    /**
+     * Null-heals every list a partial hand-edited file may have left absent, and every enum a
+     * hand-edited one may have left unreadable — Gson answers a value outside an enum's constants by
+     * nulling the field rather than throwing, so an unparseable gesture would otherwise reach the
+     * game as a null instead of the default.
+     */
     private void fillDefaults() {
+        if (shoulderDismountGesture == null) {
+            Instinct.LOGGER.warn("shoulderDismountGesture was not a known gesture; using {}",
+                    ShoulderDismountGesture.DOUBLE_TAP_SNEAK);
+            shoulderDismountGesture = ShoulderDismountGesture.DOUBLE_TAP_SNEAK;
+        }
         if (petsInclude == null) petsInclude = new ArrayList<>();
         if (petsExclude == null) petsExclude = new ArrayList<>();
         if (livestockInclude == null) livestockInclude = new ArrayList<>();
@@ -303,6 +316,7 @@ public class InstinctConfig {
         creeperBerthBlocks = clampInt("creeperBerthBlocks", creeperBerthBlocks, 2, 8);
         teleportSuppressFallDistance = clampDouble("teleportSuppressFallDistance", teleportSuppressFallDistance, 0.5, 10.0);
         steadyShoulderDismountDamage = clampDouble("steadyShoulderDismountDamage", steadyShoulderDismountDamage, 0.0, 20.0);
+        shoulderDismountDoubleTapTicks = clampInt("shoulderDismountDoubleTapTicks", shoulderDismountDoubleTapTicks, 2, 40);
         veterancyThresholdDays = sanitizeThresholds(veterancyThresholdDays);
         healthPerRank = clampDouble("healthPerRank", healthPerRank, 0.0, 20.0);
         damagePerRank = clampDouble("damagePerRank", damagePerRank, 0.0, 10.0);

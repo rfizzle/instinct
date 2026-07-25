@@ -1,6 +1,7 @@
 package com.rfizzle.instinct.compat.modmenu;
 
 import com.rfizzle.instinct.config.InstinctConfig;
+import com.rfizzle.instinct.shoulders.ShoulderDismountGesture;
 import me.shedaniel.clothconfig2.api.ConfigBuilder;
 import me.shedaniel.clothconfig2.api.ConfigCategory;
 import me.shedaniel.clothconfig2.api.ConfigEntryBuilder;
@@ -8,6 +9,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
 import java.util.ArrayList;
+import java.util.Locale;
 
 /**
  * Builds the Cloth Config screen — every {@code config/instinct.json} key from the spec's
@@ -106,6 +108,19 @@ final class ClothConfigScreenBuilder {
                 .setMin(0.0).setMax(20.0)
                 .setTooltip(tooltip("steadyShoulderDismountDamage"))
                 .setSaveConsumer(v -> working.steadyShoulderDismountDamage = v)
+                .build());
+        selfPreservation.addEntry(entry.startEnumSelector(label("shoulderDismountGesture"),
+                        ShoulderDismountGesture.class, config.shoulderDismountGesture)
+                .setDefaultValue(defaults.shoulderDismountGesture)
+                .setEnumNameProvider(v -> option("shoulderDismountGesture", v))
+                .setTooltip(tooltip("shoulderDismountGesture"))
+                .setSaveConsumer(v -> working.shoulderDismountGesture = v)
+                .build());
+        selfPreservation.addEntry(entry.startIntField(label("shoulderDismountDoubleTapTicks"), config.shoulderDismountDoubleTapTicks)
+                .setDefaultValue(defaults.shoulderDismountDoubleTapTicks)
+                .setMin(2).setMax(40)
+                .setTooltip(tooltip("shoulderDismountDoubleTapTicks"))
+                .setSaveConsumer(v -> working.shoulderDismountDoubleTapTicks = v)
                 .build());
 
         // --- Pet Veterancy (§2) ---
@@ -402,5 +417,15 @@ final class ClothConfigScreenBuilder {
 
     private static Component tooltip(String field) {
         return Component.translatable("config.instinct." + field + ".tooltip");
+    }
+
+    /**
+     * One selectable constant of an enum field. Options carry a label only — the explanation lives on
+     * the field's own tooltip — so {@code LangContractTest} exempts {@code .option.} keys from the
+     * label-needs-a-tooltip sweep while still requiring every constant to have one of these.
+     */
+    private static Component option(String field, Enum<?> constant) {
+        return Component.translatable("config.instinct." + field + ".option."
+                + constant.name().toLowerCase(Locale.ROOT));
     }
 }

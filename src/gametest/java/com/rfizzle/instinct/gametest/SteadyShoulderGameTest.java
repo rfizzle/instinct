@@ -3,21 +3,38 @@ package com.rfizzle.instinct.gametest;
 import com.rfizzle.instinct.config.InstinctConfig;
 import com.rfizzle.instinct.gametest.util.MockPlayers;
 import com.rfizzle.instinct.gametest.util.TestFloors;
+import com.rfizzle.instinct.shoulders.ShoulderDismountGesture;
+import com.rfizzle.instinct.shoulders.SneakTapTracker;
 import com.rfizzle.instinct.shoulders.SteadyShoulders;
 import net.fabricmc.fabric.api.gametest.v1.FabricGameTest;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.gametest.framework.GameTestSequence;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerPlayer;
 
 /**
  * SPEC §1 Shoulder riding: a perched pets-set animal rides through jumps, short falls, and
- * scratches, and comes off only on a serious hit or a deliberate sneak. The membership resolution
- * from a real shoulder tag and the config gate are checked at the decision level; the {@code hurt()}
- * wrap, the {@code aiStep()} fall-branch wrap, and the sneak {@code tick()}-TAIL inject are each
- * driven end-to-end against a real server-ticked mock player, past vanilla's 20-tick post-mount
- * grace. Callers discard the mock player, which spawns near world spawn outside the structure.
+ * scratches, and comes off only on a serious hit or the deliberate dismount gesture. The membership
+ * resolution from a real shoulder tag and the config gate are checked at the decision level; the
+ * {@code hurt()} wrap, the {@code aiStep()} fall-branch wrap, and the gesture {@code tick()}-TAIL
+ * inject are each driven end-to-end against a real server-ticked mock player, past vanilla's 20-tick
+ * post-mount grace.
+ *
+ * <p>The gesture tests feed sneak samples one server tick apart, since a double tap is only a double
+ * tap across real ticks: each step sets the sneak state and calls {@code doTick()} (the only path that
+ * reaches {@code Player#tick}, where the inject sits), with an idle tick between so the game clock the
+ * tracker reads actually advances.
+ *
+ * <p>Each gesture test opens with one <em>settling</em> tick at sneak-released. The tracker is created
+ * on the player's first ticked frame and seeded with the sneak state it finds, deliberately, so that a
+ * crouch already underway is never counted as a press. A mock player is not ticked until the test ticks
+ * it, so opening straight on the press would seed the tracker as already-sneaking and the gesture could
+ * never start — and the two "keeps the parrot" tests would then pass for the wrong reason, since a
+ * tracker that never sees a press also never drops the bird.
+ *
+ * <p>Callers discard the mock player, which spawns near world spawn outside the structure.
  */
 public class SteadyShoulderGameTest implements FabricGameTest {
 
@@ -35,11 +52,12 @@ public class SteadyShoulderGameTest implements FabricGameTest {
                     "a serious hit dislodges the parrot");
             helper.assertTrue(SteadyShoulders.keepsThroughFall(owner),
                     "a standing owner keeps the parrot through the fall branch");
-            helper.assertFalse(SteadyShoulders.dropsOnSneak(owner),
-                    "no sneak drop while the owner stands");
+            SneakTapTracker tracker = new SneakTapTracker(false);
+            helper.assertFalse(SteadyShoulders.dropsOnGesture(owner, tracker),
+                    "no drop while the owner stands");
             owner.setShiftKeyDown(true);
-            helper.assertTrue(SteadyShoulders.dropsOnSneak(owner),
-                    "sneaking drops the parrot on purpose");
+            helper.assertFalse(SteadyShoulders.dropsOnGesture(owner, tracker),
+                    "one press is half a gesture, so it does not drop the parrot");
             helper.succeed();
         } finally {
             owner.discard();
@@ -58,8 +76,8 @@ public class SteadyShoulderGameTest implements FabricGameTest {
             helper.assertFalse(SteadyShoulders.keepsThroughHit(owner, 1.0f),
                     "no hit suppression for a non-pet rider");
             owner.setShiftKeyDown(true);
-            helper.assertFalse(SteadyShoulders.dropsOnSneak(owner),
-                    "no sneak drop for a non-pet rider");
+            helper.assertFalse(SteadyShoulders.dropsOnGesture(owner, new SneakTapTracker(false)),
+                    "no gesture drop for a non-pet rider");
             helper.succeed();
         } finally {
             owner.discard();
@@ -152,30 +170,138 @@ public class SteadyShoulderGameTest implements FabricGameTest {
     }
 
     @GameTest(template = EMPTY_STRUCTURE)
-    public void sneakDropsPerchedParrot(GameTestHelper helper) {
+    public void doubleTapSneakDropsPerchedParrot(GameTestHelper helper) {
         TestFloors.buildFloor(helper);
         ServerPlayer owner = placeOwner(helper, new BlockPos(2, 2, 2));
         mountShoulder(helper, owner, "minecraft:parrot");
         helper.startSequence()
                 .thenIdle(30)
+                .thenExecute(() -> tickSneaking(owner, false))   // settle (see class doc)
+                .thenIdle(1)
+                .thenExecute(() -> tickSneaking(owner, true))    // press
+                .thenIdle(1)
+                .thenExecute(() -> tickSneaking(owner, false))   // release — the tap banks
+                .thenIdle(1)
+                .thenExecute(() -> tickSneaking(owner, true))    // press again — the gesture completes
                 .thenExecute(() -> {
-                    // Sneak, then run the full player tick (doTick calls Player#tick, where the
-                    // TAIL inject sits) so the sneak drop fires past the grace.
-                    owner.setShiftKeyDown(true);
-                    owner.doTick();
                     boolean dropped = owner.getShoulderEntityLeft().isEmpty();
                     owner.discard();
-                    helper.assertTrue(dropped, "sneaking drops the perched parrot");
+                    helper.assertTrue(dropped, "a double-tap sneak drops the perched parrot");
                 })
                 .thenSucceed();
     }
 
+    @GameTest(template = EMPTY_STRUCTURE)
+    public void singleSneakTapKeepsPerchedParrot(GameTestHelper helper) {
+        TestFloors.buildFloor(helper);
+        ServerPlayer owner = placeOwner(helper, new BlockPos(2, 2, 2));
+        mountShoulder(helper, owner, "minecraft:parrot");
+        helper.startSequence()
+                .thenIdle(30)
+                .thenExecute(() -> tickSneaking(owner, false))   // settle (see class doc)
+                .thenIdle(1)
+                .thenExecute(() -> tickSneaking(owner, true))
+                .thenIdle(1)
+                .thenExecute(() -> tickSneaking(owner, false))
+                .thenIdle(20)                                   // the banked tap expires
+                .thenExecute(() -> tickSneaking(owner, true))    // so this reads as a fresh press
+                .thenExecute(() -> {
+                    boolean kept = !owner.getShoulderEntityLeft().isEmpty();
+                    owner.discard();
+                    helper.assertTrue(kept, "one stray sneak tap leaves the parrot perched");
+                })
+                .thenSucceed();
+    }
+
+    @GameTest(template = EMPTY_STRUCTURE)
+    public void heldSneakKeepsPerchedParrot(GameTestHelper helper) {
+        TestFloors.buildFloor(helper);
+        ServerPlayer owner = placeOwner(helper, new BlockPos(2, 2, 2));
+        mountShoulder(helper, owner, "minecraft:parrot");
+        // The crouch a player holds to place a block or work a ledge — the whole reason for the
+        // gesture — must never dislodge the bird, however long it is held.
+        GameTestSequence sequence = helper.startSequence()
+                .thenIdle(30)
+                .thenExecute(() -> tickSneaking(owner, false))   // settle (see class doc)
+                .thenIdle(1);
+        for (int i = 0; i < 20; i++) {
+            sequence = sequence.thenExecute(() -> tickSneaking(owner, true)).thenIdle(1);
+        }
+        sequence.thenExecute(() -> {
+            boolean kept = !owner.getShoulderEntityLeft().isEmpty();
+            owner.discard();
+            helper.assertTrue(kept, "a held crouch leaves the parrot perched");
+        }).thenSucceed();
+    }
+
+    @GameTest(template = EMPTY_STRUCTURE, batch = "instinctSteadyShoulderSneakGesture")
+    public void sneakGestureDropsOnAnySneak(GameTestHelper helper) {
+        TestFloors.buildFloor(helper);
+        ServerPlayer owner = placeOwner(helper, new BlockPos(2, 2, 2));
+        mountShoulder(helper, owner, "minecraft:parrot");
+        helper.startSequence()
+                .thenIdle(30)
+                // The config mutation lives inside the same step as its restore, so a step that never
+                // runs — a sequence timeout, an exception earlier on — cannot leave the gesture
+                // switched for every batch that follows.
+                .thenExecute(() -> {
+                    ShoulderDismountGesture saved = InstinctConfig.get().shoulderDismountGesture;
+                    InstinctConfig.get().shoulderDismountGesture = ShoulderDismountGesture.SNEAK;
+                    try {
+                        // The option for a server that wants the drop on the crouch itself: one
+                        // sneak, one tick, bird down.
+                        tickSneaking(owner, true);
+                        helper.assertTrue(owner.getShoulderEntityLeft().isEmpty(),
+                                "the SNEAK gesture drops the parrot on a plain sneak");
+                    } finally {
+                        InstinctConfig.get().shoulderDismountGesture = saved;
+                        owner.discard();
+                    }
+                })
+                .thenSucceed();
+    }
+
+    @GameTest(template = EMPTY_STRUCTURE, batch = "instinctSteadyShoulderGestureSwitch")
+    public void switchingGestureMidCrouchDoesNotDropEarly(GameTestHelper helper) {
+        ServerPlayer owner = placeOwner(helper, new BlockPos(2, 2, 2));
+        ShoulderDismountGesture saved = InstinctConfig.get().shoulderDismountGesture;
+        SneakTapTracker tracker = new SneakTapTracker(false);
+        try {
+            mountShoulder(helper, owner, "minecraft:parrot");
+            owner.setShiftKeyDown(true);
+            // Under SNEAK the tracker is not the decider, but it is still stood down each tick, so it
+            // never banks a stale observed state.
+            InstinctConfig.get().shoulderDismountGesture = ShoulderDismountGesture.SNEAK;
+            helper.assertTrue(SteadyShoulders.dropsOnGesture(owner, tracker),
+                    "precondition: SNEAK drops on a held sneak");
+            // Switching gesture mid-crouch must not read the crouch already underway as a press: if it
+            // did, a release and one press would finish the gesture a press early.
+            InstinctConfig.get().shoulderDismountGesture = ShoulderDismountGesture.DOUBLE_TAP_SNEAK;
+            helper.assertFalse(SteadyShoulders.dropsOnGesture(owner, tracker),
+                    "the crouch underway at the switch is not a press");
+            owner.setShiftKeyDown(false);
+            helper.assertFalse(SteadyShoulders.dropsOnGesture(owner, tracker),
+                    "so releasing it banks no tap");
+            owner.setShiftKeyDown(true);
+            helper.assertFalse(SteadyShoulders.dropsOnGesture(owner, tracker),
+                    "and the next press has nothing to pair with");
+            helper.succeed();
+        } finally {
+            InstinctConfig.get().shoulderDismountGesture = saved;
+            owner.discard();
+        }
+    }
+
     @GameTest(template = EMPTY_STRUCTURE, batch = "instinctSteadyShoulderDisabled")
     public void disabledConfigLeavesEveryGateOpen(GameTestHelper helper) {
-        boolean saved = InstinctConfig.get().enableSteadyShoulders;
+        boolean savedEnabled = InstinctConfig.get().enableSteadyShoulders;
+        ShoulderDismountGesture savedGesture = InstinctConfig.get().shoulderDismountGesture;
         ServerPlayer owner = placeOwner(helper, new BlockPos(2, 2, 2));
         try {
             InstinctConfig.get().enableSteadyShoulders = false;
+            // Pick the gesture that would fire on a single held sneak, so the assertion below can
+            // only pass because the feature toggle closed the gate.
+            InstinctConfig.get().shoulderDismountGesture = ShoulderDismountGesture.SNEAK;
             mountShoulder(helper, owner, "minecraft:parrot");
             // Every gate returns "don't interfere", so vanilla's dismount-on-anything stands.
             helper.assertFalse(SteadyShoulders.keepsThroughHit(owner, 1.0f),
@@ -183,11 +309,12 @@ public class SteadyShoulderGameTest implements FabricGameTest {
             helper.assertFalse(SteadyShoulders.keepsThroughFall(owner),
                     "disabled: the fall branch is left to vanilla");
             owner.setShiftKeyDown(true);
-            helper.assertFalse(SteadyShoulders.dropsOnSneak(owner),
-                    "disabled: no added sneak drop");
+            helper.assertFalse(SteadyShoulders.dropsOnGesture(owner, new SneakTapTracker(false)),
+                    "disabled: no added gesture drop");
             helper.succeed();
         } finally {
-            InstinctConfig.get().enableSteadyShoulders = saved;
+            InstinctConfig.get().enableSteadyShoulders = savedEnabled;
+            InstinctConfig.get().shoulderDismountGesture = savedGesture;
             owner.discard();
         }
     }
@@ -205,6 +332,15 @@ public class SteadyShoulderGameTest implements FabricGameTest {
         owner.setOnGround(true);
         owner.getAbilities().invulnerable = false;
         return owner;
+    }
+
+    /**
+     * Feeds one sneak sample through the real {@code Player#tick} inject. {@code ServerPlayer#tick} does
+     * not call {@code super.tick()}, so {@code doTick()} is the only path that reaches the inject.
+     */
+    private static void tickSneaking(ServerPlayer owner, boolean sneaking) {
+        owner.setShiftKeyDown(sneaking);
+        owner.doTick();
     }
 
     private static void mountShoulder(GameTestHelper helper, ServerPlayer owner, String entityId) {
