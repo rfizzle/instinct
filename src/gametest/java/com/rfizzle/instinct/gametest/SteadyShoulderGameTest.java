@@ -234,19 +234,22 @@ public class SteadyShoulderGameTest implements FabricGameTest {
         }).thenSucceed();
     }
 
-    @GameTest(template = EMPTY_STRUCTURE, batch = "instinctSteadyShoulderLegacySneak")
+    @GameTest(template = EMPTY_STRUCTURE, batch = "instinctSteadyShoulderSneakGesture")
     public void sneakGestureDropsOnAnySneak(GameTestHelper helper) {
         TestFloors.buildFloor(helper);
         ServerPlayer owner = placeOwner(helper, new BlockPos(2, 2, 2));
         mountShoulder(helper, owner, "minecraft:parrot");
-        ShoulderDismountGesture saved = InstinctConfig.get().shoulderDismountGesture;
-        InstinctConfig.get().shoulderDismountGesture = ShoulderDismountGesture.SNEAK;
         helper.startSequence()
                 .thenIdle(30)
+                // The config mutation lives inside the same step as its restore, so a step that never
+                // runs — a sequence timeout, an exception earlier on — cannot leave the gesture
+                // switched for every batch that follows.
                 .thenExecute(() -> {
+                    ShoulderDismountGesture saved = InstinctConfig.get().shoulderDismountGesture;
+                    InstinctConfig.get().shoulderDismountGesture = ShoulderDismountGesture.SNEAK;
                     try {
-                        // The escape hatch for anyone who preferred the plain-sneak feel: one sneak,
-                        // one tick, bird down.
+                        // The option for a server that wants the drop on the crouch itself: one
+                        // sneak, one tick, bird down.
                         tickSneaking(owner, true);
                         helper.assertTrue(owner.getShoulderEntityLeft().isEmpty(),
                                 "the SNEAK gesture drops the parrot on a plain sneak");
@@ -256,6 +259,37 @@ public class SteadyShoulderGameTest implements FabricGameTest {
                     }
                 })
                 .thenSucceed();
+    }
+
+    @GameTest(template = EMPTY_STRUCTURE, batch = "instinctSteadyShoulderGestureSwitch")
+    public void switchingGestureMidCrouchDoesNotDropEarly(GameTestHelper helper) {
+        ServerPlayer owner = placeOwner(helper, new BlockPos(2, 2, 2));
+        ShoulderDismountGesture saved = InstinctConfig.get().shoulderDismountGesture;
+        SneakTapTracker tracker = new SneakTapTracker(false);
+        try {
+            mountShoulder(helper, owner, "minecraft:parrot");
+            owner.setShiftKeyDown(true);
+            // Under SNEAK the tracker is not the decider, but it is still stood down each tick, so it
+            // never banks a stale observed state.
+            InstinctConfig.get().shoulderDismountGesture = ShoulderDismountGesture.SNEAK;
+            helper.assertTrue(SteadyShoulders.dropsOnGesture(owner, tracker),
+                    "precondition: SNEAK drops on a held sneak");
+            // Switching gesture mid-crouch must not read the crouch already underway as a press: if it
+            // did, a release and one press would finish the gesture a press early.
+            InstinctConfig.get().shoulderDismountGesture = ShoulderDismountGesture.DOUBLE_TAP_SNEAK;
+            helper.assertFalse(SteadyShoulders.dropsOnGesture(owner, tracker),
+                    "the crouch underway at the switch is not a press");
+            owner.setShiftKeyDown(false);
+            helper.assertFalse(SteadyShoulders.dropsOnGesture(owner, tracker),
+                    "so releasing it banks no tap");
+            owner.setShiftKeyDown(true);
+            helper.assertFalse(SteadyShoulders.dropsOnGesture(owner, tracker),
+                    "and the next press has nothing to pair with");
+            helper.succeed();
+        } finally {
+            InstinctConfig.get().shoulderDismountGesture = saved;
+            owner.discard();
+        }
     }
 
     @GameTest(template = EMPTY_STRUCTURE, batch = "instinctSteadyShoulderDisabled")

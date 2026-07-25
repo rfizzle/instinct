@@ -60,6 +60,12 @@ public final class SteadyShoulders {
      * without a perched pet stand down so a gesture made with an empty shoulder never banks toward a
      * later drop.
      *
+     * <p>The tracker is stood down on every tick that does not feed it a sample — the feature off, no
+     * pet perched, or a gesture that does not use it — so its observed sneak state is never stale. That
+     * matters when the gesture changes mid-session: a tracker left idle through a crouch would read
+     * that ongoing crouch as a fresh press the moment it started being sampled again, and drop the bird
+     * a press early.
+     *
      * <p>Vanilla's own 20-tick post-mount grace inside {@code removeEntitiesOnShoulder} still applies:
      * a gesture completed within 20 ticks of the bird landing is spotted here but eaten there. Since
      * completing clears the tracker, nothing carries over to fire once the grace lapses — the owner
@@ -67,15 +73,17 @@ public final class SteadyShoulders {
      */
     public static boolean dropsOnGesture(Player player, SneakTapTracker tracker) {
         InstinctConfig config = InstinctConfig.get();
+        boolean sneaking = player.isShiftKeyDown();
         if (!config.enableSteadyShoulders || !holdsInstinctPet(player)) {
-            tracker.standDown(player.isShiftKeyDown());
+            tracker.standDown(sneaking);
             return false;
         }
-        return switch (config.shoulderDismountGesture) {
-            case SNEAK -> player.isShiftKeyDown();
-            case DOUBLE_TAP_SNEAK -> tracker.advance(player.isShiftKeyDown(),
-                    player.level().getGameTime(), config.shoulderDismountDoubleTapTicks);
-        };
+        if (config.shoulderDismountGesture == ShoulderDismountGesture.SNEAK) {
+            tracker.standDown(sneaking);
+            return sneaking;
+        }
+        return tracker.advance(sneaking, player.level().getGameTime(),
+                config.shoulderDismountDoubleTapTicks);
     }
 
     /** True when either shoulder holds an Instinct pets-set animal. */

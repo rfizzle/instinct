@@ -10,7 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * The double-tap sneak gesture (SPEC §1): two quick sneak taps set a perched pet down, and everything
  * a player does with sneak incidentally — crouching to place a block, holding a crouch on a ledge, one
  * stray tap — does not. The window boundaries are pinned on both sides, since this is the whole
- * difference between a deliberate gesture and the plain-sneak rule it replaces.
+ * difference between a deliberate gesture and a plain sneak.
  */
 class SneakTapTrackerTest {
 
