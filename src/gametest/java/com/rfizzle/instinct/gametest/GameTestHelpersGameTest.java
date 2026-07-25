@@ -119,6 +119,12 @@ public class GameTestHelpersGameTest implements FabricGameTest {
      * rather than a genuinely cold chunk: the real check fails only for a chunk the server has
      * never loaded, and which chunks are still cold depends on what the rest of the batch touched
      * first, so that guard would go quiet on exactly the runs it is meant to catch.
+     *
+     * <p>The cleanup below is not belt-and-braces. A passing test hands its slot to
+     * {@code succeed()}, which sweeps the structure box, but a failing one does not — and the grid
+     * spawner never re-clears a slot. So the run where the discard regresses is exactly the run
+     * that would otherwise leave a live, persistence-required wolf loose on a floor with no walls,
+     * free to wander into a neighbouring slot and fail a test that has nothing to do with this one.
      */
     @GameTest(template = EMPTY_STRUCTURE)
     public void aSpawnFailingItsCheckIsDiscardedBeforeTheThrowReachesTheCaller(GameTestHelper helper) {
@@ -128,42 +134,83 @@ public class GameTestHelpersGameTest implements FabricGameTest {
         boolean threw = false;
 
         try {
-            PetSpawns.spawnAt(helper, EntityType.WOLF, new BlockPos(2, 2, 2), escaped::set,
-                    (h, entity) -> {
-                        throw new IllegalStateException("forced verification failure");
-                    });
-        } catch (IllegalStateException expected) {
+            try {
+                PetSpawns.spawnAt(helper, EntityType.WOLF, new BlockPos(2, 2, 2), escaped::set,
+                        (h, entity) -> {
+                            throw new IllegalStateException("forced verification failure");
+                        });
+            } catch (IllegalStateException expected) {
+                threw = true;
+            }
+
+            helper.assertTrue(threw, "a failed check should reach the caller rather than be swallowed");
+            Wolf wolf = escaped.get();
+            helper.assertTrue(wolf != null, "the load hook should have run before the check");
+            helper.assertTrue(wolf.isRemoved(), "a spawn that fails its check should be discarded");
+            helper.assertTrue(helper.getLevel().getEntity(wolf.getId()) == null,
+                    "a discarded spawn should be gone from the lookup it failed to reach");
+            helper.succeed();
+        } finally {
+            Wolf leaked = escaped.get();
+            if (leaked != null && !leaked.isRemoved()) {
+                leaked.discard();
+            }
+        }
+    }
+
+    /**
+     * The check itself, pinned apart from the spawn that calls it: a discarded entity leaves the
+     * lookup, which is the state a spawn into an unpromoted chunk presents. Worth its own test now
+     * that the check is a parameter — without it, wiring {@link PetSpawns#spawnAt} to a check that
+     * asserts nothing would leave every suite green.
+     */
+    @GameTest(template = EMPTY_STRUCTURE)
+    public void enumerabilityFailsForAnEntityTheLookupHasLost(GameTestHelper helper) {
+        TestFloors.buildFloor(helper);
+
+        Wolf wolf = PetSpawns.spawnTamedWolf(helper, new BlockPos(2, 2, 2));
+        PetSpawns.assertEnumerable(helper, wolf);
+        wolf.discard();
+
+        boolean threw = false;
+        try {
+            PetSpawns.assertEnumerable(helper, wolf);
+        } catch (RuntimeException expected) {
             threw = true;
         }
-
-        helper.assertTrue(threw, "a failed check should reach the caller rather than be swallowed");
-        Wolf wolf = escaped.get();
-        helper.assertTrue(wolf != null, "the load hook should have run before the check");
-        helper.assertTrue(wolf.isRemoved(), "a spawn that fails its check should be discarded");
-        helper.assertTrue(helper.getLevel().getEntity(wolf.getId()) == null,
-                "a discarded spawn should be gone from the lookup it failed to reach");
+        helper.assertTrue(threw, "enumerability should fail for an entity out of the lookup");
         helper.succeed();
     }
 
     /**
-     * A relative position in a chunk that is neither forced nor resident. Searched rather than
+     * A relative position in a chunk that has not reached full status. Searched rather than
      * hardcoded: suites share one grid, so a fixed offset can land in a chunk a neighbouring slot
-     * has already forced — the very coupling #59 was about. Residency is the stricter half of the
-     * search and the one worth having: forcing is a bookkeeping entry a test can add and drop,
-     * while whether the chunk is loaded is what a claim about a cold chunk actually turns on, and
-     * a batch can leave a chunk loaded without ever having forced it.
+     * has already warmed — the very coupling #59 was about. Accessibility is the whole test rather
+     * than half of one: forcing a chunk blocks on loading it, so a forced chunk is always an
+     * accessible one, and asking after the status subsumes asking after the force. It is also what
+     * a claim about a cold chunk turns on, since accessibility is what the entity lookup keys off.
+     *
+     * <p>The search is free — a map lookup per candidate, no load and no generation — but its
+     * result is not: the caller's {@code prepareSpawn} forces the chunk it returns, and forcing a
+     * chunk nothing has loaded generates it synchronously on the server thread. That costs around
+     * fifteen milliseconds once per run against a superflat gametest world, which is the only
+     * reason it is cheap enough to ignore.
      */
     private static BlockPos coldChunkPos(GameTestHelper helper) {
         for (int dx = 16; dx <= 4096; dx += 16) {
             BlockPos candidate = new BlockPos(dx, 2, 0);
             ChunkPos chunk = new ChunkPos(helper.absolutePos(candidate));
-            if (!helper.getLevel().getForcedChunks().contains(chunk.toLong())
-                    && !helper.getLevel().getChunkSource().hasChunk(chunk.x, chunk.z)) {
+            if (!helper.getLevel().getChunkSource().hasChunk(chunk.x, chunk.z)) {
                 return candidate;
             }
         }
-        throw new IllegalStateException(
-                "no cold chunk within 4096 blocks, so this test would prove nothing");
+        // The grid origin is randomized per run, so name it: a saturated grid and a coordinate bug
+        // are otherwise the same line in a CI log.
+        throw new IllegalStateException("no cold chunk within 4096 blocks of "
+                + helper.absolutePos(BlockPos.ZERO) + " (forced="
+                + helper.getLevel().getForcedChunks().size() + " loaded="
+                + helper.getLevel().getChunkSource().getLoadedChunksCount()
+                + "), so this test would prove nothing");
     }
 
     @GameTest(template = EMPTY_STRUCTURE)
