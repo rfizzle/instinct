@@ -19,8 +19,10 @@ import net.minecraft.world.entity.player.Player;
  * deliberate drop; the riptide spin-attack call site is left alone. Everything is gated on the perched entity
  * actually being an Instinct pets-set animal, resolved from the stored shoulder {@link CompoundTag},
  * so a non-pet modded shoulder-rider keeps exact vanilla behavior. Server-authoritative in effect:
- * the two suppressible call sites that matter run server-side, and the coverage resolve reads a
- * server-seeded cache.
+ * the suppression only takes hold server-side, and the coverage resolve reads a server-seeded
+ * cache. The predicates are read on both sides even so — vanilla's {@code aiStep()} guard binds
+ * {@code &&} tighter than {@code ||}, so its flying, sleeping, and powder-snow branches reach the
+ * removal on a client too — so everything they touch is safe off the server thread.
  */
 public final class SteadyShoulders {
 
