@@ -6,6 +6,8 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -27,15 +29,33 @@ import static org.junit.jupiter.api.Assertions.fail;
 class BuildWiringContractTest {
 
     private static final Path BUILD_SCRIPT = Path.of("build.gradle");
-    private static final String BLOCK_HEADER = "tasks.named('runGametest')";
+
+    /** How the block is named in failure messages. */
+    private static final String BLOCK_LABEL = "tasks.named('runGametest')";
 
     /**
-     * Returns the body of the {@code tasks.named('runGametest')} configuration block, with line
-     * comments removed and whitespace squeezed out.
+     * Matches the opening of the configuration block, through its brace.
+     *
+     * <p>Anchored to the start of a line and required to reach a {@code {}, so it can only match the
+     * configuration block — {@code runGametest} is also named mid-line by {@code jacocoMergedReport}'s
+     * {@code mustRunAfter}, and latching onto that would walk forward into an unrelated closure and
+     * report the pin missing while it is present. Either quote style is accepted so a cosmetic
+     * reformat does not read as drift.
+     */
+    private static final Pattern BLOCK_HEADER = Pattern.compile(
+            "(?m)^tasks\\.named\\(\\s*['\"]runGametest['\"]\\s*\\)\\s*\\{");
+
+    /** The pin, after whitespace is squeezed out — with or without the optional wrapping parens. */
+    private static final Pattern PIN = Pattern.compile("outputs\\.upToDateWhen\\(?\\{false}\\)?");
+
+    /**
+     * Returns the body of the {@code tasks.named('runGametest')} configuration block, with comments
+     * removed and whitespace squeezed out.
      *
      * <p>Scoping to the block matters: a bare file-wide substring search would be satisfied by a
      * line pasted anywhere in the script, including somewhere inert. Dropping comments matters for
-     * the same reason — prose describing the pin must not stand in for the pin itself.
+     * the same reason — prose describing the pin, or a commented-out pin, must not stand in for a
+     * live one.
      */
     private static String runGametestBlock() {
         String script;
@@ -45,29 +65,40 @@ class BuildWiringContractTest {
             throw new AssertionError("could not read " + BUILD_SCRIPT, e);
         }
 
-        int header = script.indexOf(BLOCK_HEADER);
-        if (header < 0) {
-            return fail(BUILD_SCRIPT + " no longer configures " + BLOCK_HEADER
+        Matcher header = BLOCK_HEADER.matcher(script);
+        if (!header.find()) {
+            return fail(BUILD_SCRIPT + " no longer configures " + BLOCK_LABEL
                     + " — the JaCoCo agent attachment and the always-execute pin have moved or been lost");
         }
-        int open = script.indexOf('{', header + BLOCK_HEADER.length());
-        if (open < 0) {
-            return fail(BLOCK_HEADER + " in " + BUILD_SCRIPT + " has no opening brace");
-        }
+        int open = header.end() - 1;
 
         StringBuilder body = new StringBuilder();
         int depth = 0;
         boolean inLineComment = false;
+        boolean inBlockComment = false;
         for (int i = open; i < script.length(); i++) {
             char c = script.charAt(i);
+            char next = i + 1 < script.length() ? script.charAt(i + 1) : '\0';
             if (inLineComment) {
                 if (c == '\n') {
                     inLineComment = false;
                 }
                 continue;
             }
-            if (c == '/' && i + 1 < script.length() && script.charAt(i + 1) == '/') {
+            if (inBlockComment) {
+                if (c == '*' && next == '/') {
+                    inBlockComment = false;
+                    i++;
+                }
+                continue;
+            }
+            if (c == '/' && next == '/') {
                 inLineComment = true;
+                i++;
+                continue;
+            }
+            if (c == '/' && next == '*') {
+                inBlockComment = true;
                 i++;
                 continue;
             }
@@ -81,14 +112,15 @@ class BuildWiringContractTest {
             }
             body.append(c);
         }
-        return fail(BLOCK_HEADER + " in " + BUILD_SCRIPT
-                + " has an unbalanced brace — could not extract the block to check its wiring");
+        return fail(BLOCK_LABEL + " in " + BUILD_SCRIPT
+                + " has an unbalanced brace or an unterminated comment — could not extract the block"
+                + " to check its wiring");
     }
 
     @Test
     void gametestSweepIsPinnedToAlwaysExecute() {
-        assertTrue(runGametestBlock().contains("outputs.upToDateWhen{false}"),
-                BLOCK_HEADER + " lost its `outputs.upToDateWhen { false }` pin. The JaCoCo agent's "
+        assertTrue(PIN.matcher(runGametestBlock()).find(),
+                BLOCK_LABEL + " lost its `outputs.upToDateWhen { false }` pin. The JaCoCo agent's "
                         + "exec file is a declared output, so without the pin a repeat "
                         + "`./gradlew runGametest` reports UP-TO-DATE, runs zero suites, and "
                         + "re-emits the previous coverage number as though it were fresh.");
@@ -97,7 +129,7 @@ class BuildWiringContractTest {
     @Test
     void gametestSweepStillAttachesTheJacocoAgent() {
         assertTrue(runGametestBlock().contains("jacoco.applyTo("),
-                BLOCK_HEADER + " no longer attaches the JaCoCo agent. Without it the gametest "
+                BLOCK_LABEL + " no longer attaches the JaCoCo agent. Without it the gametest "
                         + "sweep writes no exec file, and jacocoMergedReport silently degrades to "
                         + "unit-test-only coverage under the `merged` label.");
     }

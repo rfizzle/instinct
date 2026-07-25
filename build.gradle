@@ -242,9 +242,11 @@ configurations.testRuntimeClasspath {
 
 test {
     useJUnitPlatform()
-    // The contract tests read their subjects straight off disk rather than from the classpath, so
-    // Gradle sees none of them as test inputs. Declaring them keeps an edit to only those files from
-    // leaving `test` UP-TO-DATE (or FROM-CACHE) and skipping the contract it guards.
+    // The contract tests read their subjects from the source tree rather than the classpath, and
+    // nothing else makes `test` depend on the gametest source set or on this build script. Declare
+    // them, or an edit to only those files leaves `test` UP-TO-DATE (or FROM-CACHE) and skips the
+    // contract it guards. (The lang and keepsake subjects need no entry — they sit under main's
+    // resource srcDirs, so processResources already puts them on the test classpath.)
     // ManifestContractTest reads the two manifests and the gametest sources:
     inputs.files('src/main/resources/fabric.mod.json', 'src/gametest/resources/fabric.mod.json')
             .withPropertyName('contractManifests')
