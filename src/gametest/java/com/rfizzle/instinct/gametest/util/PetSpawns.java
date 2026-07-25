@@ -15,6 +15,7 @@ import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.Blocks;
 
 import java.util.UUID;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 /**
@@ -103,6 +104,19 @@ public final class PetSpawns {
      */
     public static <T extends Entity> T spawnAt(GameTestHelper helper, EntityType<T> type, BlockPos rel,
                                                Consumer<T> beforeLoad) {
+        return spawnAt(helper, type, rel, beforeLoad, PetSpawns::assertEnumerable);
+    }
+
+    /**
+     * The same spawn with its post-load check as a parameter, which is how
+     * {@code GameTestHelpersGameTest} reaches the discard path below. Provoking the real check to
+     * fail needs a chunk the server has never loaded, and which chunks are still cold depends on
+     * what the rest of the batch touched first — a guard that racy is worth less than the path it
+     * guards. Suites take the four-argument form, which passes {@link #assertEnumerable}.
+     */
+    public static <T extends Entity> T spawnAt(GameTestHelper helper, EntityType<T> type, BlockPos rel,
+                                               Consumer<T> beforeLoad,
+                                               BiConsumer<GameTestHelper, Entity> verify) {
         prepareSpawn(helper, rel);
         T entity = type.create(helper.getLevel());
         if (entity == null) {
@@ -119,7 +133,7 @@ public final class PetSpawns {
         // receives it, so this is the only place that can still clean it up. A spawn outside every
         // structure box would otherwise tick on unreferenced for the rest of the run.
         try {
-            assertEnumerable(helper, entity);
+            verify.accept(helper, entity);
         } catch (RuntimeException e) {
             entity.discard();
             throw e;

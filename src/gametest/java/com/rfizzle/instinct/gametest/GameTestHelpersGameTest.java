@@ -7,12 +7,14 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.animal.Wolf;
 import net.minecraft.world.entity.monster.Creeper;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.Blocks;
 
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Faithfulness guard for the shared gametest helpers, the sibling of {@link MockPlayersGameTest}.
@@ -109,6 +111,38 @@ public class GameTestHelpersGameTest implements FabricGameTest {
             wolf.discard();
             creeper.discard();
         }
+    }
+
+    /**
+     * A spawn whose check fails is already in the level but never reaches the caller, so the
+     * helper is the only place left that can clean it up. Driven through the injectable check
+     * rather than a genuinely cold chunk: the real check fails only for a chunk the server has
+     * never loaded, and which chunks are still cold depends on what the rest of the batch touched
+     * first, so that guard would go quiet on exactly the runs it is meant to catch.
+     */
+    @GameTest(template = EMPTY_STRUCTURE)
+    public void aSpawnFailingItsCheckIsDiscardedBeforeTheThrowReachesTheCaller(GameTestHelper helper) {
+        TestFloors.buildFloor(helper);
+        // The load hook is the only handle on an entity the caller never receives.
+        AtomicReference<Wolf> escaped = new AtomicReference<>();
+        boolean threw = false;
+
+        try {
+            PetSpawns.spawnAt(helper, EntityType.WOLF, new BlockPos(2, 2, 2), escaped::set,
+                    (h, entity) -> {
+                        throw new IllegalStateException("forced verification failure");
+                    });
+        } catch (IllegalStateException expected) {
+            threw = true;
+        }
+
+        helper.assertTrue(threw, "a failed check should reach the caller rather than be swallowed");
+        Wolf wolf = escaped.get();
+        helper.assertTrue(wolf != null, "the load hook should have run before the check");
+        helper.assertTrue(wolf.isRemoved(), "a spawn that fails its check should be discarded");
+        helper.assertTrue(helper.getLevel().getEntity(wolf.getId()) == null,
+                "a discarded spawn should be gone from the lookup it failed to reach");
+        helper.succeed();
     }
 
     /**
