@@ -38,8 +38,11 @@ import java.util.List;
  * </ul>
  *
  * Server-authoritative in effect: the veterancy attachment never syncs to the client (every victim
- * reads rank 0, so the sweep filter passes through unchanged), and the two suppressed shoulder call
- * sites run server-side.
+ * reads rank 0, so the sweep filter passes through unchanged), and the shoulder suppression only
+ * takes hold server-side. The shoulder predicate itself is read on both sides — vanilla's
+ * {@code aiStep()} guard binds {@code &&} tighter than {@code ||}, so its flying, sleeping, and
+ * powder-snow branches reach the removal regardless of side — which is why the coverage lookup
+ * behind it has to be safe off the server thread.
  */
 @Mixin(Player.class)
 abstract class PlayerMixin {

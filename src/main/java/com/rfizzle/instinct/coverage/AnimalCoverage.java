@@ -19,6 +19,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * The Animal Coverage shell: gathers the per-type layer facts (config lists, {@code #instinct:*}
@@ -57,6 +58,40 @@ public final class AnimalCoverage {
 
     private static final Map<EntityType<?>, AnimalCapability> CAPABILITIES = new ConcurrentHashMap<>();
     private static final Map<String, EntityType<?>> TYPES_BY_ID = new ConcurrentHashMap<>();
+
+    /**
+     * How many ids that resolve to nothing {@link #UNRESOLVED_IDS} will hold. Sized for the two
+     * shoulder slots of each of a handful of players carrying a stale rider at once, which is the
+     * access pattern that makes a repeated non-resolution worth remembering at all.
+     */
+    static final int UNRESOLVED_ID_CAP = 8;
+
+    /**
+     * Ids already found to name no registered type. Kept apart from {@link #TYPES_BY_ID} because
+     * the two answer to different rules: the memo's keys come from the registry and it is bounded
+     * by construction, while these come from save data and are bounded only by the cap.
+     */
+    private static final Set<String> UNRESOLVED_IDS = ConcurrentHashMap.newKeySet();
+
+    /**
+     * Guards the cap on {@link #UNRESOLVED_IDS}. A lock of its own rather than the set's own
+     * monitor, so nothing reads as though the set's other operations took part in it: they do not,
+     * and only the admit needs ordering.
+     */
+    private static final Object UNRESOLVED_LOCK = new Object();
+
+    /**
+     * The longest id worth a slot in {@link #UNRESOLVED_IDS} — past any {@code namespace:path} a
+     * registry could answer to, so nothing that might resolve is turned away.
+     */
+    static final int MAX_UNRESOLVED_ID_LENGTH = 256;
+
+    /**
+     * How many times {@link #typeById} has reached a real parse. The seam for the property this
+     * whole cache exists for — that re-asking about the same id is cheap — which neither set's size
+     * can show, since both look identical whether the id was remembered or parsed afresh.
+     */
+    private static final AtomicInteger RESOLVE_ATTEMPTS = new AtomicInteger();
 
     private AnimalCoverage() {
     }
@@ -181,6 +216,17 @@ public final class AnimalCoverage {
      * so the probe comes before the parse — which is the whole point, since parsing is what the
      * hot path is here to avoid. A hand-edited tag spelling an id non-canonically therefore takes
      * its own entry; both entries resolve to the same type, and the registry bounds the total.
+     *
+     * <p>Naming nothing is as fixed as naming something, so an id that fails is remembered too —
+     * the shoulder gates re-ask the same id every tick a bird is perched, and a stale rider whose
+     * mod is gone would otherwise re-parse forever. That set is capped rather than memoized,
+     * because its keys come from save data rather than from the registry: past {@link
+     * #UNRESOLVED_ID_CAP} distinct failures an id simply parses again.
+     *
+     * <p>Safe from either thread that reaches it (the {@code aiStep} dismount branches vanilla
+     * runs client-side as well as server-side): an entry exists only because some thread already
+     * proved that exact id names no registered type, and a thread that misses a peer's write just
+     * parses, which is the answer it would have reached anyway.
      */
     @Nullable
     public static EntityType<?> typeById(String id) {
@@ -188,15 +234,46 @@ public final class AnimalCoverage {
         if (memoized != null) {
             return memoized;
         }
+        if (UNRESOLVED_IDS.contains(id)) {
+            return null;
+        }
+        RESOLVE_ATTEMPTS.incrementAndGet();
         ResourceLocation key = ResourceLocation.tryParse(id);
         if (key == null) {
+            rememberUnresolved(id);
             return null;
         }
         EntityType<?> resolved = BuiltInRegistries.ENTITY_TYPE.getOptional(key).orElse(null);
         if (resolved != null) {
             TYPES_BY_ID.put(id, resolved);
+        } else {
+            rememberUnresolved(id);
         }
         return resolved;
+    }
+
+    /**
+     * Admits an id to the unresolved set while it has room. The cap is checked twice on purpose:
+     * the unlocked read keeps a full set off the lock altogether, so a world carrying more broken
+     * ids than the cap holds pays nothing to be told so, while the locked read is what actually
+     * bounds the set, since concurrent misses must not both pass a check only one of them should.
+     * Only a miss reaches here, and a miss already pays for a parse, so neither check sits on the
+     * repeat path this method exists to make cheap.
+     *
+     * <p>An id too long to name anything a registry could answer to is turned away rather than
+     * given a slot. Shoulder tags reach a client over the network as well as off its own disk, and
+     * a client connected to a remote server never fires the server-stop clear, so these keys are
+     * worth treating as hostile even though the cap already bounds how many of them stick.
+     */
+    private static void rememberUnresolved(String id) {
+        if (id.length() > MAX_UNRESOLVED_ID_LENGTH || UNRESOLVED_IDS.size() >= UNRESOLVED_ID_CAP) {
+            return;
+        }
+        synchronized (UNRESOLVED_LOCK) {
+            if (UNRESOLVED_IDS.size() < UNRESOLVED_ID_CAP) {
+                UNRESOLVED_IDS.add(id);
+            }
+        }
     }
 
     /** How many ids the type memo currently holds — the growth guard's test seam. */
@@ -204,9 +281,21 @@ public final class AnimalCoverage {
         return TYPES_BY_ID.size();
     }
 
-    /** Drops every memoized id, so nothing carries across worlds in the same JVM. */
+    /** How many failed ids are currently remembered — the cap's test seam. */
+    static int unresolvedIdCount() {
+        return UNRESOLVED_IDS.size();
+    }
+
+    /** How many lookups reached a real parse — the seam for the repeat path staying cheap. */
+    static int typeResolveAttempts() {
+        return RESOLVE_ATTEMPTS.get();
+    }
+
+    /** Drops every remembered id, resolved or not, so nothing carries across worlds in one JVM. */
     static void clearTypeMemo() {
         TYPES_BY_ID.clear();
+        UNRESOLVED_IDS.clear();
+        RESOLVE_ATTEMPTS.set(0);
     }
 
     /** Records an observed instance's capability, correcting a failed or missing probe result. */

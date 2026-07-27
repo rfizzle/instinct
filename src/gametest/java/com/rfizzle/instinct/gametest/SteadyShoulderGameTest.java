@@ -96,12 +96,18 @@ public class SteadyShoulderGameTest implements FabricGameTest {
             // it, which would carry the failure straight into vanilla's aiStep.
             for (String id : new String[]{"instinct:no_such_entity_type", "not a valid id!"}) {
                 mountShoulder(helper, owner, id);
-                helper.assertFalse(SteadyShoulders.holdsInstinctPet(owner),
-                        "an unresolvable shoulder rider is not covered: " + id);
-                helper.assertFalse(SteadyShoulders.keepsThroughFall(owner),
-                        "no fall suppression for an unresolvable rider: " + id);
-                helper.assertFalse(SteadyShoulders.keepsThroughHit(owner, 1.0f),
-                        "no hit suppression for an unresolvable rider: " + id);
+                // Twice, because the gates re-ask about a perched rider every tick and the second
+                // answer comes from the remembered failure rather than a fresh parse. A rider that
+                // reads "not covered" cold and something else warm would hand vanilla's dismount
+                // to a tag that must never have been covered in the first place.
+                for (int probe = 0; probe < 2; probe++) {
+                    helper.assertFalse(SteadyShoulders.holdsInstinctPet(owner),
+                            "an unresolvable shoulder rider is not covered: " + id);
+                    helper.assertFalse(SteadyShoulders.keepsThroughFall(owner),
+                            "no fall suppression for an unresolvable rider: " + id);
+                    helper.assertFalse(SteadyShoulders.keepsThroughHit(owner, 1.0f),
+                            "no hit suppression for an unresolvable rider: " + id);
+                }
             }
             helper.succeed();
         } finally {
