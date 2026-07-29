@@ -332,7 +332,7 @@ public final class WhistleActions {
         for (ServerLevel level : server.getAllLevels()) {
             boolean same = level.dimension().equals(playerDim);
             for (TamableAnimal pet : level.getEntities(EntityTypeTest.forClass(TamableAnimal.class),
-                    candidate -> WhistleRules.isLocatablePet(candidate.isTame(), candidate.isOwnedBy(player),
+                    candidate -> WhistleRules.isLocatablePet(candidate.isTame(), player.getUUID().equals(candidate.getOwnerUUID()),
                             AnimalCoverage.isPet(candidate)))) {
                 WhistleLocator.PetState state = stateOf(pet);
                 if (same) {
