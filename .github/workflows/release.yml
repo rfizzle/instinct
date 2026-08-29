@@ -13,7 +13,7 @@ permissions:
 jobs:
   release:
     uses: rfizzle/concord/.github/workflows/mod-release.yml@master
-    # Add modrinth-id under `with:` once the Modrinth project exists.
     with:
+      modrinth-id: "x5aRPdcH"
       curseforge-id: "1617731"
     secrets: inherit
