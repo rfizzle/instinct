@@ -499,23 +499,17 @@ public final class DownedHandler {
         }
     }
 
-    // Both fire sites catch Throwable, not Exception: this is the boundary where untrusted listener
+    // Isolation lives in each callback's createArrayBacked invoker (API-STANDARD §3.1/§6), not here:
+    // a fire-site wrap catches the throw but abandons every listener after the one that threw. The
+    // invoker catches Throwable, not Exception, because this is the boundary where untrusted listener
     // code runs, and a consumer compiled against an older signature throws Error (AbstractMethodError,
     // NoClassDefFoundError), which an Exception catch would let escape and kill the server tick.
     private static void fireDownedCallback(Animal animal, DamageSource source) {
-        try {
-            InstinctAnimalDownedCallback.EVENT.invoker().onAnimalDowned(animal, source);
-        } catch (Throwable t) {
-            Instinct.LOGGER.error("An animal-downed listener threw", t);
-        }
+        InstinctAnimalDownedCallback.EVENT.invoker().onAnimalDowned(animal, source);
     }
 
     /** {@code reviver} is null and {@code item} empty on the kennel-post recovery path (SPEC §9). */
     private static void fireRevivedCallback(Animal animal, @Nullable Player reviver, ItemStack item) {
-        try {
-            InstinctAnimalRevivedCallback.EVENT.invoker().onAnimalRevived(animal, reviver, item);
-        } catch (Throwable t) {
-            Instinct.LOGGER.error("An animal-revived listener threw", t);
-        }
+        InstinctAnimalRevivedCallback.EVENT.invoker().onAnimalRevived(animal, reviver, item);
     }
 }

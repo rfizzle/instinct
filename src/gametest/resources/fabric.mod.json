@@ -35,7 +35,8 @@
             "com.rfizzle.instinct.gametest.FeedingTroughGameTest",
             "com.rfizzle.instinct.gametest.WhistleGameTest",
             "com.rfizzle.instinct.gametest.ProbeTooltipGameTest",
-            "com.rfizzle.instinct.gametest.TribulationCompatGameTest"
+            "com.rfizzle.instinct.gametest.TribulationCompatGameTest",
+            "com.rfizzle.instinct.gametest.ApiCallbackIsolationGameTest"
         ]
     },
     "depends": {
