@@ -247,7 +247,7 @@ test {
     // them, or an edit to only those files leaves `test` UP-TO-DATE (or FROM-CACHE) and skips the
     // contract it guards. (The lang and keepsake subjects need no entry — they sit under main's
     // resource srcDirs, so processResources already puts them on the test classpath.)
-    // ManifestContractTest reads the two manifests and the gametest sources:
+    // GametestRegistrationTest reads the two manifests and the gametest sources:
     inputs.files('src/main/resources/fabric.mod.json', 'src/gametest/resources/fabric.mod.json')
             .withPropertyName('contractManifests')
             .withPathSensitivity(PathSensitivity.RELATIVE)
