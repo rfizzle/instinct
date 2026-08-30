@@ -14,11 +14,11 @@
           "items": [
             {
               "q": "Is Instinct released?",
-              "a": "Not yet — it is in development. The design is committed (vision, full behavioral spec, brand), the repo builds green, and features are being implemented against the spec. Watch <a href='https://github.com/rfizzle/instinct/releases' class='text-accent hover:text-accent2 underline'>GitHub Releases</a>."
+              "a": "Yes — the first public beta is out. Every system in the behavioral spec is implemented and covered by the test suite; the beta label is about field time, not missing features. Get it from <a href='https://github.com/rfizzle/instinct/releases' class='text-accent hover:text-accent2 underline'>GitHub Releases</a>, Modrinth, or CurseForge."
             },
             {
               "q": "Can my pets still die?",
-              "a": "Yes — the stakes stay real. A downed pet is a rescue you still have to perform (golden apple or Vet Kit), the rescue costs one veterancy rank, and fire, lava, and the void kill outright. Their survival instinct exists precisely to keep them out of those three."
+              "a": "Yes — the stakes stay real. A downed pet is a rescue you still have to perform: a golden apple or a Vet Kit in the field, at the cost of one veterancy rank, or about five patient minutes beside a kennel post for free. A downed mount costs no rank at all. Fire, lava, and the void kill outright and leave only a keepsake collar — their survival instinct exists precisely to keep them out of those three."
             },
             {
               "q": "Does it work with modded animals like Critters and Companions?",

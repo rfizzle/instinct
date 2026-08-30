@@ -3,7 +3,7 @@
     "id": "instinct",
     "version": "${version}",
     "name": "Instinct",
-    "description": "A husbandry overhaul — pets with a survival instinct that grow veteran with age, livestock bloodlines worth breeding, herds that flock, a feeding trough, and a command whistle.",
+    "description": "A husbandry overhaul — pets with a survival instinct that grow veteran with age and guard the pen, livestock bloodlines worth breeding, herds that flock, a feeding trough, a kennel post, a command whistle, and downed pets you rescue instead of bury.",
     "authors": ["rfizzle"],
     "contact": {
         "homepage": "https://instinct.rfizzle.com",
