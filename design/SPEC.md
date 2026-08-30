@@ -2,9 +2,9 @@
 
 Minecraft 1.21.1 Fabric mod. Husbandry overhaul.
 
-**Architectural philosophy:** Augment, never replace. Instinct never registers replacement entity types, never swaps or subclasses vanilla animals, and never rewrites a vanilla AI brain — all behavior changes are *additional* goals, goal wrappers, and pathfinding penalties injected into vanilla mobs at load, and all persistent state (veterancy, bloodline grade, downed status, trough-fed recency) rides **persistent Fabric data attachments** on the vanilla entities (the same `AttachmentType` mechanism the rest of the Concord suite uses). Remove Instinct and every animal is a byte-compatible vanilla animal plus inert attachment data. New registrations are limited to one block (feeding trough), three items (command whistle, vet kit, pedigree treat), six sounds, and the block entity behind the trough. All gameplay decisions run server-side; the client receives only display state (downed pose flag, trough fill).
+**Architectural philosophy:** Augment, never replace. Instinct never registers replacement entity types, never swaps or subclasses vanilla animals, and never rewrites a vanilla AI brain — all behavior changes are *additional* goals, goal wrappers, and pathfinding penalties injected into vanilla mobs at load, and all persistent state (veterancy, bloodline grade, downed status, trough-fed recency) rides **persistent Fabric data attachments** on the vanilla entities (the same `AttachmentType` mechanism the rest of the Concord suite uses). Remove Instinct and every animal is a byte-compatible vanilla animal plus inert attachment data. New registrations are limited to two blocks (feeding trough, kennel post), four items (command whistle, vet kit, pedigree treat, keepsake collar), seven sounds, one data component (the collar's engraving), and the block entity behind the trough. All gameplay decisions run server-side; the client receives only display state (downed pose flag, trough fill).
 
-**Asset philosophy:** Vanilla animals keep vanilla looks, always — grades and ranks surface through inspection lines and tooltips, never retextures. Custom pixel art (glyph pipeline — `/glyph`, `mc-textures` skill, concord `design/DESIGN-SYSTEM.md` §8, `.glyph` sources beside masters) covers only what Instinct adds: trough block faces, the three item sprites, and the 16×16 Jade glyph. Particles are vanilla (`heart`, `smoke`, `happy_villager`). Sounds stay vanilla where the cue is organic (eating, whines, block fill, a pet's warning growl); the whistle's four commands and the two milestone moments (rank-up, revival) are custom synthesized cues via the `/sfx` pipeline (§9), each with a subtitle.
+**Asset philosophy:** Vanilla animals keep vanilla looks, always — grades and ranks surface through inspection lines and tooltips, never retextures. Custom pixel art (glyph pipeline — `/glyph`, `mc-textures` skill, concord `design/DESIGN-SYSTEM.md` §8, `.glyph` sources beside masters) covers only what Instinct adds: the trough's four block faces, the kennel post's two, the four item sprites, and the 16×16 Jade glyph. Particles are vanilla (`heart`, `smoke`, `happy_villager`). Sounds stay vanilla where the cue is organic (eating, whines, block fill, a pet's warning growl); the whistle's five commands (Stay/Follow, attack, round-up, guard — the home assignment shares the guard cue) and the two milestone moments (rank-up, revival) are custom synthesized cues via the `/sfx` pipeline (§9), each with a subtitle.
 
 ---
 
@@ -752,6 +752,11 @@ All features are independently toggleable via a ModMenu / Cloth Config screen an
 | `enableSelfPreservation` | bool | true | §1 master toggle (pets and mounts) |
 | `creeperBerthBlocks` | int | 4 | Distance pets keep from ignited creepers (2–8) |
 | `teleportSuppressFallDistance` | double | 3.0 | Owner fall distance that suppresses pet teleport (0.5–10.0) |
+| `enableOwnerFriendlyFireProtection` | bool | true | §1 — your own damage never lands on your own pets |
+| `enableSteadyShoulders` | bool | true | §1 — a shoulder parrot survives jumps, short falls, and scratches |
+| `steadyShoulderDismountDamage` | double | 4.0 | Damage that still drops a shoulder parrot (0.0–20.0) |
+| `shoulderDismountGesture` | enum | `DOUBLE_TAP_SNEAK` | Deliberate set-down gesture: `DOUBLE_TAP_SNEAK` or `SNEAK` |
+| `shoulderDismountDoubleTapTicks` | int | 12 | Window for the double-tap gesture (2–40) |
 | `enableVeterancy` | bool | true | §2 master toggle |
 | `veterancyThresholdDays` | int list | [10, 30, 60] | Days for ranks 1–3, ascending (each 1–1000) |
 | `healthPerRank` | double | 2.0 | Max-health bonus per rank (0.0–20.0) |
@@ -773,6 +778,7 @@ All features are independently toggleable via a ModMenu / Cloth Config screen an
 | `flockSpacingBlocks` | double | 2.0 | Preferred spacing between flock members (1.0–4.0) |
 | `enableHerding` | bool | true | Drive assist (§4) + whistle round-up (§6) |
 | `herdingMaxPets` | int | 2 | Pets working a drive or round-up at once (1–4) |
+| `enablePetBoating` | bool | true | §4 — a following pet takes your boat's spare seat |
 | `enableTrough` | bool | true | §5 feeding loop toggle (block stays as inert storage) |
 | `troughRadiusBlocks` | int | 10 | Trough feeding radius (4–24) |
 | `troughFeedIntervalTicks` | int | 40 | Ticks between trough feed attempts (10–200) |
@@ -782,11 +788,13 @@ All features are independently toggleable via a ModMenu / Cloth Config screen an
 | `whistleTargetRangeBlocks` | int | 24 | Target raycast range for attack and round-up (8–64) |
 | `whistleCooldownTicks` | int | 20 | Item cooldown after a whistle action (0–100) |
 | `roundUpGroupRadiusBlocks` | int | 8 | Round-up gathers same-species animals within this radius (4–16) |
+| `guardRadiusBlocks` | int | 8 | Radius a posted pack holds around the guarded spot (§6) (4–16) |
 | `enableDownedState` | bool | true | §7 master toggle |
 | `reviveHealthFraction` | double | 0.5 | Health fraction restored on revival (0.1–1.0) |
 | `downedRankPenalty` | bool | true | Revival costs one veterancy rank |
 | `enableCarryDowned` | bool | true | Sneak-use to carry a downed small pet to safety |
 | `carrySlowdownFraction` | double | 0.30 | Movement slowdown while carrying a downed pet (0.0–0.9) |
+| `enableKeepsakeCollar` | bool | true | §7 — a pet lost beyond saving leaves an engraved collar |
 | `enablePredatorWatch` | bool | true | §8 master toggle |
 | `predatorWatchRadiusBlocks` | int | 12 | Radius a Stay guardian watches for predators over livestock (4–24) |
 | `predatorsInclude` | list | [] | Entity types forced into the wild-predator set |
