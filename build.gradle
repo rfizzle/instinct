@@ -172,7 +172,13 @@ loom {
 // counts toward coverage. Loom's run task is a JavaExec, so the task extension
 // applies. The includes filter keeps the agent from instrumenting
 // Minecraft/Fabric classes.
-tasks.named('runGametest') {
+//
+// Matched by name rather than resolved with `tasks.named`: Loom registers
+// `runGametest` during afterEvaluate, so an eager lookup only resolves in repos
+// where that has already happened by the time this block is evaluated. The lazy
+// form configures the task whenever it appears and cannot break on a Loom or
+// evaluation-order change.
+tasks.matching { it.name == 'runGametest' }.configureEach {
     jacoco.applyTo(it)
     it.jacoco.destinationFile = layout.buildDirectory.file('jacoco/runGametest.exec').get().asFile
     it.jacoco.includes = ['com.rfizzle.instinct.*']
@@ -282,19 +288,28 @@ tasks.register('jacocoMergedReport', JacocoReport) {
     dependsOn tasks.named('classes')
     // Ordering only — not dependsOn, so the report can run from existing exec
     // data without forcing a gametest server spin-up.
-    mustRunAfter test, tasks.named('runGametest')
+    mustRunAfter test, tasks.matching { it.name == 'runGametest' }
     // fileTree only picks up exec files that exist, so the report still runs
     // when one of the two sweeps hasn't.
     executionData fileTree(layout.buildDirectory.dir('jacoco')) {
         include 'test.exec', 'runGametest.exec'
     }
-    // A sweep that never ran leaves its exec file absent, which would otherwise
-    // yield a partial number under the "merged" label with no indication.
+    // A sweep that never ran leaves its exec file absent, and one that was
+    // interrupted leaves it empty — Gradle deletes the file before the run and
+    // the agent only dumps at JVM exit. A sweep that ran before the last
+    // recompile is worse: JaCoCo matches execution data by class ID, so a stale
+    // exec contributes nothing and its classes read 0% rather than failing.
+    // Every one of those is a partial number under the "merged" label with no
+    // indication, so say so.
     doFirst {
+        def newestClass = classDirectories.asFileTree.files*.lastModified().max() ?: 0L
         ['test.exec', 'runGametest.exec'].each { name ->
             def execFile = layout.buildDirectory.file("jacoco/${name}").get().asFile
             if (!execFile.exists() || execFile.length() == 0) {
                 logger.warn("jacocoMergedReport: ${name} is missing or empty — this report is NOT merged coverage")
+            } else if (execFile.lastModified() < newestClass) {
+                logger.warn("jacocoMergedReport: ${name} predates the compiled classes — anything recompiled " +
+                        'since that sweep reads 0%; re-run `make coverage`')
             }
         }
     }
@@ -340,6 +355,28 @@ tasks.register('verifyDatagenIdempotent') {
             def lines = text.trim().readLines()
             lines.size() > 5 ? lines.take(5).join('\n') + "\n… (${lines.size()} lines total)"
                              : lines.join('\n')
+        }
+
+        // Pin the check against a tree git actually knows about before trusting a clean
+        // answer. `git status --porcelain -- <path>` exits 0 with empty output for a path
+        // that does not exist or holds nothing tracked, so a datagen entrypoint that
+        // stopped running, a typo'd output-dir vmArg, or a bad merge would leave this task
+        // reporting green while verifying nothing at all. Two sibling members shipped
+        // exactly that false green.
+        def listedResult = runGit(['git', '--no-optional-locks', 'ls-files', '--', genDir])
+        def listedExit = listedResult.result.get().exitValue
+        if (listedExit != 0) {
+            throw new GradleException(
+                    "git ls-files failed with exit ${listedExit} while checking src/main/generated/:\n" +
+                    firstLines(listedResult.standardError.asText.get()))
+        }
+        def tracked = listedResult.standardOutput.asText.get().trim()
+        if (tracked.isEmpty()) {
+            throw new GradleException(
+                    'verifyDatagenIdempotent found no tracked files under src/main/generated/, so a ' +
+                    'clean git status there would prove nothing. Either datagen produced no output ' +
+                    '(check the DataGeneratorEntrypoint and the datagen run config\'s output-dir vmArg) ' +
+                    'or the generated tree was never committed.')
         }
 
         def statusResult = runGit(['git', '--no-optional-locks', 'status', '--porcelain', '--', genDir])

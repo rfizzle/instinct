@@ -31,7 +31,7 @@ class BuildWiringContractTest {
     private static final Path BUILD_SCRIPT = Path.of("build.gradle");
 
     /** How the block is named in failure messages. */
-    private static final String BLOCK_LABEL = "tasks.named('runGametest')";
+    private static final String BLOCK_LABEL = "the runGametest configuration block";
 
     /**
      * Matches the opening of the configuration block, through its brace.
@@ -39,11 +39,18 @@ class BuildWiringContractTest {
      * <p>Anchored to the start of a line and required to reach a {@code {}, so it can only match the
      * configuration block — {@code runGametest} is also named mid-line by {@code jacocoMergedReport}'s
      * {@code mustRunAfter}, and latching onto that would walk forward into an unrelated closure and
-     * report the pin missing while it is present. Either quote style is accepted so a cosmetic
-     * reformat does not read as drift.
+     * report the pin missing while it is present.
+     *
+     * <p>Both wiring forms are accepted: the eager {@code tasks.named('runGametest') &#123;} and the lazy
+     * {@code tasks.matching &#123; it.name == 'runGametest' &#125;.configureEach &#123;}. This test guards what the
+     * block <em>contains</em>, not which lookup found the task, and pinning one form would turn the
+     * documented migration between them into a spurious failure. Either quote style is accepted for the
+     * same reason a cosmetic reformat must not read as drift.
      */
     private static final Pattern BLOCK_HEADER = Pattern.compile(
-            "(?m)^tasks\\.named\\(\\s*['\"]runGametest['\"]\\s*\\)\\s*\\{");
+            "(?m)^tasks\\.(?:named\\(\\s*['\"]runGametest['\"]\\s*\\)"
+                    + "|matching\\s*\\{\\s*it\\.name\\s*==\\s*['\"]runGametest['\"]\\s*}\\s*\\.configureEach)"
+                    + "\\s*\\{");
 
     /** The pin, after whitespace is squeezed out — with or without the optional wrapping parens. */
     private static final Pattern PIN = Pattern.compile("outputs\\.upToDateWhen\\(?\\{false}\\)?");
