@@ -16,8 +16,10 @@ import net.minecraft.advancements.AdvancementHolder;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.animal.Cow;
 import net.minecraft.world.entity.animal.Parrot;
@@ -351,6 +353,51 @@ public class WhistleGameTest implements FabricGameTest {
         near.discard();
         far.discard();
         owner.discard();
+        helper.succeed();
+    }
+
+    /**
+     * The cross-dimension half of the census, which was dead code until this test existed.
+     *
+     * <p>{@code TamableAnimal#isOwnedBy} resolves the owner through {@code pet.level().getPlayerByUUID},
+     * so it answers false for every pet in a dimension the owner is not standing in — which is exactly
+     * the set of pets {@link WhistleActions#locate} walks {@code getAllLevels()} to find. The filter has
+     * to compare owner UUIDs directly instead.
+     *
+     * <p>Reproduced by moving the owner rather than the pet: the pet stays in the warm structure chunk
+     * the census enumerates, and only the owner's dimension changes. Its own batch, because it strands a
+     * player in the Nether for the length of the test.
+     */
+    @GameTest(template = EMPTY_STRUCTURE, batch = "instinctLocateCrossDimension")
+    public void locateFindsAPetLeftBehindInAnotherDimension(GameTestHelper helper) {
+        TestFloors.buildFloor(helper, 8, 8);
+        ServerPlayer owner = mockPlayer(helper, new BlockPos(4, 2, 4));
+        Wolf leftBehind = PetSpawns.spawnTamedWolf(helper, new BlockPos(6, 2, 4), owner.getUUID());
+        ServerLevel here = helper.getLevel();
+        ServerLevel elsewhere = here.getServer().getLevel(Level.NETHER);
+        helper.assertTrue(elsewhere != null && elsewhere != here,
+                "the gametest server has a second dimension to strand a pet across");
+
+        try {
+            owner.teleportTo(elsewhere, 0.5, 64.0, 0.5, 0.0f, 0.0f);
+            helper.assertTrue(owner.level() == elsewhere, "the owner actually changed dimension");
+            // The precondition the production filter used to get wrong: the pet is still owned, but
+            // vanilla's owner check cannot see that from the other side of a dimension boundary.
+            helper.assertFalse(leftBehind.isOwnedBy(owner),
+                    "isOwnedBy resolves the owner in the pet's own level, so it reads false across "
+                            + "dimensions — which is why the census compares owner UUIDs instead");
+
+            WhistleActions.LocateResult result = WhistleActions.locate(owner);
+            helper.assertValueEqual(result.sightings().size(), 1,
+                    "the pet left behind in another dimension is listed");
+            WhistleActions.Sighting sighting = result.sightings().get(0);
+            helper.assertFalse(sighting.sameDimension(), "it is reported as a cross-dimension sighting");
+            helper.assertValueEqual(sighting.dimensionId(), here.dimension().location().toString(),
+                    "the sighting names the dimension the pet was left in");
+        } finally {
+            leftBehind.discard();
+            owner.discard();
+        }
         helper.succeed();
     }
 
