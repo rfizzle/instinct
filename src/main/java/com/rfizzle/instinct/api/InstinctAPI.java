@@ -95,11 +95,18 @@ public final class InstinctAPI {
      * {@link #setVeterancyRateProvider} and never resolve.
      */
     public static double resolveVeterancyRate(TamableAnimal pet) {
+        ToDoubleFunction<TamableAnimal> provider = veterancyRateProvider;
         try {
-            return Veterancy.clampProviderRate(veterancyRateProvider.applyAsDouble(pet));
-        } catch (Exception e) {
+            return Veterancy.clampProviderRate(provider.applyAsDouble(pet));
+        } catch (VirtualMachineError e) {
+            throw e; // OOME/SOE: the JVM is unrecoverable, not the provider misbehaving
+        } catch (Throwable t) {
+            // Throwable, not Exception: this is the boundary where untrusted consumer code runs, and a
+            // provider compiled against an older signature throws Error (AbstractMethodError,
+            // NoClassDefFoundError), which an Exception catch would let escape and kill the server tick.
             if (RATE_PROVIDER_FAILURE_LOGGED.compareAndSet(false, true)) {
-                Instinct.LOGGER.warn("Veterancy rate provider threw; using 1.0", e);
+                Instinct.LOGGER.warn("Veterancy rate provider {} threw; using 1.0",
+                        provider.getClass().getName(), t);
             }
             return 1.0;
         }

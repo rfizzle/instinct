@@ -1,5 +1,6 @@
 package com.rfizzle.instinct.api;
 
+import com.rfizzle.instinct.Instinct;
 import net.fabricmc.fabric.api.event.Event;
 import net.fabricmc.fabric.api.event.EventFactory;
 import net.minecraft.world.entity.animal.Animal;
@@ -7,6 +8,8 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 
 import org.jetbrains.annotations.Nullable;
+
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Fired server-side the instant a downed animal is back on its feet — after its health,
@@ -30,15 +33,35 @@ import org.jetbrains.annotations.Nullable;
  * parameter is {@link Animal} rather than a narrower type because mounts-set membership resolves by
  * entity-type id through config and the {@code #instinct:mounts} tag, so a mount need not be an
  * {@code AbstractHorse}.
+ *
+ * <p>A listener that throws is caught, logged, and skipped; it can never break the revival or the
+ * listeners registered after it.
  */
 @Stable
 @FunctionalInterface
 public interface InstinctAnimalRevivedCallback {
 
+    AtomicBoolean LISTENER_FAILURE_LOGGED = new AtomicBoolean(false);
+
     Event<InstinctAnimalRevivedCallback> EVENT = EventFactory.createArrayBacked(InstinctAnimalRevivedCallback.class,
             listeners -> (animal, reviver, item) -> {
                 for (InstinctAnimalRevivedCallback listener : listeners) {
-                    listener.onAnimalRevived(animal, reviver, item);
+                    try {
+                        listener.onAnimalRevived(animal, reviver, item);
+                    } catch (VirtualMachineError e) {
+                        throw e; // OOME/SOE: the JVM is unrecoverable, not the listener misbehaving
+                    } catch (Throwable t) {
+                        // Throwable, not Exception: this is the boundary where untrusted listener code
+                        // runs, and a consumer compiled against an older signature throws Error
+                        // (AbstractMethodError, NoClassDefFoundError), which an Exception catch would
+                        // let escape and kill the server tick.
+                        // Once-only: a listener that throws once throws every time, and an ungated log
+                        // would put stack-trace formatting on the server thread at the fire rate.
+                        if (LISTENER_FAILURE_LOGGED.compareAndSet(false, true)) {
+                            Instinct.LOGGER.warn("InstinctAnimalRevivedCallback listener {} threw; skipping it",
+                                    listener.getClass().getName(), t);
+                        }
+                    }
                 }
             });
 
