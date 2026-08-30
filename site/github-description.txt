@@ -1,1 +1,1 @@
-A standalone Minecraft 1.21.1 Fabric mod overhauling husbandry — the animals you tame, breed, and keep. Worth raising: self-preserving pets, veterancy, quality genetics, herd flocking, the feeding trough, and the command whistle. Part of the Concord collection.
+A standalone Minecraft 1.21.1 Fabric mod overhauling husbandry — the animals you tame, breed, and keep. Worth raising: self-preserving pets, veterancy, quality genetics, herd flocking, predator watch, the feeding trough, the kennel post, the command whistle, and downed-pet rescue. Part of the Concord collection.

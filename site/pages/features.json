@@ -3,7 +3,7 @@
   "metaTitle": "Features — Instinct",
   "metaDescription": "Every Instinct feature as designed: pet self-preservation, veterancy, quality genetics, flocking, the feeding trough, the command whistle, downed pets, the kennel post, and modded-animal coverage.",
   "title": "Features",
-  "lede": "Everything below is the committed design — the numbers are the spec's. Instinct is in development; features ship against these promises.",
+  "lede": "Everything below ships today, and every number here is a default you can move in the config.",
   "width": "4xl",
   "scale": true,
   "sections": [
@@ -163,12 +163,12 @@
     {
       "id": "better-together",
       "title": "Better Together",
-      "intro": "Instinct is complete on its own — siblings light up extra touches, never required.",
+      "intro": "Instinct is complete on its own — two siblings light up extra touches, never required.",
       "blocks": [
         {
           "type": "prose",
           "html": [
-            "With <strong>Mercantile</strong>, butchers and farmers sell Vet Kits and Pedigree Treats at high reputation. With <strong>Tribulation</strong>, days survived at difficulty tier 3+ count double toward veterancy. With <strong>Prosperity</strong>, far-tier chests occasionally hold a Vet Kit or a Pedigree Treat. With <strong>Cultivation</strong>, farm produce pours straight into the feeding trough. With <strong>Distillation</strong>, a brewed remedy joins the revival shelf. With <strong>Respite</strong>, its swift nights age pets and finish breeding rests on the same clock. With none of them installed, nothing is missing.",
+            "With <strong>Tribulation</strong>, days survived at difficulty tier 3+ count double toward veterancy. With <strong>Prosperity</strong>, outlands- and depths-tier chests occasionally hold a Vet Kit or a Pedigree Treat. With neither installed, nothing is missing.",
             "For a look under the hood, <strong>Jade</strong> and <strong>WTHIT</strong> read Instinct's state straight off your crosshair: an animal's grade, perk, veterancy, and downed status, and a feeding trough's stock and the herd it counts against its cap. And with <strong>Mod Menu</strong> plus <strong>Cloth Config</strong>, every setting is editable in-game."
           ]
         }
