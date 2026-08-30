@@ -32,9 +32,9 @@ public enum Grade implements StringRepresentable {
         return PRIME;
     }
 
-    /** The {@code instinct.grade.*} key for this grade's display name. */
+    /** The {@code fragment.instinct.grade.*} key for this grade's display name (DESIGN-SYSTEM §10). */
     public String translationKey() {
-        return "instinct.grade." + name;
+        return "fragment.instinct.grade." + name;
     }
 
     @Override
