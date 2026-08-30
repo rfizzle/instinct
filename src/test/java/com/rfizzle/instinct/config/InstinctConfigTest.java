@@ -118,6 +118,70 @@ class InstinctConfigTest {
                 "a v0 file should be migrated and persisted back at v1");
     }
 
+    /**
+     * The upgrade path a purely additive key used to fall through (#88). Gson leaves an absent key at
+     * its class initializer, so an additive field with a benign default correctly owes no migration —
+     * but {@code load()} used to persist the file only when a migration had actually run, so an
+     * existing file already at the current version never gained the new keys. The in-memory values
+     * were right; the file a server owner edits never mentioned the option existed, and that compounded
+     * one option at a time across releases.
+     */
+    @Test
+    void aCurrentVersionFileMissingAKeyIsRewrittenWithIt() throws IOException {
+        // Already at CURRENT_VERSION, so ConfigMigrator.migrate returns false and the old save-only-on-
+        // migration rule would have left this file exactly as written.
+        Files.writeString(configFile(), """
+                {
+                  "configVersion": 1,
+                  "creeperBerthBlocks": 5
+                }
+                """);
+
+        InstinctConfig config = InstinctConfig.load(configFile());
+
+        assertEquals(5, config.creeperBerthBlocks, "the player's own value survives the rewrite");
+        JsonObject written = JsonParser.parseString(Files.readString(configFile())).getAsJsonObject();
+        for (String key : SPEC_KEYS) {
+            assertTrue(written.has(key),
+                    "an existing config file must gain every key it predates, but '" + key
+                            + "' is still absent after load");
+        }
+        assertEquals(5, written.get("creeperBerthBlocks").getAsInt(),
+                "the rewrite must not reset a value the player set");
+    }
+
+    /** The backfill must settle: a second load of the rewritten file finds nothing missing. */
+    @Test
+    void theBackfillRewriteIsIdempotent() throws IOException {
+        Files.writeString(configFile(), """
+                {
+                  "configVersion": 1,
+                  "creeperBerthBlocks": 5
+                }
+                """);
+        InstinctConfig.load(configFile());
+        String afterFirst = Files.readString(configFile());
+
+        InstinctConfig.load(configFile());
+
+        assertEquals(afterFirst, Files.readString(configFile()),
+                "a complete file must not be rewritten again on every load");
+    }
+
+    /** A complete file the player has edited is left byte-for-byte alone. */
+    @Test
+    void aCompleteFileIsNotRewritten() throws IOException {
+        InstinctConfig.load(configFile());   // first run writes a complete default file
+        String written = Files.readString(configFile());
+        Files.setLastModifiedTime(configFile(), java.nio.file.attribute.FileTime.fromMillis(0L));
+
+        InstinctConfig.load(configFile());
+
+        assertEquals(written, Files.readString(configFile()), "a complete file is left untouched");
+        assertEquals(0L, Files.getLastModifiedTime(configFile()).toMillis(),
+                "a complete file must not even be rewritten with identical content");
+    }
+
     @Test
     void namedDismountGestureSurvivesLoad() throws IOException {
         Files.writeString(configFile(), """

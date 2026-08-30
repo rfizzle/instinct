@@ -24,9 +24,20 @@ import java.util.Set;
 
 /**
  * The mod's JSON config ({@code config/instinct.json}), per {@code design/SPEC.md} §Configuration.
- * All keys sit flat at the top level so the JSON matches the spec's table verbatim; every key is
- * server-authoritative (Instinct has no client config — no HUD, no client rendering toggles;
- * inspection lines are server-driven), so no server→client sync view exists.
+ * All keys sit flat at the top level so the JSON matches the spec's table verbatim.
+ *
+ * <p><b>No server→client sync, deliberately.</b> Every key here is server-authoritative and nothing
+ * on the client reads one: Instinct has no HUD and no client rendering toggle, inspection lines are
+ * server-driven, and the client's only touch of this class is the Cloth Config screen editing a local
+ * working copy. A {@code ConfigSyncPayload} today would carry values no client consumes.
+ *
+ * <p>TODO: the first client-visible toggle changes that, and the moment one exists this needs the
+ * canonical sync from the {@code mc-config} skill — a payload carrying the serialized config as one
+ * length-bounded string under {@code instinct:config_sync}, clamped inside {@code client.execute(...)}
+ * and cleared with {@code setServerConfig(null)} on disconnect. Without it a client would silently use
+ * its own value where the server's must win. {@code ClientConfigReadContractTest} is the tripwire: it
+ * fails the build the moment client code reads this class anywhere but the Cloth screen, so the gap
+ * cannot be forgotten rather than merely noted.
  */
 public class InstinctConfig {
     private static final String CONFIG_FILENAME = "instinct.json";
@@ -122,7 +133,7 @@ public class InstinctConfig {
     // §2/§3 shared
     public boolean enableInspection = true;
 
-    // Derived membership sets, rebuilt by validate() from the id lists above (canonical
+    // Derived membership sets, rebuilt by clamp() from the id lists above (canonical
     // "namespace:path" form). Transient so GSON never serializes them.
     public transient Set<String> petsIncludeSet = Set.of();
     public transient Set<String> petsExcludeSet = Set.of();
@@ -201,7 +212,7 @@ public class InstinctConfig {
      */
     public static void publish(InstinctConfig next) {
         next.fillDefaults();
-        next.validate();
+        next.clamp();
         next.save(configPath());
         synchronized (InstinctConfig.class) {
             INSTANCE = next;
@@ -212,7 +223,7 @@ public class InstinctConfig {
         if (!Files.exists(path)) {
             Instinct.LOGGER.info("Config file missing; creating default at {}", path);
             InstinctConfig config = new InstinctConfig();
-            config.validate();
+            config.clamp();
             config.save(path);
             return config;
         }
@@ -220,7 +231,7 @@ public class InstinctConfig {
             JsonElement element = JsonParser.parseString(Files.readString(path));
             if (element == null || !element.isJsonObject()) {
                 Instinct.LOGGER.warn("Config file at {} was empty or not a JSON object; using defaults (existing file left untouched)", path);
-                return validatedDefaults();
+                return clampedDefaults();
             }
             // Migrate the raw JSON tree before deserialize so a renamed key survives (a lenient
             // Gson deserialize would drop it). A file without configVersion is treated as v0.
@@ -228,27 +239,58 @@ public class InstinctConfig {
             boolean migrated = ConfigMigrator.migrate(raw);
             InstinctConfig config = GSON.fromJson(raw, InstinctConfig.class);
             if (config == null) {
-                return validatedDefaults();
+                return clampedDefaults();
             }
             config.fillDefaults();
-            config.validate();
-            if (migrated) {
+            config.clamp();
+            // Rewrite when a migration ran, and also when the file simply predates a key. Gson leaves
+            // an absent key at its class initializer, so a purely additive field with a benign default
+            // owes no migration and gets none — which meant an existing file never gained it, and a
+            // server owner who administers Instinct by editing instinct.json never saw the option
+            // exist. That compounds one option at a time across releases. Comparing against a
+            // freshly-serialized tree closes it for every future addition at once, and is idempotent:
+            // the rewrite puts the missing keys on disk, so the next load finds nothing missing.
+            if (migrated || isMissingAKey(raw, GSON.toJsonTree(config).getAsJsonObject())) {
                 config.save(path);
             }
             return config;
         } catch (JsonSyntaxException e) {
             Instinct.LOGGER.error("Failed to parse config at {}; using defaults (existing file left untouched)", path, e);
-            return validatedDefaults();
+            return clampedDefaults();
         } catch (IOException e) {
             Instinct.LOGGER.error("Failed to read config at {}; using defaults", path, e);
-            return validatedDefaults();
+            return clampedDefaults();
         }
     }
 
-    private static InstinctConfig validatedDefaults() {
+    /**
+     * Whether {@code onDisk} is missing any key the fully-populated {@code complete} tree carries.
+     *
+     * <p>Recurses into nested objects so a future config section is covered without revisiting this,
+     * and deliberately looks only for absences: an unrecognised key a player left behind is theirs to
+     * keep, and a differing <em>value</em> is the whole point of the file. Arrays are compared by
+     * presence only — their contents are the player's.
+     */
+    private static boolean isMissingAKey(JsonObject onDisk, JsonObject complete) {
+        for (String key : complete.keySet()) {
+            if (!onDisk.has(key)) {
+                Instinct.LOGGER.info("Config file predates the '{}' option; rewriting it with the new keys", key);
+                return true;
+            }
+            JsonElement expected = complete.get(key);
+            JsonElement actual = onDisk.get(key);
+            if (expected.isJsonObject() && actual.isJsonObject()
+                    && isMissingAKey(actual.getAsJsonObject(), expected.getAsJsonObject())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static InstinctConfig clampedDefaults() {
         InstinctConfig fallback = new InstinctConfig();
         fallback.fillDefaults();
-        fallback.validate();
+        fallback.clamp();
         return fallback;
     }
 
@@ -310,9 +352,11 @@ public class InstinctConfig {
     /**
      * Warn-and-clamp every ranged field, logging each correction, and rebuild the derived
      * membership sets. Ranges come from {@code design/SPEC.md} §Configuration, mirrored on
-     * {@code site/pages/config.json}. Runs on every population path.
+     * {@code site/pages/config.json}. Runs on every population path — first-run defaults, a file
+     * load, a Cloth screen save, and the unparseable-file fallback — so no path can publish an
+     * unbounded value.
      */
-    public void validate() {
+    public void clamp() {
         creeperBerthBlocks = clampInt("creeperBerthBlocks", creeperBerthBlocks, 2, 8);
         teleportSuppressFallDistance = clampDouble("teleportSuppressFallDistance", teleportSuppressFallDistance, 0.5, 10.0);
         steadyShoulderDismountDamage = clampDouble("steadyShoulderDismountDamage", steadyShoulderDismountDamage, 0.0, 20.0);
