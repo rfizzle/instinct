@@ -20,9 +20,9 @@ public enum Perk implements StringRepresentable {
         this.name = name;
     }
 
-    /** The {@code instinct.perk.*} key for this perk's display name. */
+    /** The {@code fragment.instinct.perk.*} key for this perk's display name (DESIGN-SYSTEM §10). */
     public String translationKey() {
-        return "instinct.perk." + name;
+        return "fragment.instinct.perk." + name;
     }
 
     @Override

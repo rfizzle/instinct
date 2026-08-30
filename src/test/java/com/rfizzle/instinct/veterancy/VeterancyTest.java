@@ -41,9 +41,9 @@ class VeterancyTest {
 
     @Test
     void rankKeysNameTheThreeRanks() {
-        assertEquals("instinct.rank.seasoned", Veterancy.rankKey(1));
-        assertEquals("instinct.rank.veteran", Veterancy.rankKey(2));
-        assertEquals("instinct.rank.venerable", Veterancy.rankKey(3));
+        assertEquals("fragment.instinct.rank.seasoned", Veterancy.rankKey(1));
+        assertEquals("fragment.instinct.rank.veteran", Veterancy.rankKey(2));
+        assertEquals("fragment.instinct.rank.venerable", Veterancy.rankKey(3));
     }
 
     @Test

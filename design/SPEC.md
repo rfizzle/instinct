@@ -909,7 +909,7 @@ Custom cues are synthesized via the `/sfx` pipeline (concord `design/DESIGN-SYST
 
 ## Localization
 
-All user-facing text uses translation keys in `assets/instinct/lang/en_us.json`, namespaced by surface per concord DESIGN-SYSTEM §10. Notification lines carry the ✦ marker inside the localized value. Grade and rank names route through `Grade.translationKey()` / `Veterancy.rankKey(int)` — code never formats an enum for the player.
+All user-facing text uses translation keys in `assets/instinct/lang/en_us.json`, namespaced by surface per concord DESIGN-SYSTEM §10. Notification lines carry the ✦ marker inside the localized value. Grade, perk, and rank names route through `Grade.translationKey()` / `Perk.translationKey()` / `Veterancy.rankKey(int)` — code never formats an enum for the player, and the keys they return are surface-prefixed, never bare-modid.
 
 | Pattern | Example | Used for |
 |---|---|---|
@@ -921,7 +921,7 @@ All user-facing text uses translation keys in `assets/instinct/lang/en_us.json`,
 | `subtitles.instinct.*` | `subtitles.instinct.whistle_follow` | Custom sound subtitles |
 | `block.instinct.feeding_trough` | — | Block name (vanilla-mandated) |
 | `item.instinct.<id>` | `item.instinct.command_whistle` | Item names (vanilla-mandated) |
-| `instinct.grade.*` / `instinct.rank.*` | `instinct.rank.venerable` | Grade/rank display names embedded across surfaces |
+| `fragment.instinct.*` | `fragment.instinct.rank.venerable` | Grade, perk, and rank display names — noun phrases composed into `%s` slots on three or more surfaces at once, so DESIGN-SYSTEM §10's reserved `fragment.` prefix rather than any one surface's |
 
 Parameterized messages use `%s`/`%d` — e.g. `"notification.instinct.inspect_pet": "✦ %s has seen %d days — %s."`.
 

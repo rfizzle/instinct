@@ -15,9 +15,9 @@ public final class Veterancy {
     public static final double TICKS_PER_DAY = 24_000.0;
 
     private static final String[] RANK_KEYS = {
-            "instinct.rank.seasoned",
-            "instinct.rank.veteran",
-            "instinct.rank.venerable",
+            "fragment.instinct.rank.seasoned",
+            "fragment.instinct.rank.veteran",
+            "fragment.instinct.rank.venerable",
     };
 
     private Veterancy() {
@@ -34,7 +34,7 @@ public final class Veterancy {
         return rank;
     }
 
-    /** The {@code instinct.rank.*} key for a rank's display name; ranks 1–3 only. */
+    /** The {@code fragment.instinct.rank.*} key for a rank's display name, ranks 1–3 only (DESIGN-SYSTEM §10). */
     public static String rankKey(int rank) {
         return RANK_KEYS[Math.clamp(rank, 1, RANK_KEYS.length) - 1];
     }
