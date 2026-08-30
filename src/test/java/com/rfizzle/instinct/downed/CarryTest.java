@@ -55,11 +55,11 @@ class CarryTest {
     void configClampsSlowdownFractionToRange() {
         InstinctConfig config = new InstinctConfig();
         config.carrySlowdownFraction = 5.0;
-        config.validate();
+        config.clamp();
         assertEquals(0.9, config.carrySlowdownFraction, 1e-9, "above range clamps to 0.9");
 
         config.carrySlowdownFraction = -1.0;
-        config.validate();
+        config.clamp();
         assertEquals(0.0, config.carrySlowdownFraction, 1e-9, "below range clamps to 0.0");
     }
 }
