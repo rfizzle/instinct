@@ -15,6 +15,7 @@ import com.rfizzle.instinct.herding.Herding;
 import com.rfizzle.instinct.inspection.Inspection;
 import com.rfizzle.instinct.keepsake.KeepsakeHandler;
 import com.rfizzle.instinct.kennel.KennelHandler;
+import com.rfizzle.instinct.network.InstinctNetworking;
 import com.rfizzle.instinct.predatorwatch.PredatorWatch;
 import com.rfizzle.instinct.registry.InstinctBlockEntities;
 import com.rfizzle.instinct.registry.InstinctBlocks;
@@ -43,6 +44,7 @@ public class Instinct implements ModInitializer {
     @Override
     public void onInitialize() {
         InstinctConfig.init();
+        InstinctNetworking.register();
         InstinctAttachments.init();
         InstinctBlocks.register();
         InstinctBlockEntities.register();

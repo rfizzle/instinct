@@ -4,7 +4,6 @@ import com.rfizzle.instinct.Instinct;
 import com.rfizzle.instinct.registry.InstinctItems;
 import net.fabricmc.fabric.api.event.player.AttackBlockCallback;
 import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
-import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -13,11 +12,13 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 
 /**
- * The command whistle's server wiring ({@code design/SPEC.md} §6). Registers the
- * {@code instinct:whistle_toggle} payload and its receiver (the left-click-on-air path) and the two
- * attack callbacks (the left-click-on-block/entity path), all of which route to the same Stay/Follow
- * toggle in {@link WhistleActions}. A left-click holding the whistle is always cancelled, so the
- * whistle never breaks a block or strikes an entity — it only commands.
+ * The command whistle's server wiring ({@code design/SPEC.md} §6). Registers the receivers for the
+ * {@code instinct:whistle_toggle} and {@code instinct:whistle_locate} payloads (the
+ * left-click-on-air path; the payload types themselves are declared in
+ * {@link com.rfizzle.instinct.network.InstinctNetworking}) and the two attack callbacks (the
+ * left-click-on-block/entity path), all of which route to the same Stay/Follow toggle in
+ * {@link WhistleActions}. A left-click holding the whistle is always cancelled, so the whistle
+ * never breaks a block or strikes an entity — it only commands.
  */
 public final class Whistle {
 
@@ -25,8 +26,6 @@ public final class Whistle {
     }
 
     public static void register() {
-        PayloadTypeRegistry.playC2S().register(WhistleTogglePayload.TYPE, WhistleTogglePayload.CODEC);
-        PayloadTypeRegistry.playC2S().register(WhistleLocatePayload.TYPE, WhistleLocatePayload.CODEC);
         ServerPlayNetworking.registerGlobalReceiver(WhistleTogglePayload.TYPE, (payload, context) -> {
             ServerPlayer player = context.player();
             player.server.execute(() -> {
