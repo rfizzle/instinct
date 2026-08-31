@@ -1,5 +1,7 @@
 # Instinct 16x16 kennel post — cap top: oak boards with a small paw carved in the middle.
 size: 16
+kind: cap
+ships: src/main/resources/assets/instinct/textures/block/kennel_post_top.png
 
 legend:
   a #b8955c

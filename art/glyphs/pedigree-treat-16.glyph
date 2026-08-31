@@ -2,6 +2,8 @@
 # Rounded lozenge, warm amber ramp with a glossy top-left glaze shine, ink silhouette outline.
 # Light from top-left: honey highlight upper-left, russet-amber shadow lower-right.
 size: 16
+kind: sprite
+ships: src/main/resources/assets/instinct/textures/item/pedigree_treat.png
 
 legend:
   @ #0a0a0a

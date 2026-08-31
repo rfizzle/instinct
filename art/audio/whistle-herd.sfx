@@ -2,8 +2,10 @@
   "name": "whistle_herd",
   "sample_rate": 44100,
   "peak_dbfs": -1.0,
+  "loudness_lufs": null,
   "subtitle": "subtitles.instinct.whistle_herd",
   "seed": 64,
+  "ships": "src/main/resources/assets/instinct/sounds/whistle_herd.ogg",
   "layers": [
     {
       "waveform": "sine",

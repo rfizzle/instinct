@@ -2,8 +2,10 @@
   "name": "whistle_attack",
   "sample_rate": 44100,
   "peak_dbfs": -1.0,
+  "loudness_lufs": null,
   "subtitle": "subtitles.instinct.whistle_attack",
   "seed": 63,
+  "ships": "src/main/resources/assets/instinct/sounds/whistle_attack.ogg",
   "layers": [
     {
       "waveform": "sine",

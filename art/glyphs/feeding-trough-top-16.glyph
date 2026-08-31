@@ -1,6 +1,8 @@
 # Instinct 16x16 feeding trough — top face: the plank rim of the open trough.
 # Worn oak boards framed by a darker worn edge, so the rim reads against the hay interior.
 size: 16
+kind: cap
+ships: src/main/resources/assets/instinct/textures/block/feeding_trough_top.png
 
 legend:
   a #b8955c

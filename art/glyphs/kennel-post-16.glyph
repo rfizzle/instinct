@@ -1,5 +1,7 @@
 # Instinct 16x16 kennel post — the post's wood: vertical oak grain with dark grooves.
 size: 16
+kind: block
+ships: src/main/resources/assets/instinct/textures/block/kennel_post.png
 
 legend:
   a #b8955c

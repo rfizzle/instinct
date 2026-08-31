@@ -3,6 +3,9 @@
 # tab on the left, and an ink silhouette outline. Light from top-left: copper
 # highlight along the upper-left of the barrel, oxidized copper shadow lower-right.
 size: 16
+kind: sprite
+ships: src/main/resources/assets/instinct/textures/item/command_whistle.png
+edge: shaped
 
 legend:
   @ #0a0a0a
