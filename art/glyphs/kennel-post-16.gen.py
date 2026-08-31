@@ -56,8 +56,8 @@ def top_pixel(x, y):
     return OAK_LIGHT if (x + (y // 2)) % 3 else OAK_MID
 
 
-def render(name, header, pixel):
-    lines = [f"# {header}", "size: 16", "", "legend:"]
+def render(name, header, kind, ships, pixel):
+    lines = [f"# {header}", "size: 16", f"kind: {kind}", f"ships: {ships}", "", "legend:"]
     used = sorted({pixel(x, y) for y in range(N) for x in range(N)})
     for token in used:
         lines.append(f"  {token} {LEGEND[token]}")
@@ -72,9 +72,11 @@ def render(name, header, pixel):
 
 render("kennel-post-16.glyph",
        "Instinct 16x16 kennel post — the post's wood: vertical oak grain with dark grooves.",
+       "block", "src/main/resources/assets/instinct/textures/block/kennel_post.png",
        post_pixel)
 render("kennel-post-top-16.glyph",
        "Instinct 16x16 kennel post — cap top: oak boards with a small paw carved in the middle.",
+       "cap", "src/main/resources/assets/instinct/textures/block/kennel_post_top.png",
        top_pixel)
 
 print()

@@ -1,6 +1,8 @@
 # Instinct 16x16 feeding trough — inner face: the hay-lined interior.
 # Golden hay ramp with criss-crossed strands; tiles as a floor and up the inner walls.
 size: 16
+kind: block
+ships: src/main/resources/assets/instinct/textures/block/feeding_trough_inner.png
 
 legend:
   h #d8ba54

@@ -3,6 +3,8 @@
 # (bone highlight upper-left → ash midtone → smoke shadow lower-right), and a bold
 # emerald cross centered on the face. Light from top-left.
 size: 16
+kind: sprite
+ships: src/main/resources/assets/instinct/textures/item/vet_kit.png
 
 legend:
   @ ink

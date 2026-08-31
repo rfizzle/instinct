@@ -2,6 +2,11 @@
 # Glowing heart-rose paw print carved into a weathered dark stone slab.
 # Masters: --scale-to 128 -> art/icon-128.png, --scale-to 512 -> art/icon-512.png
 size: 32
+kind: icon
+ships: art/icon-128.png 128
+ships: art/icon-512.png 512
+ships: src/main/resources/assets/instinct/icon.png 128
+ships: site/assets/icon.png 128
 
 legend:
   @ #0a0a0a
