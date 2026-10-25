@@ -27,6 +27,7 @@ jobs:
   review:
     uses: rfizzle/concord/.github/workflows/claude-review.yml@master
     with:
+      concord-ref: master
       head-sha: ${{ github.event.workflow_run.head_sha }}
       ci-conclusion: ${{ github.event.workflow_run.conclusion }}
       ci-run-id: ${{ github.event.workflow_run.id }}

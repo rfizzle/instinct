@@ -14,6 +14,7 @@ jobs:
   release:
     uses: rfizzle/concord/.github/workflows/mod-release.yml@master
     with:
+      concord-ref: master
       modrinth-id: "x5aRPdcH"
       curseforge-id: "1617731"
     secrets: inherit
