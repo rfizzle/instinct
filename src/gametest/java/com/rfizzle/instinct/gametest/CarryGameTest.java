@@ -3,7 +3,7 @@ package com.rfizzle.instinct.gametest;
 import com.rfizzle.instinct.api.InstinctAPI;
 import com.rfizzle.instinct.config.InstinctConfig;
 import com.rfizzle.instinct.downed.CarryHandler;
-import com.rfizzle.instinct.gametest.util.MockPlayers;
+import com.rfizzle.concord.gametest.MockPlayers;
 import com.rfizzle.instinct.gametest.util.PetSpawns;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;

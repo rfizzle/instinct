@@ -5,7 +5,7 @@ import com.rfizzle.instinct.api.Grade;
 import com.rfizzle.instinct.api.InstinctAPI;
 import com.rfizzle.instinct.data.GeneticsData;
 import com.rfizzle.instinct.data.InstinctAttachments;
-import com.rfizzle.instinct.gametest.util.MockPlayers;
+import com.rfizzle.concord.gametest.MockPlayers;
 import net.fabricmc.fabric.api.gametest.v1.FabricGameTest;
 import net.minecraft.advancements.AdvancementHolder;
 import net.minecraft.core.BlockPos;

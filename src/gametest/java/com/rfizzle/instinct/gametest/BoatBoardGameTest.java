@@ -2,7 +2,7 @@ package com.rfizzle.instinct.gametest;
 
 import com.rfizzle.instinct.boating.BoardBoatGoal;
 import com.rfizzle.instinct.config.InstinctConfig;
-import com.rfizzle.instinct.gametest.util.MockPlayers;
+import com.rfizzle.concord.gametest.MockPlayers;
 import com.rfizzle.instinct.gametest.util.PetSpawns;
 import com.rfizzle.instinct.gametest.util.TestFloors;
 import net.fabricmc.fabric.api.gametest.v1.FabricGameTest;

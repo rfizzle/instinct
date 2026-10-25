@@ -4,7 +4,7 @@ import com.rfizzle.instinct.api.InstinctAPI;
 import com.rfizzle.instinct.config.InstinctConfig;
 import com.rfizzle.instinct.data.InstinctAttachments;
 import com.rfizzle.instinct.data.VeterancyData;
-import com.rfizzle.instinct.gametest.util.MockPlayers;
+import com.rfizzle.concord.gametest.MockPlayers;
 import com.rfizzle.instinct.inspection.Inspection;
 import com.rfizzle.instinct.veterancy.Veterancy;
 import com.rfizzle.instinct.veterancy.VeterancyHandler;

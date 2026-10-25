@@ -5,7 +5,7 @@ import com.rfizzle.instinct.config.InstinctConfig;
 import com.rfizzle.instinct.data.DownedData;
 import com.rfizzle.instinct.data.GuardData;
 import com.rfizzle.instinct.data.InstinctAttachments;
-import com.rfizzle.instinct.gametest.util.MockPlayers;
+import com.rfizzle.concord.gametest.MockPlayers;
 import com.rfizzle.instinct.gametest.util.PetSpawns;
 import com.rfizzle.instinct.gametest.util.TestFloors;
 import com.rfizzle.instinct.registry.InstinctItems;
