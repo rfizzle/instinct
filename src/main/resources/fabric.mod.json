@@ -33,7 +33,8 @@
         "cloth-config": "*",
         "jade": "*",
         "wthit": "*",
-        "tribulation": "*"
+        "tribulation": "*",
+        "prosperity": "*"
     },
     "depends": {
         "fabricloader": ">=0.16.10",

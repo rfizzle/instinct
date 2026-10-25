@@ -96,6 +96,7 @@ The mod plans optional integrations (all `modCompileOnly` — not bundled):
 - **Cloth Config** — settings GUI builder
 - **Jade / WTHIT** — animal/trough tooltip overlays
 - **Tribulation** — veterancy accrual doubling at high difficulty tiers
+- **Prosperity** — loot-table injection: Vet Kits and Pedigree Treats in outlands- and depths-tier chests (data-driven, no compat class)
 
 Compat classes live under `com.rfizzle.instinct.compat.<modid>`.
 
