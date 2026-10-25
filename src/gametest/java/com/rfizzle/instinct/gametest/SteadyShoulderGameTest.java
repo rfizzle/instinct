@@ -1,7 +1,7 @@
 package com.rfizzle.instinct.gametest;
 
 import com.rfizzle.instinct.config.InstinctConfig;
-import com.rfizzle.instinct.gametest.util.MockPlayers;
+import com.rfizzle.concord.gametest.MockPlayers;
 import com.rfizzle.instinct.gametest.util.TestFloors;
 import com.rfizzle.instinct.shoulders.ShoulderDismountGesture;
 import com.rfizzle.instinct.shoulders.SneakTapTracker;

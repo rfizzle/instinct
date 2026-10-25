@@ -8,7 +8,7 @@ import com.rfizzle.instinct.data.GeneticsData;
 import com.rfizzle.instinct.data.InstinctAttachments;
 import com.rfizzle.instinct.genetics.GeneticsHandler;
 import com.rfizzle.instinct.genetics.ProductTable;
-import com.rfizzle.instinct.gametest.util.MockPlayers;
+import com.rfizzle.concord.gametest.MockPlayers;
 import com.rfizzle.instinct.item.PedigreeTreatItem;
 import com.rfizzle.instinct.registry.InstinctItems;
 import net.fabricmc.fabric.api.gametest.v1.FabricGameTest;

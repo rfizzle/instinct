@@ -1,7 +1,7 @@
 package com.rfizzle.instinct.gametest;
 
 import com.rfizzle.instinct.config.InstinctConfig;
-import com.rfizzle.instinct.gametest.util.MockPlayers;
+import com.rfizzle.concord.gametest.MockPlayers;
 import net.fabricmc.fabric.api.gametest.v1.FabricGameTest;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTest;

@@ -7,7 +7,7 @@ import com.rfizzle.instinct.config.InstinctConfig;
 import com.rfizzle.instinct.coverage.AnimalCoverage;
 import com.rfizzle.instinct.coverage.CoverageResolver;
 import com.rfizzle.instinct.coverage.MembershipRule;
-import com.rfizzle.instinct.gametest.util.MockPlayers;
+import com.rfizzle.concord.gametest.MockPlayers;
 import com.rfizzle.instinct.gametest.util.PetSpawns;
 import com.rfizzle.instinct.gametest.util.TestFloors;
 import com.rfizzle.instinct.registry.InstinctItems;

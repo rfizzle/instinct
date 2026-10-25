@@ -5,7 +5,7 @@ import com.rfizzle.instinct.api.InstinctAnimalRevivedCallback;
 import com.rfizzle.instinct.config.InstinctConfig;
 import com.rfizzle.instinct.data.HomeData;
 import com.rfizzle.instinct.data.InstinctAttachments;
-import com.rfizzle.instinct.gametest.util.MockPlayers;
+import com.rfizzle.concord.gametest.MockPlayers;
 import com.rfizzle.instinct.gametest.util.PetSpawns;
 import com.rfizzle.instinct.gametest.util.TestFloors;
 import com.rfizzle.instinct.kennel.KennelHandler;
