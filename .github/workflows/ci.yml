@@ -7,6 +7,8 @@ on:
     branches: [master]
   pull_request:
     branches: [master]
+  # Manual runs; concord's `make promote` dispatches this on the canary member.
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -20,4 +22,6 @@ permissions:
 jobs:
   ci:
     uses: rfizzle/concord/.github/workflows/mod-ci.yml@master
+    with:
+      concord-ref: master
     secrets: inherit

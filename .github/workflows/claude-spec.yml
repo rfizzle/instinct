@@ -17,4 +17,6 @@ permissions:
 jobs:
   spec:
     uses: rfizzle/concord/.github/workflows/claude-spec.yml@master
+    with:
+      concord-ref: master
     secrets: inherit
